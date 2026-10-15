@@ -1,0 +1,8 @@
+openapi: 3.0.3
+info:
+  title: DAMSO API
+  version: 0.0.0
+  description: 백엔드 레포 docs/api/openapi.yaml 의 사본. 직접 수정하지 않고 scripts/fetch-openapi.sh 로 받는다.
+paths: {}
+components:
+  schemas: {}
