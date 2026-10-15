@@ -7,7 +7,7 @@ context, or rules themselves — follow the references below.
 
 Flutter app for DAMSO (담소), a parent–teacher communication app. Dart package
 `damso_app`, Android and iOS only. The backend lives in a separate repository
-(`damso`) and owns the API contract; this app consumes `docs/api/openapi.yaml`.
+(`damsoWE/damso_server`) and owns the API contract; this app consumes `docs/api/openapi.yaml`.
 
 ## Important Note for AI Agent
 
