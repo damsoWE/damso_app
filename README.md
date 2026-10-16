@@ -20,7 +20,7 @@
 cp env/example.json env/dev.json                        # 최초 1회, 값 수정
 flutter pub get
 flutter run --dart-define-from-file=env/dev.json        # 실서버 (Android 에뮬레이터는 10.0.2.2)
-flutter run -t lib/main_mock.dart                       # mock Repository (서버 불필요)
+flutter run --dart-define=USE_MOCK=true                  # mock Repository (서버 불필요)
 flutter analyze && flutter test
 ```
 
@@ -29,9 +29,8 @@ flutter analyze && flutter test
 ```
 lib/
 ├── app/        루트 위젯, 라우터
-├── core/       config(Env), network(dio), storage(토큰)
-├── features/   <기능>/{data,domain,presentation}
-└── mock/       mock Repository override
+├── core/       config(Env), network(dio), storage(토큰), error, theme
+└── features/   <기능>/{presentation,domain,data}  (MVVM, mock 구현은 data 안)
 ```
 
 ## 문서

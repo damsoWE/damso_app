@@ -13,7 +13,7 @@
 | plan | 그 화면을 **어떻게** 만들지. Flutter 구조·상태 관리·API 연동이 여기서 정해진다. `plan.md` |
 | contract | 프론트와 백엔드가 주고받는 API 약속. **원본은 백엔드**, 프론트는 사본(`docs/api/openapi.yaml`)을 읽기만 한다 |
 | tasks | plan을 실제 작업 단위로 쪼갠 체크리스트. `tasks.md` |
-| mock | 서버 없이 앱을 돌리기 위한 가짜 Repository. `lib/mock/`, 실행은 `lib/main_mock.dart` |
+| mock | 서버 없이 앱을 돌리기 위한 가짜 Repository. `features/<기능>/data/mock_*_repository.dart`, `USE_MOCK=true`로 실행 |
 | PR | Pull Request. 내 브랜치의 변경을 main에 합쳐 달라고 요청하고 리뷰받는 것 |
 
 ---
@@ -98,8 +98,9 @@ gh issue develop <이슈 번호> --name features/f1-auth-signup --base main --ch
   ```
   /speckit-plan Flutter 3.38 / Dart 3.10, Android·iOS. flutter_riverpod 3.x,
   go_router, dio(Interceptor 단일 지점), flutter_secure_storage.
-  lib/features/<기능>/{data,domain,presentation} 구조, Repository 인터페이스 +
-  provider override로 mock 교체. API는 docs/api/openapi.yaml 을 따른다.
+  lib/features/<기능>/{presentation,domain,data} 구조(MVVM, ViewModel은 Riverpod
+  Notifier/AsyncNotifier, UseCase 층 없음), Repository 인터페이스 + data의 실서버·mock
+  구현을 USE_MOCK env 값으로 provider 한 곳에서 전환. API는 docs/api/openapi.yaml 을 따른다.
   ```
 - 프론트 plan은 **API 계약을 새로 만들지 않는다.** 필요한 API가 `docs/api/openapi.yaml`에 없으면 만들지 말고 백엔드에 요청한다(5단계).
 - plan이 constitution 위반 여부를 스스로 점검한다(Constitution Check). 위반이 나오면 무시하지 말고 팀에 공유한다.
@@ -143,7 +144,7 @@ gh issue develop <이슈 번호> --name features/f1-auth-signup --base main --ch
 ```bash
 flutter analyze
 flutter test
-flutter run -t lib/main_mock.dart                          # mock (서버 없이)
+flutter run --dart-define=USE_MOCK=true                     # mock (서버 없이)
 flutter run --dart-define-from-file=env/dev.json           # 실서버 (백엔드가 떠 있을 때)
 ```
 
@@ -242,7 +243,7 @@ specify → clarify → plan → tasks → analyze → implement → converge
 - **`/new-issue`가 백엔드 features.md를 못 읽는다고 하면**: `gh auth status`로 로그인을 확인하고, 그 GitHub 계정이 `damsoWE/damso_server`를 읽을 수 있는지(조직 멤버 또는 collaborator) 확인한다. 권한이 없으면 `gh`가 `404`를 돌려준다.
 - **`flutter`를 찾을 수 없다고 나오면**: Flutter SDK의 `bin` 폴더(예: `C:\Users\<사용자>\flutter\bin`)를 PATH에 추가하고 터미널을 다시 연다.
 - **Android 에뮬레이터에서 로컬 서버에 접속이 안 되면**: 에뮬레이터에서 호스트 PC는 `localhost`가 아니라 `10.0.2.2`다. `env/dev.json`의 `API_BASE_URL`을 확인한다. `env/dev.json`은 커밋되지 않으므로 `env/example.json`을 복사해 만든다.
-- **앱이 `API_BASE_URL 이 설정되지 않았습니다`로 바로 종료되면**: `--dart-define-from-file=env/dev.json` 없이 실행한 것이다. mock이면 `-t lib/main_mock.dart`로 실행한다.
+- **앱이 `API_BASE_URL 이 설정되지 않았습니다`로 바로 종료되면**: `--dart-define-from-file=env/dev.json` 없이 실행한 것이다. 서버 없이 실행하려면 `--dart-define=USE_MOCK=true`를 준다.
 - **`flutter pub get`에서 riverpod 버전 충돌이 나면**: 현재 Dart 3.10에서는 `flutter_riverpod` 3.0.x, `riverpod_annotation`·`riverpod_generator` 3.0.x 대를 쓴다(4.x는 Dart 3.12 필요). Flutter SDK를 올리기 전엔 버전을 올리지 않는다. riverpod 3에서 `Override` 타입은 `package:flutter_riverpod/misc.dart`에서 가져온다.
 - **Windows에서 `UnicodeEncodeError: 'cp949' codec can't encode …`가 나며 스킬이 멈추면**: spec-kit 스크립트가 한글·이모지를 Windows 콘솔 인코딩(cp949)으로 출력하다 실패한 것이다. 명령 앞에 `PYTHONIOENCODING=utf-8`을 붙여 다시 실행한다. 매번 붙이기 번거로우면 Windows 환경변수에 `PYTHONIOENCODING=utf-8`을 등록한다.
 - **Gradle 첫 빌드가 5분 넘게 걸리면**: 정상이다(의존성 최초 다운로드). 두 번째부터는 10초 안팎이다.

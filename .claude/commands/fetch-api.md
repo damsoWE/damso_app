@@ -41,7 +41,7 @@ npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml
 
 ## 5. 프론트에서 고칠 곳
 
-`lib/features/*/data`, `lib/features/*/domain`, `lib/mock`을 검색해 영향받는 파일을 목록으로 보여 준다. 고치지는 않는다.
+`lib/features/*/data`, `lib/features/*/domain`을 검색해 영향받는 파일을 목록으로 보여 준다. 고치지는 않는다.
 
 mock에 아래 케이스가 빠져 있으면 함께 알린다 (정상 응답만 넣지 않는다):
 - 401 `UNAUTHORIZED` (토큰 만료 → 갱신)
