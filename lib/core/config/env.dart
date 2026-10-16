@@ -5,9 +5,12 @@ class Env {
 
   static const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
+  /// true 면 Repository 를 mock 구현으로 전환한다(서버 불필요).
+  static const useMock = bool.fromEnvironment('USE_MOCK');
+
   /// 미설정 시 기동을 거부한다(원칙 8: 설정 누락 상태로 실행하지 않음).
   static void ensureConfigured() {
-    if (apiBaseUrl.isEmpty) {
+    if (!useMock && apiBaseUrl.isEmpty) {
       throw StateError(
         'API_BASE_URL 이 설정되지 않았습니다. '
         '--dart-define-from-file=env/dev.json 으로 실행하세요.',
