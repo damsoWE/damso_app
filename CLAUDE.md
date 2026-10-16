@@ -59,6 +59,19 @@ real-server implementation; `lib/mock` swaps it without touching screens.
 - Do not delete files or run destructive Git commands without user approval.
 - Only run git push or git commit when explicitly requested by the user.
 
+## Git Workflow
+
+- Start every task from a GitHub issue (template: `.github/ISSUE_TEMPLATE/`).
+- Branch from `main`: `features/<feature-name>` for features, `fix/<fix-name>`
+  for fixes. Link the issue to the branch (e.g. `gh issue develop <number>
+  --name <branch>`).
+- Never commit or push directly to `main`. Merge only through a Pull Request
+  and reference the issue in it (`Closes #<number>`).
+- Commit messages: `Feat : <summary>` / `Fix : <summary>` (Korean, one line,
+  space on both sides of the colon).
+- Do not add Claude or any AI as co-author or in attribution lines of commits
+  and PR descriptions.
+
 ## Verification
 
 Run `flutter analyze` and `flutter test`. Report failures clearly — do not hide
