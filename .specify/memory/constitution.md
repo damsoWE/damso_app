@@ -97,18 +97,20 @@
 
 ## 아키텍처
 
-- 코드 구조는 다음을 따른다.
+- 구조는 MVVM + Repository 인터페이스 분리, feature-first를 따른다.
   ```
   lib/app                                  # 루트 위젯, 라우터(go_router)
-  lib/core                                 # config · network(dio) · storage
+  lib/core                                 # dio 클라이언트 · 인터셉터 · secure storage · 에러 타입 · config
   lib/features/<기능>/
-  ├── domain                               # 모델 · Repository 인터페이스
-  ├── data                                 # 실서버 Repository 구현
-  └── presentation                         # 화면 · 상태(Riverpod)
-  lib/mock                                 # mock Repository override
+  ├── presentation                         # 화면 위젯 + ViewModel(Riverpod Notifier/AsyncNotifier)
+  ├── domain                               # 모델 · Repository 인터페이스(abstract class)
+  └── data                                 # Repository 구현(실서버·mock) + provider
   ```
-- 화면(presentation)은 `domain`의 Repository 인터페이스에만 의존해야 MUST 한다. `data` 구현을 직접 참조하지 MUST NOT 한다.
-- 실서버와 mock 구현은 Riverpod provider override로 교체한다. 화면 코드를 바꾸지 않고 `lib/main_mock.dart`로 mock 실행이 가능해야 한다.
+- 위젯에는 비즈니스 로직을 두지 MUST NOT 한다. 상태 보관과 로직은 ViewModel(Notifier/AsyncNotifier)에 둔다.
+- `domain`에는 모델과 Repository 인터페이스만 둔다. UseCase 층은 만들지 MUST NOT 한다. `domain`은 Flutter·dio·저장소 패키지를 참조하지 MUST NOT 한다.
+- ViewModel은 Repository 인터페이스에만 의존해야 MUST 한다. dio나 구현체를 직접 참조하지 MUST NOT 한다. 위젯은 Repository를 직접 호출하지 MUST NOT 한다.
+- `data`에는 실서버(dio) 구현과 mock 구현을 모두 둔다. 사용할 구현은 Repository마다 provider 한 곳에서 env 값(`USE_MOCK`, `--dart-define-from-file`)으로 선택해야 MUST 하며, 이 provider만 구현체를 참조한다. 화면 코드를 바꾸지 않고 env 값만으로 mock 실행이 가능해야 한다.
+- `data`는 `DioException`을 `lib/core`의 에러 타입으로 변환해야 MUST 한다. ViewModel과 화면은 dio 타입을 다루지 MUST NOT 한다.
 - mock에는 정상 응답만 넣지 않는다. 401(토큰 만료 → 갱신), 403(남의 문의), 정제 진행 중 → 완료, "원문 확인 필요", 긴급 문의 케이스를 포함해야 MUST 한다.
 
 ## 개발 흐름과 품질 게이트
@@ -128,4 +130,4 @@
 - **버전 정책**: 원칙 삭제·재정의는 MAJOR, 원칙·섹션 추가나 실질적 확장은 MINOR, 문구 정리는 PATCH로 올린다. 공통 원칙의 기준 버전은 백엔드 constitution 버전을 따른다.
 - **준수 점검**: `/speckit-plan`의 Constitution Check와 PR 리뷰에서 원칙 준수를 확인한다. 위반이 불가피하면 plan의 Complexity Tracking에 사유를 적고 리뷰어 승인을 받는다.
 
-**Version**: 1.0.0 (공통 원칙 기준: 백엔드 v1.2.0) | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
+**Version**: 1.1.0 (공통 원칙 기준: 백엔드 v1.2.0) | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16

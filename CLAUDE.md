@@ -42,12 +42,43 @@ to the user's commands and avoid proactive modifications or additions.
 
 Skill definitions: `.claude/skills/speckit-*/SKILL.md`.
 
-## Code Layout
+## Architecture
 
-`lib/app` (root widget, router) · `lib/core` (config, network, storage) ·
-`lib/features/<feature>/{data,domain,presentation}` · `lib/mock` (mock
-Repository overrides). Screens depend on `domain` interfaces; `data` holds the
-real-server implementation; `lib/mock` swaps it without touching screens.
+MVVM + Repository interface separation, feature-first. All new features follow
+these rules.
+
+```
+lib/app                                   root widget, router (go_router)
+lib/core                                  shared: dio client, interceptors,
+                                          secure storage, error types, config
+lib/features/<feature>/
+├── presentation                          screens (widgets) + ViewModels
+├── domain                                models + Repository interfaces
+└── data                                  Repository implementations + provider
+```
+
+- **presentation**: widgets render state and forward user actions only — no
+  business logic in widgets. The ViewModel is not a separate class hierarchy;
+  implement it as a Riverpod `Notifier` / `AsyncNotifier`.
+- **domain**: models and Repository interfaces (`abstract class`) only. Do not
+  create a UseCase layer. No Flutter, dio, or storage imports.
+- **data**: Repository implementations. Provide both a real-server (dio)
+  implementation and a mock implementation. One provider per Repository picks
+  the implementation from an env value (`--dart-define-from-file`); that
+  provider is the only place that references the implementations.
+- **Dependency direction**: widgets → ViewModel → Repository interface. A
+  ViewModel depends only on the Repository interface — never on dio or on an
+  implementation class. Widgets never touch Repositories directly.
+- **Errors**: the data layer converts `DioException` into error types from
+  `lib/core`; ViewModels and screens never see dio types. Show only the
+  server's `message`, never exception objects or stack traces.
+- **core**: only code shared by two or more features. Feature-specific code
+  stays inside its feature.
+- Mocks must cover more than the happy path: 401 (token expiry → refresh), 403
+  (another user's inquiry), refining → refined, "원문 확인 필요", urgent inquiry.
+
+`.specify/memory/constitution.md` takes precedence over this section if they
+conflict.
 
 ## General Rules
 
