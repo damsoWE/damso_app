@@ -112,7 +112,7 @@ Run the app:
 
 ```
 flutter run --dart-define-from-file=env/dev.json   # real server (Android emulator: 10.0.2.2)
-flutter run -t lib/main_mock.dart                  # mock Repository, no server
+flutter run --dart-define=USE_MOCK=true             # mock Repository, no server
 ```
 
 Release builds must use `--obfuscate --split-debug-info=<dir>`.

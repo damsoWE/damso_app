@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/theme/app_theme.dart';
 import 'router.dart';
 
 /// 앱 루트 위젯: 테마와 라우터를 연결한다.
@@ -11,7 +12,7 @@ class DamsoApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: '담소',
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+      theme: buildAppTheme(),
       routerConfig: ref.watch(routerProvider),
     );
   }

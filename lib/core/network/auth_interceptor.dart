@@ -43,8 +43,9 @@ class AuthInterceptor extends Interceptor {
     if (rt == null) return false;
     try {
       // 인터셉터가 없는 별도 Dio 로 호출해 무한 재귀를 막는다.
-      final res = await Dio(BaseOptions(baseUrl: _dio.options.baseUrl))
-          .post<Map<String, dynamic>>(_refreshPath, data: {'refreshToken': rt});
+      final res = await Dio(
+        BaseOptions(baseUrl: _dio.options.baseUrl),
+      ).post<Map<String, dynamic>>(_refreshPath, data: {'refreshToken': rt});
       final data = res.data;
       if (data == null) return false;
       _tokens.accessToken = data['accessToken'] as String?;
