@@ -27,6 +27,33 @@
 
 > 규칙 원본: `CLAUDE.md`의 "Git Workflow". **main에 직접 푸시하지 않는다.** (프로젝트 초기 구축 단계의 설정·문서 커밋만 예외)
 
+**방법 A — `/new-issue` (권장)**: 이슈 생성부터 브랜치 연결까지 Claude Code가 해 준다.
+
+```
+/new-issue 백엔드 features F1
+```
+
+1. 백엔드 `docs/features.md`의 F1 섹션을 읽어 **프론트 관점**의 이슈 초안(제목 `[Feat] F1 … 화면`, 설명, 작업 체크리스트, 유의사항)을 만든다.
+2. 초안을 보여 준다. **내용을 확인하고 승인하면** 이슈가 만들어진다. (이슈는 팀 전체에 보이므로 승인 전에는 만들지 않는다.)
+3. `features/…` 브랜치를 만들어 이슈에 연결하고 체크아웃한다.
+4. 이슈 URL, 브랜치 이름, 다음 할 일을 알려 준다.
+
+| 입력 | 결과 |
+|---|---|
+| `/new-issue 백엔드 features F1` | F1 기능 전체를 이슈 1개로 |
+| `/new-issue 백엔드 features F1 — 로그인 화면만` | 지정한 범위만 (역할 분담용) |
+| `/new-issue 백엔드 features F1 F2` | 이슈 2개 (체크아웃할 브랜치는 하나만 고른다) |
+| `/new-issue 로그인·회원가입 화면 구현` | 백엔드 기능과 무관한 직접 입력 |
+| `/new-issue fix 토큰 갱신 실패 시 로그아웃 안 됨` | `[Fix]` 이슈 + `fix/…` 브랜치 |
+| "이슈만 만들어줘" 라고 덧붙이면 | 브랜치 연결은 건너뜀 |
+
+- 필요한 것: `gh auth login`(한 번)과 백엔드 레포(`damsoWE/damso_server`) 읽기 권한. 두 레포가 비공개라 권한이 없으면 읽기에 실패한다. 이때는 features.md 섹션을 붙여 넣어 달라고 요청하며, 내용을 추측해서 만들지 않는다.
+- 읽는 것은 백엔드 **main 브랜치**의 features.md라서, 백엔드 수정이 머지되기 전에는 최신이 아닐 수 있다.
+- 커밋 안 된 변경이 있으면 브랜치를 만들기 전에 먼저 물어본다.
+- 스킬 원본: `.claude/skills/new-issue/SKILL.md`
+
+**방법 B — 직접 하기**
+
 1. GitHub에서 이슈를 만든다 — New issue → **"기능 요청"** 템플릿, 제목 `[Feat] F1 로그인·회원가입 화면`
 2. 이슈와 연결된 브랜치를 만든다 (기능은 `features/…`, 수정은 `fix/…`):
 
@@ -36,7 +63,7 @@ git pull
 gh issue develop <이슈 번호> --name features/f1-auth-signup --base main --checkout
 ```
 
-이슈 화면의 "Development"에 브랜치가 보이면 연결된 것이다.
+어느 방법이든 이슈 화면의 "Development"에 브랜치가 보이면 연결된 것이다.
 
 ### 1. 무엇을 만들지 확인
 
@@ -203,6 +230,7 @@ specify → clarify → plan → tasks → analyze → implement → converge
 | `/speckit-implement` | analyze 이상 없을 때 | 없음 | 코드 + tasks.md 체크 |
 | `/speckit-converge` | 구현 후 | 없음 | 빠진 작업을 tasks.md에 추가 |
 | `/speckit-checklist` | plan 이후 (선택) | 주제 (예: "보안") | 요구사항 품질 체크리스트 |
+| `/new-issue <기능 또는 백엔드 features F번호>` | 기능 시작 전 (0단계) | 백엔드 기능 번호 또는 직접 입력 | GitHub 이슈 + 연결된 작업 브랜치 |
 | `/fetch-api <태그>` | 백엔드 명세 공지를 받았을 때 | 태그 | `docs/api/openapi.yaml` 갱신 + 바뀐 점 요약 |
 | `/speckit-taskstoissues` | — | — | **deprecated**, 쓰지 않음 |
 
@@ -211,6 +239,7 @@ specify → clarify → plan → tasks → analyze → implement → converge
 - AI 결과가 이상하면 그대로 진행하지 말고 팀에 공유한다.
 - "이거 constitution에 맞아?"가 헷갈리면 해당 원칙 번호와 "프론트엔드에서의 적용" 표를 같이 본다.
 - 명령이 안 먹으면 Claude Code를 이 레포 루트에서 열었는지 확인한다(`.claude/skills/`가 보여야 한다).
+- **`/new-issue`가 백엔드 features.md를 못 읽는다고 하면**: `gh auth status`로 로그인을 확인하고, 그 GitHub 계정이 `damsoWE/damso_server`를 읽을 수 있는지(조직 멤버 또는 collaborator) 확인한다. 권한이 없으면 `gh`가 `404`를 돌려준다.
 - **`flutter`를 찾을 수 없다고 나오면**: Flutter SDK의 `bin` 폴더(예: `C:\Users\<사용자>\flutter\bin`)를 PATH에 추가하고 터미널을 다시 연다.
 - **Android 에뮬레이터에서 로컬 서버에 접속이 안 되면**: 에뮬레이터에서 호스트 PC는 `localhost`가 아니라 `10.0.2.2`다. `env/dev.json`의 `API_BASE_URL`을 확인한다. `env/dev.json`은 커밋되지 않으므로 `env/example.json`을 복사해 만든다.
 - **앱이 `API_BASE_URL 이 설정되지 않았습니다`로 바로 종료되면**: `--dart-define-from-file=env/dev.json` 없이 실행한 것이다. mock이면 `-t lib/main_mock.dart`로 실행한다.
