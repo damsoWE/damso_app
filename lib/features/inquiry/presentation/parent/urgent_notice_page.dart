@@ -3,15 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
-import '../../data/inquiry_repository_providers.dart';
 import '../../domain/models.dart';
 import 'urgent_notice_view.dart';
-
-/// 상세 응답의 안내·번호 코드로 긴급 안내를 다시 보여 준다(FR-018).
-final _urgentDetailProvider = FutureProvider.autoDispose
-    .family<ParentInquiryDetail, String>(
-      (ref, id) => ref.watch(parentInquiryRepositoryProvider).detail(id),
-    );
+import 'urgent_notice_view_model.dart';
 
 /// 문의 탭의 긴급 카드에서 여는 긴급 전달 안내(F2-3 계열).
 class UrgentNoticePage extends ConsumerWidget {
@@ -21,7 +15,7 @@ class UrgentNoticePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final provider = _urgentDetailProvider(inquiryId);
+    final provider = urgentNoticeViewModelProvider(inquiryId);
     return Scaffold(
       appBar: AppBar(title: const Text('긴급 문의')),
       body: AsyncView(

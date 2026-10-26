@@ -50,7 +50,11 @@ void main() {
     await tester.pumpAndSettle();
     await login(tester, 'teacher@damso.test');
     expect(find.text('(mock) 데모 문의 원문입니다.'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 1));
+
+    // 탭 화면 위에 열렸으므로 뒤로 가면 교사 홈(앱이 닫히지 않음)
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '교사 홈'), findsOneWidget);
   });
 
   testWidgets('로그아웃 상태에서 알림으로 열고 학부모로 로그인하면 버린다', (tester) async {

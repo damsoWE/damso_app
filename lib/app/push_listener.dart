@@ -31,10 +31,15 @@ class PushListener extends ConsumerStatefulWidget {
 
 class _PushListenerState extends ConsumerState<PushListener> {
   final _subs = <StreamSubscription<Object?>>[];
+  late final AppLifecycleListener _lifecycle;
 
   @override
   void initState() {
     super.initState();
+    // 등록 실패·뒤늦은 권한 허용은 앱이 다시 앞으로 올 때 다시 시도한다.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.read(deviceRegistrarProvider).onResume(),
+    );
     final push = ref.read(pushMessagingProvider);
     _subs
       ..add(push.onForegroundMessage.listen(_onForeground))
@@ -46,6 +51,7 @@ class _PushListenerState extends ConsumerState<PushListener> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     for (final s in _subs) {
       s.cancel();
     }
@@ -91,7 +97,7 @@ class _PushListenerState extends ConsumerState<PushListener> {
     if (_isTeacher) {
       ref.read(routerProvider).push(data.route);
     } else if (session is! SignedIn) {
-      // 로그인(또는 세션 복구) 뒤 교사면 라우터가 이 경로로 보낸다.
+      // 로그인(또는 세션 복구) 뒤 교사면 교사 탭 셸이 이 경로를 띄운다.
       ref.read(pendingNavigationProvider.notifier).set(data.route);
     }
   }
@@ -99,6 +105,14 @@ class _PushListenerState extends ConsumerState<PushListener> {
   @override
   Widget build(BuildContext context) {
     ref.watch(deviceRegistrarProvider); // 세션 변화에 따라 기기 등록·해제
+    // 알림으로 연 경로는 교사(가입 직후 제외)만 쓴다. 그 밖의 로그인이면 버린다.
+    // 교사면 교사 탭 셸이 뜬 뒤 그 위에 띄운다(TeacherShell).
+    ref.listen(sessionControllerProvider, (_, next) {
+      if (next is! SignedIn) return;
+      if (next.role != Role.teacher || next.justSignedUp) {
+        ref.read(pendingNavigationProvider.notifier).clear();
+      }
+    });
     return widget.child;
   }
 }

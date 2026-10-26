@@ -369,3 +369,18 @@ US1 + US2 + US3: 학부모가 일반·긴급 문의를 보내고, 교사가 긴�
 | F2-4 | Figma 의 상단 필터(전체·진행 중·답변 완료)는 넣지 않음 | spec 범위 밖(답변 상태는 F4) |
 | T066 | `api-v0.5` 태그가 아직 없어 원본 명세 0.5.0 기준으로 구현 | 태그 공개 후 `/fetch-api api-v0.5`로 비교 |
 
+## 코드 리뷰 반영 (2026-10-26, PR #8)
+
+| # | 위치 | 고친 내용 |
+|---|---|---|
+| P0-1 | `compose_page.dart` | 보내는 중에는 뒤로 가기로 작성 화면을 닫지 않는다 — 긴급 안내·109·112를 반드시 보인다 |
+| P0-2 | `teacher_inquiries_page.dart`·`_view_model.dart` | 다음 페이지가 실패하면 자동으로 다시 부르지 않고 "다시 시도"로만(무한 요청 방지) |
+| P0-3 | `device_registrar.dart`·`push_listener.dart` | 토큰·권한 조회 오류를 잡고, 등록 실패·뒤늦은 권한 허용은 앱이 다시 앞으로 올 때 다시 등록 |
+| P1-4 | `teacher_inquiries_view_model.dart` | 새로 고침과 다음 페이지가 겹치면 늦게 온 응답을 버린다(세대 번호) |
+| P1-5 | `urgent_detail_view_model.dart` | 원문은 화면당 한 번만 — 상세만 실패해 다시 시도해도 원문은 다시 부르지 않음. 원문을 연 즉시 목록 새로 고침 |
+| P1-6 | `router.dart`·`teacher_shell.dart`·`push_listener.dart` | 알림으로 연 긴급 상세를 교사 탭 셸 위에 띄움(뒤로 가면 탭 화면). 교사가 아니거나 가입 직후면 경로를 버림 |
+| P1-7 | `urgent_notice_view_model.dart`·`pending_detail_view_model.dart` | 위젯 파일의 FutureProvider 를 ViewModel(AsyncNotifier)로 옮김(CLAUDE.md 의존 방향) |
+| P1-8 | `settings_view_model.dart`·`settings_page.dart` | 요일마다 다른 시각은 시각을 바꾸지 않으면 그대로 저장, 다르다는 안내 표시 |
+| P2-9 | `teacher_inquiries_view_model.dart` | 페이지를 이어 붙일 때 문의 ID 로 중복 제거 |
+| P2-10 | `parent_shell.dart` | 탭 복귀 때 펼친 카드 상세 캐시도 비워 최신 타임라인을 다시 불러옴 |
+

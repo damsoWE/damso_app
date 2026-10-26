@@ -1,6 +1,8 @@
+import 'package:damso_app/core/error/app_exception.dart';
 import 'package:damso_app/core/storage/token_store.dart';
 import 'package:damso_app/features/inquiry/data/inquiry_repository_providers.dart';
 import 'package:damso_app/features/inquiry/data/mock_teacher_inquiry_repository.dart';
+import 'package:damso_app/features/inquiry/domain/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,11 +13,21 @@ class _CountingTeacherRepo extends MockTeacherInquiryRepository {
   _CountingTeacherRepo(super.tokens, super.store);
 
   final contentCalls = <String>[];
+  int failDetail = 0;
 
   @override
   Future<String> content(String inquiryId) {
     contentCalls.add(inquiryId);
     return super.content(inquiryId);
+  }
+
+  @override
+  Future<TeacherInquiryDetail> detail(String inquiryId) async {
+    if (failDetail > 0) {
+      failDetail--;
+      throw const AppException(message: '불러오지 못했습니다.');
+    }
+    return super.detail(inquiryId);
   }
 }
 
@@ -77,5 +89,23 @@ void main() {
     await tapText(tester, '원문 확인 필요');
     expect(find.text('정리된 내용과 원문 보기는 준비 중입니다.'), findsOneWidget);
     expect(repo.contentCalls, isEmpty);
+  });
+
+  testWidgets('상세만 실패해 다시 시도해도 원문 열람은 한 번, 홈 긴급 카드는 사라진다', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'teacher@damso.test');
+    repo.failDetail = 1;
+    await tapText(tester, '긴급 문의 1건');
+    expect(find.text('불러오지 못했습니다.'), findsOneWidget);
+    expect(repo.contentCalls, hasLength(1));
+
+    await tapText(tester, '다시 시도');
+    expect(find.text('(mock) 데모 문의 원문입니다.'), findsOneWidget);
+    expect(repo.contentCalls, hasLength(1));
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('긴급 문의 1건'), findsNothing);
   });
 }

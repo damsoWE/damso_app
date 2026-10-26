@@ -103,4 +103,42 @@ void main() {
     expect(find.byType(Switch), findsOneWidget); // 일반 알림 하나뿐
     expect(find.textContaining('긴급 문의 알림은 시간과 관계없이 항상'), findsOneWidget);
   });
+
+  test('요일마다 다른 시각은 시각을 바꾸지 않으면 그대로 저장된다', () async {
+    await repo.saveSettings(
+      NotificationSettings(
+        generalEnabled: true,
+        availability: [
+          AvailabilityWindow(
+            day: DayOfWeek.monday,
+            start: TimeOfDayValue.parse('09:00'),
+            end: TimeOfDayValue.parse('18:00'),
+          ),
+          AvailabilityWindow(
+            day: DayOfWeek.wednesday,
+            start: TimeOfDayValue.parse('13:00'),
+            end: TimeOfDayValue.parse('20:00'),
+          ),
+        ],
+      ),
+    );
+    container.invalidate(settingsViewModelProvider);
+    expect((await loaded()).mixedTimes, isTrue);
+
+    vm().setGeneralEnabled(false);
+    expect(await vm().save(), isTrue);
+    final wed = repo.lastSaved!.availability.firstWhere(
+      (w) => w.day == DayOfWeek.wednesday,
+    );
+    expect(wed.start.format(), '13:00');
+    expect(wed.end.format(), '20:00');
+
+    // 시각을 바꾸면 고른 요일 모두 같은 시각
+    vm().setStart(TimeOfDayValue.parse('08:00'));
+    expect(await vm().save(), isTrue);
+    expect(
+      repo.lastSaved!.availability.map((w) => w.start.format()).toSet(),
+      {'08:00'},
+    );
+  });
 }

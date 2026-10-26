@@ -16,6 +16,8 @@ class SettingsPage extends ConsumerWidget {
 
   static const alwaysAvailableGuide = '요일을 고르지 않으면 언제든 응답 가능으로 봐요.';
   static const deferredGuide = '시간 밖의 문의도 바로 접수돼요. 알림만 다음 응답 가능 시간에 보내 드려요.';
+  static const mixedTimesGuide =
+      '요일마다 다른 시각이 저장돼 있어요. 시각을 바꾸면 고른 요일 모두 같은 시각이 돼요.';
   static const urgentAlwaysOn = '긴급 문의 알림은 시간과 관계없이 항상 보내요. 끌 수 없어요.';
 
   Future<void> _pickTime(
@@ -87,6 +89,11 @@ class SettingsPage extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    if (f.mixedTimes && !f.timesEdited)
+                      const Padding(
+                        padding: EdgeInsets.only(top: AppSpacing.sm),
+                        child: Text(mixedTimesGuide, style: AppTextStyles.small),
+                      ),
                     MessageText(f.timeError),
                     const SizedBox(height: AppSpacing.md),
                     SwitchListTile(

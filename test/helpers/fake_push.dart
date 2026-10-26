@@ -11,6 +11,9 @@ class FakePush implements PushMessaging {
   /// requestPermission 을 받았을 때 바뀔 값.
   PushPermission answer = PushPermission.granted;
   String? token;
+
+  /// getToken 이 던질 오류(APNs 토큰 없음 등).
+  Object? tokenError;
   int requestCalls = 0;
   PushData? initial;
 
@@ -34,7 +37,11 @@ class FakePush implements PushMessaging {
   }
 
   @override
-  Future<String?> getToken() async => token;
+  Future<String?> getToken() async {
+    final e = tokenError;
+    if (e != null) throw e;
+    return token;
+  }
 
   @override
   Stream<String> get onTokenRefresh => tokenRefresh.stream;

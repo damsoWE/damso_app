@@ -17,7 +17,9 @@ class ParentShell extends ConsumerWidget {
       shell: shell,
       // 홈·문의 탭으로 돌아오면 문의 목록을 다시 불러온다(FR-019).
       onTabEntered: (index) {
-        if (index <= 1) ref.invalidate(parentInquiriesViewModelProvider);
+        if (index > 1) return;
+        ref.invalidate(parentInquiriesViewModelProvider);
+        ref.invalidate(parentInquiryDetailsProvider); // 펼친 카드의 옛 타임라인도 비운다
       },
     );
   }

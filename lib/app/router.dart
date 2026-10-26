@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/push/pending_navigation.dart';
 import '../core/session/role.dart';
 import '../core/session/session_controller.dart';
 import '../core/session/session_state.dart';
@@ -60,21 +59,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: refresh,
-    redirect: (_, state) {
-      final session = ref.read(sessionControllerProvider);
-      final pending = ref.read(pendingNavigationProvider);
-      final target = resolveRedirect(
-        session,
-        state.uri.path,
-        pendingTeacherPath: pending,
-      );
-      // 알림으로 연 경로는 한 번 쓰면(또는 교사가 아닌 계정으로 로그인하면) 버린다.
-      if (pending != null &&
-          (target == pending || (session is SignedIn && session.role != Role.teacher))) {
-        Future.microtask(ref.read(pendingNavigationProvider.notifier).clear);
-      }
-      return target;
-    },
+    redirect: (_, state) =>
+        resolveRedirect(ref.read(sessionControllerProvider), state.uri.path),
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const SplashPage()),
       GoRoute(path: '/', builder: (_, _) => const StartPage()),
@@ -290,13 +276,8 @@ Role? _ownerOf(String location) {
 }
 
 /// contracts/routes.md "redirect 규칙". null 이면 그대로 둔다.
-/// [pendingTeacherPath]: 알림을 눌러 열었을 때 로그인 뒤 갈 교사 경로(specs/002 routes.md 규칙 4-a).
 @visibleForTesting
-String? resolveRedirect(
-  SessionState state,
-  String location, {
-  String? pendingTeacherPath,
-}) {
+String? resolveRedirect(SessionState state, String location) {
   switch (state) {
     case SessionChecking() || SessionUnreachable():
       return location == '/splash' ? null : '/splash';
@@ -306,12 +287,7 @@ String? resolveRedirect(
     case SignedIn(:final role, :final justSignedUp):
       if (justSignedUp) return location == '/welcome' ? null : '/welcome';
       final home = role.homePath;
-      if (_isPublicOnly(location)) {
-        if (role == Role.teacher && pendingTeacherPath != null) {
-          return pendingTeacherPath;
-        }
-        return home;
-      }
+      if (_isPublicOnly(location)) return home;
       final owner = _ownerOf(location);
       if (owner != null && owner != role) return home;
       // 옛 문의 경로 → 역할 문의 탭(specs/002 routes.md 규칙 4-b, FR-032).

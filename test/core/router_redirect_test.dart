@@ -141,29 +141,4 @@ void main() {
       }
     });
   });
-
-  group('알림으로 연 경로(규칙 4-a)', () {
-    const path = '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/urgent';
-
-    test('교사로 로그인하면 역할 홈 대신 그 경로', () {
-      for (final from in ['/', '/login', '/splash']) {
-        expect(
-          resolveRedirect(const SignedIn(Role.teacher), from, pendingTeacherPath: path),
-          path,
-          reason: from,
-        );
-      }
-    });
-
-    test('교사가 아니면 자기 역할 홈, 이미 보호 화면이면 그대로', () {
-      expect(
-        resolveRedirect(const SignedIn(Role.parent), '/login', pendingTeacherPath: path),
-        '/parent',
-      );
-      expect(
-        resolveRedirect(const SignedIn(Role.teacher), '/teacher/me', pendingTeacherPath: path),
-        isNull,
-      );
-    });
-  });
 }

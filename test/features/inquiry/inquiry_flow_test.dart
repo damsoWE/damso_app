@@ -1,3 +1,10 @@
+import 'dart:async';
+
+import 'package:damso_app/core/storage/token_store.dart';
+import 'package:damso_app/features/inquiry/data/inquiry_repository_providers.dart';
+import 'package:damso_app/features/inquiry/data/mock_parent_inquiry_repository.dart';
+import 'package:damso_app/features/inquiry/domain/models.dart';
+import 'package:damso_app/features/inquiry/presentation/parent/compose_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -131,4 +138,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '학부모 홈'), findsOneWidget);
   });
+
+  testWidgets('보내는 중 뒤로 가기는 무시되고 긴급 안내가 보인다', (tester) async {
+    useTallScreen(tester);
+    final gate = Completer<void>();
+    await tester.pumpWidget(
+      testApp(
+        parentInquiry: (ref) => _GatedRepo(
+          ref.watch(tokenStoreProvider),
+          ref.watch(mockInquiryStoreProvider),
+          gate,
+        ),
+      ),
+    );
+    await login(tester, 'parent@damso.test');
+    await tapText(tester, '김하나 학생 문의 작성');
+    await tester.enterText(find.byType(TextField), '아이가 자해를 한 것 같아요');
+    await tester.pump();
+
+    await tester.tap(find.text('문의 보내기'));
+    await tester.pump(); // "보내는 중"
+    // 보내는 중에는 화면을 닫을 수 없다(시스템 뒤로 가기 포함).
+    final popScope = tester.widget<PopScope>(
+      find.descendant(
+        of: find.byType(ComposePage),
+        matching: find.byWidgetPredicate((w) => w is PopScope),
+      ),
+    );
+    expect(popScope.canPop, isFalse);
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(seconds: 1)); // 응답 전 — 닫혔다면 전환이 끝나 사라진다
+    expect(find.text('작성한 내용이 사라집니다. 나갈까요?'), findsNothing);
+    expect(find.widgetWithText(AppBar, '문의 작성'), findsOneWidget);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('선생님께 바로 전달했어요.'), findsOneWidget);
+    expect(find.text('자살예방 상담전화 109'), findsOneWidget);
+  });
+}
+
+/// 보내기 응답을 테스트가 풀어 줄 때까지 붙잡는 mock.
+class _GatedRepo extends MockParentInquiryRepository {
+  _GatedRepo(super.tokens, super.store, this.gate);
+
+  final Completer<void> gate;
+
+  @override
+  Future<InquirySubmitted> submit({
+    required String studentId,
+    required String content,
+    required String idempotencyKey,
+  }) async {
+    await gate.future;
+    return super.submit(
+      studentId: studentId,
+      content: content,
+      idempotencyKey: idempotencyKey,
+    );
+  }
 }

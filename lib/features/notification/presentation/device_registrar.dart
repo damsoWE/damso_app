@@ -15,6 +15,7 @@ import '../domain/models.dart';
 /// - 교사로 로그인(세션 복구 포함)하면 권한이 허용된 경우 토큰을 등록하고, 토큰이 바뀌면 다시 등록한다.
 /// - 권한은 교사 홈에 들어왔을 때 기기에서 아직 정하지 않은 경우에만 묻는다(FR-031a).
 /// - 학부모·관리자는 등록하지 않는다(학부모는 F4).
+/// - 등록에 실패했거나 나중에 기기 설정에서 알림을 켠 경우, 앱이 다시 앞으로 올 때 다시 시도한다.
 /// 해제는 로그아웃 직전 MeViewModel 이 부르고, 세션이 끝나면 서버도 보내지 않는다.
 class DeviceRegistrar {
   DeviceRegistrar(this._ref);
@@ -22,6 +23,7 @@ class DeviceRegistrar {
   final Ref _ref;
   StreamSubscription<String>? _tokenRefresh;
   bool _teacher = false;
+  bool _registered = false;
 
   PushMessaging get _push => _ref.read(pushMessagingProvider);
 
@@ -33,20 +35,38 @@ class DeviceRegistrar {
     }
     if (_teacher) return;
     _teacher = true;
-    if (!_push.isAvailable) return;
-    if (await _push.permissionStatus() == PushPermission.granted) {
-      await _register();
-    }
+    await _registerIfGranted();
+  }
+
+  /// 앱이 다시 앞으로 왔을 때. 아직 등록하지 못했으면(실패·뒤늦게 권한 허용) 다시 시도한다.
+  Future<void> onResume() async {
+    _ref.invalidate(pushPermissionProvider);
+    if (_teacher && !_registered) await _registerIfGranted();
   }
 
   /// 교사 홈 진입 때 부른다. 이미 허용·거부했으면 묻지 않는다.
   Future<void> requestPermissionIfNeeded() async {
     if (!_teacher || !_push.isAvailable) return;
-    if (await _push.permissionStatus() != PushPermission.notDetermined) return;
-    if (await _push.requestPermission() == PushPermission.granted) {
-      await _register();
+    try {
+      if (await _push.permissionStatus() != PushPermission.notDetermined) return;
+      if (await _push.requestPermission() == PushPermission.granted) {
+        await _register();
+      }
+    } catch (_) {
+      // 기기 알림 서비스 오류(FirebaseException 등) — 앱 사용은 막지 않는다.
     }
     _ref.invalidate(pushPermissionProvider);
+  }
+
+  Future<void> _registerIfGranted() async {
+    if (!_push.isAvailable) return;
+    try {
+      if (await _push.permissionStatus() == PushPermission.granted) {
+        await _register();
+      }
+    } catch (_) {
+      // APNs 토큰 없음·Play 서비스 없음 등. 다음 앱 복귀 때 다시 시도한다.
+    }
   }
 
   Future<void> _register() async {
@@ -67,13 +87,16 @@ class DeviceRegistrar {
                 ? DevicePlatform.ios
                 : DevicePlatform.android,
           );
+      _registered = true;
     } on AppException {
-      // 실패는 화면에 보이지 않고 다음 계기(토큰 갱신·다음 로그인)에 다시 시도한다.
+      // 실패는 화면에 보이지 않고 다음 계기(토큰 갱신·앱 복귀)에 다시 시도한다.
+      _registered = false;
     }
   }
 
   void _stop() {
     _teacher = false;
+    _registered = false;
     _tokenRefresh?.cancel();
     _tokenRefresh = null;
   }

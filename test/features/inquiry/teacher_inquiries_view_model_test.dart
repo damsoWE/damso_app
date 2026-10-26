@@ -29,24 +29,34 @@ class _PagedRepo implements TeacherInquiryRepository {
   bool failNext = false;
   Completer<void>? gate;
 
+  /// 페이지별 대기(겹치는 요청 순서를 테스트가 정한다).
+  final gates = <int, Completer<void>>{};
+
+  /// 맨 앞에 끼워 넣을 새 문의 수(새 긴급 문의가 들어온 상황).
+  int prepended = 0;
+
   @override
   Future<TeacherInquiryPage> list({int page = 0, int size = 20}) async {
     pages.add(page);
     await gate?.future;
+    await gates[page]?.future;
     if (failNext) {
       failNext = false;
       throw const AppException(message: '불러오지 못했습니다.');
     }
+    final all = [
+      for (var n = 0; n < prepended; n++)
+        _item(1000 + n, urgent: true, stage: InquiryStage.delivered),
+      for (var n = 0; n < total; n++)
+        _item(n, urgent: n == 0, stage: n == 0 ? InquiryStage.delivered : null),
+    ];
     final start = page * size;
-    final end = (start + size).clamp(0, total);
+    final end = (start + size).clamp(0, all.length);
     return TeacherInquiryPage(
-      items: [
-        for (var n = start; n < end; n++)
-          _item(n, urgent: n == 0, stage: n == 0 ? InquiryStage.delivered : null),
-      ],
+      items: all.sublist(start.clamp(0, all.length), end),
       page: page,
       size: size,
-      totalElements: total,
+      totalElements: total + prepended,
     );
   }
 
@@ -94,7 +104,9 @@ void main() {
     await vm().loadMore();
     expect(state().items, hasLength(20));
     expect(state().loadMoreError, '불러오지 못했습니다.');
-    await vm().loadMore();
+    await vm().loadMore(); // 자동 호출은 실패 뒤 다시 요청하지 않는다(무한 반복 방지)
+    expect(repo.pages, [0, 1]);
+    await vm().loadMore(retry: true); // "다시 시도"
     expect(state().items, hasLength(40));
     expect(state().loadMoreError, isNull);
   });
@@ -113,5 +125,27 @@ void main() {
   test('홈 긴급 카드는 교사 확인 전 긴급만', () async {
     final s = await loaded();
     expect(s.unconfirmedUrgent.map((i) => i.inquiryId), ['id-0']);
+  });
+
+  test('다음 페이지를 받는 중 새로 고침이 먼저 끝나면, 늦게 온 다음 페이지가 새 목록을 덮지 않는다', () async {
+    await loaded();
+    repo.gates[1] = Completer<void>();
+    final more = vm().loadMore();
+    repo.prepended = 1; // 새 긴급 문의 접수
+    await vm().refresh();
+    expect(state().items.first.inquiryId, 'id-1000');
+    repo.gates[1]!.complete();
+    await more;
+    expect(state().items.first.inquiryId, 'id-1000'); // 새 문의가 사라지지 않는다
+    expect(state().items, hasLength(20));
+    expect(state().isLoadingMore, isFalse);
+  });
+
+  test('페이지 경계가 밀려 같은 문의가 다시 와도 한 번만 보인다', () async {
+    await loaded();
+    repo.prepended = 1; // 0페이지 마지막(id-19)이 1페이지 첫 항목으로 밀림
+    await vm().loadMore();
+    final ids = state().items.map((i) => i.inquiryId).toList();
+    expect(ids.toSet().length, ids.length);
   });
 }

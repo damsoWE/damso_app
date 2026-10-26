@@ -42,7 +42,7 @@ F1의 [routes.md](../../001-foundation-auth-signup/contracts/routes.md)를 바�
 
 F1 규칙 1~5를 그대로 두고 아래만 더한다.
 
-- **4-a. 알림으로 연 경로**: `SignedIn(teacher)`이고 `PendingNavigation`에 경로가 있으면, 공개 전용 경로(`/`, `/login`, `/splash`, `/signup*`)에서 역할 홈 대신 그 경로로 보내고 비운다. 역할이 교사가 아니면 비우기만 한다(data-model §5).
+- **4-a. 알림으로 연 경로**: redirect 는 바꾸지 않는다. 교사로 로그인하면 평소처럼 교사 홈(탭 셸)으로 가고, 셸이 뜬 뒤 `PendingNavigation`의 경로를 탭 화면 **위에** 띄운다(뒤로 가면 탭 화면). 교사가 아니거나 가입 직후면 비우기만 한다(data-model §5, 코드 리뷰 반영).
 - **4-b. 옛 경로**: `/inquiries`(와 하위) → 역할 문의 탭.
 - 탭 셸의 경로도 접두사(`/parent`, `/teacher`)로 역할을 가른다. 다른 역할의 경로면 자기 역할 홈으로(F1 규칙 그대로).
 

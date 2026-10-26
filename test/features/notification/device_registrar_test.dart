@@ -112,4 +112,27 @@ void main() {
       completes,
     );
   });
+
+  test('토큰 받기 오류는 잡고, 앱이 다시 앞으로 오면 다시 등록한다', () async {
+    push.tokenError = StateError('apns-token-not-set');
+    session().signIn(Role.teacher);
+    await settle();
+    expect(repo.registerCalls, 0);
+
+    push.tokenError = null;
+    await container.read(deviceRegistrarProvider).onResume();
+    expect(repo.registerCalls, 1);
+    await container.read(deviceRegistrarProvider).onResume(); // 이미 등록됨
+    expect(repo.registerCalls, 1);
+  });
+
+  test('로그인 때 거부였다가 기기 설정에서 켜면 앱 복귀 때 등록', () async {
+    push.permission = PushPermission.denied;
+    session().signIn(Role.teacher);
+    await settle();
+    expect(repo.registerCalls, 0);
+    push.permission = PushPermission.granted;
+    await container.read(deviceRegistrarProvider).onResume();
+    expect(repo.registerCalls, 1);
+  });
 }

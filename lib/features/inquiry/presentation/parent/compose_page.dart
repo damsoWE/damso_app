@@ -76,9 +76,10 @@ class _ComposePageState extends ConsumerState<ComposePage> {
     final teacher = child.teacher?.displayName;
 
     return PopScope(
-      canPop: _content.text.trim().isEmpty || state.isSubmitting,
+      // 보내는 중에는 떠나지 않게 한다 — 결과(특히 긴급 안내와 109·112)를 반드시 보여 줘야 한다.
+      canPop: _content.text.trim().isEmpty && !state.isSubmitting,
       onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
+        if (didPop || state.isSubmitting) return;
         if (await _confirmDiscard() && context.mounted) context.pop();
       },
       child: Scaffold(

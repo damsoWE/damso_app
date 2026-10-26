@@ -105,4 +105,20 @@ void main() {
       InquiryStage.refined,
     );
   });
+
+  testWidgets('다른 탭에 다녀오면 펼친 카드의 상세를 다시 불러온다', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'parent@damso.test');
+    await tapTab(tester, '문의');
+    await tester.tap(find.byTooltip('펼치기').first);
+    await tester.pumpAndSettle();
+    expect(repo.detailCalls, 1);
+
+    await tapTab(tester, '홈');
+    await tapTab(tester, '문의');
+    await tester.tap(find.byTooltip('펼치기').first);
+    await tester.pumpAndSettle();
+    expect(repo.detailCalls, 2);
+  });
 }

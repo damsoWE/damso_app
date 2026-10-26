@@ -57,7 +57,10 @@ class TeacherInquiriesPage extends ConsumerWidget {
               }
               if (index == s.items.length + 1) return _Footer(state: s);
               final i = index - 1;
-              if (i >= s.items.length - _loadMoreAhead && s.nextPage != null) {
+              if (i >= s.items.length - _loadMoreAhead &&
+                  s.nextPage != null &&
+                  !s.isLoadingMore &&
+                  s.loadMoreError == null) {
                 WidgetsBinding.instance.addPostFrameCallback((_) => vm.loadMore());
               }
               return TeacherInquiryTile(item: s.items[i]);
@@ -88,7 +91,9 @@ class _Footer extends ConsumerWidget {
         children: [
           MessageText(error),
           TextButton(
-            onPressed: ref.read(teacherInquiriesViewModelProvider.notifier).loadMore,
+            onPressed: () => ref
+                .read(teacherInquiriesViewModelProvider.notifier)
+                .loadMore(retry: true),
             child: const Text('다시 시도'),
           ),
         ],

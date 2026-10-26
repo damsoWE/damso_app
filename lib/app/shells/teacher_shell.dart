@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/push/pending_navigation.dart';
 import '../../features/inquiry/presentation/teacher/teacher_inquiries_view_model.dart';
 import 'tab_shell.dart';
 
@@ -23,6 +24,14 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: _refreshInquiries);
+    // 로그인 전에 알림을 눌러 열었으면 탭 화면 위에 그 화면을 띄운다(뒤로 가면 탭 화면).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pending = ref.read(pendingNavigationProvider);
+      if (pending == null) return;
+      ref.read(pendingNavigationProvider.notifier).clear();
+      context.push(pending);
+    });
   }
 
   @override

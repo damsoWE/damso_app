@@ -4,17 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
 import '../../../../core/widgets/system_notice.dart';
-import '../../data/inquiry_repository_providers.dart';
-import '../../domain/models.dart';
 import '../../domain/notice_text.dart';
 import '../format.dart';
 import '../stage_timeline.dart';
-
-/// 일반 문의 상세(본문 없음). 원문은 부르지 않는다 — 열람 기록이 남기 때문이다(FR-024).
-final _pendingDetailProvider = FutureProvider.autoDispose
-    .family<TeacherInquiryDetail, String>(
-      (ref, id) => ref.watch(teacherInquiryRepositoryProvider).detail(id),
-    );
+import 'pending_detail_view_model.dart';
 
 /// 일반 문의 자리 화면. 정리본(F3-2)·원문 확인 필요(F3-3)·원문 열람(F3-6)은 F3 에서 바뀐다.
 class PendingDetailPage extends ConsumerWidget {
@@ -24,7 +17,7 @@ class PendingDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final provider = _pendingDetailProvider(inquiryId);
+    final provider = pendingDetailViewModelProvider(inquiryId);
     return Scaffold(
       appBar: AppBar(title: const Text('문의')),
       body: AsyncView(

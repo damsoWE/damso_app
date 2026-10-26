@@ -5,12 +5,15 @@ import '../data/notification_repository_provider.dart';
 import '../domain/models.dart';
 
 /// F3-8 입력 상태. Figma 처럼 고른 요일에 같은 시작·종료 시각을 쓴다(요일당 한 구간으로 저장).
+/// 서버에 요일마다 다른 시각이 있으면, 시각을 바꾸지 않는 한 요일별 원래 시각을 그대로 저장한다.
 class SettingsForm {
   const SettingsForm({
     required this.days,
     required this.start,
     required this.end,
     required this.generalEnabled,
+    this.original = const {},
+    this.timesEdited = false,
     this.isSaving = false,
     this.errorMessage,
     this.timeError,
@@ -25,7 +28,28 @@ class SettingsForm {
     start: s.availability.isEmpty ? defaultStart : s.availability.first.start,
     end: s.availability.isEmpty ? defaultEnd : s.availability.first.end,
     generalEnabled: s.generalEnabled,
+    original: {for (final w in s.availability) w.day: w},
   );
+
+  /// 서버에서 받은 요일별 구간(시각을 바꾸지 않으면 그대로 저장).
+  final Map<DayOfWeek, AvailabilityWindow> original;
+
+  /// 시작·종료 시각을 화면에서 바꿨는지.
+  final bool timesEdited;
+
+  /// 요일마다 저장된 시각이 다르다(화면에는 첫 요일 시각만 보인다).
+  bool get mixedTimes => original.values.any(
+    (w) => w.start != original.values.first.start || w.end != original.values.first.end,
+  );
+
+  /// 저장할 구간: 고른 요일마다, 시각을 바꾸지 않았고 원래 구간이 있으면 원래 시각을 쓴다.
+  List<AvailabilityWindow> windows() => [
+    for (final day in DayOfWeek.values)
+      if (days.contains(day))
+        !timesEdited && original[day] != null
+            ? original[day]!
+            : AvailabilityWindow(day: day, start: start, end: end),
+  ];
 
   final Set<DayOfWeek> days;
   final TimeOfDayValue start;
@@ -46,6 +70,7 @@ class SettingsForm {
     TimeOfDayValue? start,
     TimeOfDayValue? end,
     bool? generalEnabled,
+    bool? timesEdited,
     bool? isSaving,
     String? Function()? errorMessage,
     String? Function()? timeError,
@@ -55,6 +80,8 @@ class SettingsForm {
     start: start ?? this.start,
     end: end ?? this.end,
     generalEnabled: generalEnabled ?? this.generalEnabled,
+    original: original,
+    timesEdited: timesEdited ?? this.timesEdited,
     isSaving: isSaving ?? this.isSaving,
     errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     timeError: timeError != null ? timeError() : this.timeError,
@@ -88,9 +115,11 @@ class SettingsViewModel extends AsyncNotifier<SettingsForm> {
     ),
   );
 
-  void setStart(TimeOfDayValue v) => _edit((f) => f.copyWith(start: v));
+  void setStart(TimeOfDayValue v) =>
+      _edit((f) => f.copyWith(start: v, timesEdited: true));
 
-  void setEnd(TimeOfDayValue v) => _edit((f) => f.copyWith(end: v));
+  void setEnd(TimeOfDayValue v) =>
+      _edit((f) => f.copyWith(end: v, timesEdited: true));
 
   void setGeneralEnabled(bool v) => _edit((f) => f.copyWith(generalEnabled: v));
 
@@ -98,7 +127,8 @@ class SettingsViewModel extends AsyncNotifier<SettingsForm> {
   Future<bool> save() async {
     final f = state.value;
     if (f == null || f.isSaving) return false;
-    if (!f.alwaysAvailable && f.start.compareTo(f.end) >= 0) {
+    final windows = f.windows();
+    if (windows.any((w) => w.start.compareTo(w.end) >= 0)) {
       state = AsyncData(f.copyWith(timeError: () => startAfterEnd, saved: false));
       return false;
     }
@@ -117,11 +147,7 @@ class SettingsViewModel extends AsyncNotifier<SettingsForm> {
           .saveSettings(
             NotificationSettings(
               generalEnabled: f.generalEnabled,
-              availability: [
-                for (final day in DayOfWeek.values)
-                  if (f.days.contains(day))
-                    AvailabilityWindow(day: day, start: f.start, end: f.end),
-              ],
+              availability: windows,
             ),
           );
       state = AsyncData(SettingsForm.from(saved).copyWith(saved: true));

@@ -7,7 +7,6 @@ import '../../../../core/widgets/system_notice.dart';
 import '../../domain/notice_text.dart';
 import '../format.dart';
 import '../stage_timeline.dart';
-import 'teacher_inquiries_view_model.dart';
 import 'urgent_detail_view_model.dart';
 
 /// F3-5 긴급 문의 상세 (Figma 224-1245). 정리 없이 학부모가 쓴 원문 그대로를 보인다.
@@ -20,12 +19,6 @@ class UrgentDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = urgentDetailViewModelProvider(inquiryId);
-    // 원문을 열면 단계가 "교사 확인"으로 바뀌므로 목록·홈을 새로 고친다.
-    ref.listen(provider, (prev, next) {
-      if (next.hasValue && !(prev?.hasValue ?? false)) {
-        ref.read(teacherInquiriesViewModelProvider.notifier).refresh();
-      }
-    });
     return Scaffold(
       appBar: AppBar(title: const Text(NoticeText.urgentLabel)),
       body: AsyncView(
