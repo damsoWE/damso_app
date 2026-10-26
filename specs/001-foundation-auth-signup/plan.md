@@ -98,7 +98,9 @@ lib/
 │   └── widgets/                         # 신규: 2개 이상 기능이 쓰는 위젯
 │       ├── cooldown.dart                # 남은 시간 상태 + 표시
 │       ├── async_view.dart              # 로딩·빈 목록·오류(다시 시도)
-│       └── field_error_text.dart
+│       ├── field_error_text.dart
+│       ├── form_layout.dart             # 입력 화면 틀·안내 문구·진행 버튼
+│       └── invite_code_formatter.dart   # 초대 코드 대문자·공백 제거 (가입·자녀 추가)
 └── features/
     ├── auth/
     │   ├── domain/   auth_repository.dart · models.dart
@@ -111,7 +113,7 @@ lib/
     ├── me/
     │   ├── domain/   me_repository.dart · me.dart
     │   ├── data/     me_repository_impl.dart · mock_me_repository.dart · me_repository_provider.dart
-    │   └── presentation/ account_page.dart (C-9) · withdraw_page.dart (C-8) · me_view_model.dart
+    │   └── presentation/ account_page.dart (C-9) · withdraw_page.dart (C-8) · me_view_model.dart · my_page_parts.dart (역할별 마이페이지 공통 조각)
     ├── parent/
     │   ├── domain/   parent_repository.dart · child.dart
     │   ├── data/     parent_repository_impl.dart · mock_parent_repository.dart · parent_repository_provider.dart
@@ -133,7 +135,9 @@ test/
 │   ├── auth/   login_view_model_test.dart · signup_view_model_test.dart · password_reset_view_model_test.dart · signup_flow_test.dart
 │   ├── parent/ parent_home_test.dart
 │   ├── teacher/ profile_edit_test.dart
-│   └── admin/  invite_issue_test.dart
+│   ├── admin/  invite_issue_test.dart
+│   └── me/     my_page_test.dart         # quickstart 19·20
+├── helpers/test_app.dart                # 모든 Repository mock override + 공용 조작
 └── widget_test.dart                     # 기존, 새 진입 흐름에 맞게 수정
 ```
 
