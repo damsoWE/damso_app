@@ -15,6 +15,7 @@ class AuthInterceptor extends Interceptor {
 
   /// Authorization 을 붙이지 않고, 401 이어도 갱신하지 않는 경로(contracts/api-usage.md 🔓).
   static const publicPaths = {
+    '/api/v1/auth/invite-codes/verify',
     '/api/v1/auth/login',
     '/api/v1/auth/signup',
     '/api/v1/auth/signup/verify',

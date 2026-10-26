@@ -63,7 +63,7 @@ ErrorCode 상수(F0·F1 사용분): `INVALID_INPUT`, `UNAUTHORIZED`, `FORBIDDEN`
 
 | 모델 | 필드 | 비고 |
 |---|---|---|
-| `InviteRole` | `teacher` · `parent` | 코드 확인 결과. 실서버(계약 확정 전)는 null(알 수 없음) |
+| `InviteRole` | `teacher` · `parent` | 코드 확인 결과(`InviteCodeCheckResponse.role`) |
 | `SignupForm` | `inviteCode`, `name`, `email`, `password`, `termsAgreed` | `SignupRequest` |
 | `PendingSignup` | `pendingSignupId`, `codeExpiresIn` (Duration) | `PendingSignupResponse`. 메모리 전용 |
 | `AuthResult` | `role` | `TokenResponse`에서 토큰은 Repository가 저장하고 역할만 위로 올린다 |
@@ -82,7 +82,8 @@ ErrorCode 상수(F0·F1 사용분): `INVALID_INPUT`, `UNAUTHORIZED`, `FORBIDDEN`
 
 ### 가입 흐름 상태 (`SignupViewModel`)
 ```
-codeEntry ──checkInviteCode 성공──▶ accountForm(role?)        (F1-1 → F1-3 / F1-3a)
+codeEntry ──checkInviteCode(code, email) 성공──▶ accountForm(role, email 고정)   (F1-1 → F1-3 / F1-3a)
+codeEntry ──INVALID_INPUT──▶ codeEntry(fieldErrors)
 codeEntry ──INVALID_INVITE_CODE──▶ codeEntry(error)          (F1-2)
 codeEntry ──TOO_MANY_ATTEMPTS──▶ codeEntry(attemptCooldown)   (F1-2b)
 accountForm ──signup 202──▶ verifying(pending)                (C-2)

@@ -1,6 +1,6 @@
 # API 사용 계약: 화면 ↔ Repository ↔ 엔드포인트
 
-**원본**: `docs/api/openapi.yaml` (api-v0.3). 이 문서는 앱이 **어떤 엔드포인트를 어디서 쓰는지**만 정한다. 요청·응답 스키마는 원본을 따른다.
+**원본**: `docs/api/openapi.yaml` (api-v0.4). 이 문서는 앱이 **어떤 엔드포인트를 어디서 쓰는지**만 정한다. 요청·응답 스키마는 원본을 따른다.
 
 🔓 = 공개 경로(Authorization 헤더 없음, 401이어도 토큰 갱신 안 함).
 
@@ -8,7 +8,7 @@
 
 | 메서드 | 엔드포인트 | 성공 | 화면에서 분기할 오류 | 화면 |
 |---|---|---|---|---|
-| `checkInviteCode(code)` | ⏳ 제안: 🔓 `POST /api/v1/auth/invite-codes/verify` ([proposal](./invite-code-check.proposal.md)) | `InviteRole?` | `INVALID_INVITE_CODE` · 429 | F1-1/F1-2/F1-2b |
+| `checkInviteCode(code, email)` | 🔓 `POST /api/v1/auth/invite-codes/verify` | 200 → `InviteRole` | `INVALID_INPUT`(fieldErrors) · `INVALID_INVITE_CODE` · 429 (실패는 이메일 기준, 가입 1단계와 합산) | F1-1/F1-2/F1-2b |
 | `startSignup(form)` | 🔓 `POST /api/v1/auth/signup` | 202 → `PendingSignup` | `INVALID_INPUT`(fieldErrors) · `INVALID_INVITE_CODE` · 429 | F1-3/F1-3a |
 | `verifySignup(id, code)` | 🔓 `POST /api/v1/auth/signup/verify` | 201 → 토큰 저장, `role` | `INVALID_VERIFICATION_CODE` · `INVALID_INVITE_CODE` · 429 | C-2 |
 | `resendSignupCode(id)` | 🔓 `POST /api/v1/auth/signup/resend` | 202 | 429 | C-2 |

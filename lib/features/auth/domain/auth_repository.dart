@@ -4,8 +4,12 @@ import 'models.dart';
 /// 인증 도메인 계약(contracts/api-usage.md auth). 실서버 / mock 구현이 모두 이 클래스를 따른다.
 /// 연락처(전화번호·주소)는 다루지 않는다(원칙 1).
 abstract class AuthRepository {
-  /// 가입 전 초대 코드 확인. 역할을 알 수 없으면 null.
-  Future<InviteRole?> checkInviteCode(String code);
+  /// 가입 전 초대 코드 확인. 코드를 소모하지 않고 역할만 알려 준다.
+  /// 실패 횟수는 [email] 기준으로 가입 1단계와 합산된다(api-v0.4).
+  Future<InviteRole> checkInviteCode({
+    required String code,
+    required String email,
+  });
 
   Future<PendingSignup> startSignup(SignupForm form);
 

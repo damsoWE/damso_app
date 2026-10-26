@@ -11,7 +11,8 @@ import '../../domain/models.dart';
 import 'signup_view_model.dart';
 
 /// F1-3 계정 만들기 · 학부모 (Figma 216-5101) · F1-3a 교사 (225-1553).
-/// 입력은 이름·이메일·비밀번호·약관 동의뿐이다(FR-014, 연락처 입력란 없음).
+/// 입력은 이름·비밀번호·약관 동의뿐이다(FR-014, 연락처 입력란 없음).
+/// 이메일은 코드 확인(F1-1)에서 받은 값을 보여 주기만 한다 — 바꾸려면 이전 화면으로 돌아간다.
 class SignupAccountPage extends ConsumerStatefulWidget {
   const SignupAccountPage({super.key});
 
@@ -21,7 +22,6 @@ class SignupAccountPage extends ConsumerStatefulWidget {
 
 class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
   late final _name = _controller(ref.read(signupViewModelProvider).name);
-  late final _email = _controller(ref.read(signupViewModelProvider).email);
   late final _password = _controller('');
   bool _termsAgreed = false;
 
@@ -31,7 +31,6 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
   @override
   void dispose() {
     _name.dispose();
-    _email.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -41,14 +40,15 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
         .read(signupViewModelProvider.notifier)
         .submitAccount(
           name: _name.text,
-          email: _email.text,
           password: _password.text,
           termsAgreed: _termsAgreed,
         );
     if (!mounted) return;
     switch (outcome) {
       case SignupOutcome.next:
-        context.push('/signup/verify');
+        // 인증 중 초대 코드가 무효가 되면 인증 화면이 backToCode 를 돌려준다.
+        final result = await context.push<SignupOutcome>('/signup/verify');
+        if (result == SignupOutcome.backToCode && mounted) context.pop();
       case SignupOutcome.backToCode:
         context.pop();
       case SignupOutcome.stay:
@@ -64,19 +64,14 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(signupViewModelProvider);
     final (title, intro) = switch (state.inviteRole) {
-      InviteRole.parent => (
-        '계정 만들기 · 학부모',
-        '자녀와 연결된 초대 코드를 확인했어요. 보호자 정보를 입력해 주세요.',
-      ),
       InviteRole.teacher => (
         '계정 만들기 · 교사',
         '담임 학급 초대 코드를 확인했어요. 선생님 정보를 입력해 주세요.',
       ),
-      null => ('계정 만들기', '계정 정보를 입력해 주세요. 초대 코드는 가입할 때 함께 확인합니다.'),
+      _ => ('계정 만들기 · 학부모', '자녀와 연결된 초대 코드를 확인했어요. 보호자 정보를 입력해 주세요.'),
     };
     final valid =
         validateName(_name.text) == null &&
-        validateEmail(_email.text) == null &&
         validateNewPassword(_password.text) == null &&
         _termsAgreed;
 
@@ -85,6 +80,13 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
       children: [
         Text(intro, style: AppTextStyles.body),
         const SizedBox(height: AppSpacing.md),
+        Text(
+          '이메일',
+          style: AppTextStyles.smallStrong.copyWith(color: AppColors.textSecondary),
+        ),
+        Text(state.email, style: AppTextStyles.body),
+        FieldErrorText(state.fieldErrors['email']),
+        const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _name,
           decoration: const InputDecoration(labelText: '이름'),
@@ -92,17 +94,6 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
         FieldErrorText.pick(
           server: state.fieldErrors['name'],
           client: _clientError(_name, validateName),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
-          controller: _email,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: const InputDecoration(labelText: '이메일'),
-        ),
-        FieldErrorText.pick(
-          server: state.fieldErrors['email'],
-          client: _clientError(_email, validateEmail),
         ),
         const SizedBox(height: AppSpacing.sm),
         TextField(

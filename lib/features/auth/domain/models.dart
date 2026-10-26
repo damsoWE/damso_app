@@ -1,6 +1,6 @@
 import '../../../core/session/role.dart';
 
-/// 초대 코드 확인 결과. 실서버(계약 확정 전)는 알 수 없음(null)으로 돌려준다(research R5).
+/// 초대 코드 확인 결과(`POST /api/v1/auth/invite-codes/verify`, research R5).
 enum InviteRole { teacher, parent }
 
 /// 가입 입력(openapi `SignupRequest`). 연락처 필드는 두지 않는다(원칙 1).

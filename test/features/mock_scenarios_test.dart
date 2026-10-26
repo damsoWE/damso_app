@@ -62,6 +62,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapText(tester, '초대코드로 가입하기');
     await enterField(tester, '초대 코드', 'ZZZZZZZZZZ');
+    await enterField(tester, '이메일', 'new@damso.test');
     await tapText(tester, '코드 확인');
 
     expect(find.text('잠시 후 다시 시도해 주세요.'), findsOneWidget);

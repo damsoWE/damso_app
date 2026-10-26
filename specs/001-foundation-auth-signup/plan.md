@@ -10,7 +10,7 @@
 
 모든 화면이 따르는 공통 기반(오류 표시, 세션 복구·갱신·만료, 역할별 화면 접근 제어, mock 실행)을 api-v0.3에 맞추고, 그 위에 F1 화면을 만든다: 초대 코드 가입(코드 확인 → 계정 정보 → 이메일 인증), 로그인·대기, 비밀번호 재설정, 학부모 홈·자녀 추가, 교사 프로필·연결 현황, 슈퍼 관리자 학급·학생·초대 코드 관리, 마이페이지.
 
-접근 방식: 기존 MVVM + Repository 구조를 그대로 확장한다. 세션은 `lib/core/session`의 `SessionController` 하나가 쥐고, 라우터 redirect와 `AuthInterceptor`가 이를 참조한다. 기능은 `auth`·`me`·`parent`·`teacher`·`admin` 다섯 feature로 나누고, 각 Repository는 실서버(dio)·mock 구현을 provider 한 곳에서 `USE_MOCK`으로 고른다. 초대 코드 확인 API는 아직 없으므로 mock만 역할을 돌려주고 실서버는 "역할 모름"으로 처리한다(research R5). 새 패키지는 추가하지 않는다.
+접근 방식: 기존 MVVM + Repository 구조를 그대로 확장한다. 세션은 `lib/core/session`의 `SessionController` 하나가 쥐고, 라우터 redirect와 `AuthInterceptor`가 이를 참조한다. 기능은 `auth`·`me`·`parent`·`teacher`·`admin` 다섯 feature로 나누고, 각 Repository는 실서버(dio)·mock 구현을 provider 한 곳에서 `USE_MOCK`으로 고른다. 가입 첫 단계는 api-v0.4의 초대 코드 확인 API로 역할을 받는다(research R5). 새 패키지는 추가하지 않는다.
 
 ## Technical Context
 
@@ -30,7 +30,7 @@
 
 **Constraints**: 본문·코드·토큰 로그 출력 금지 · 서버 `message`만 표시 · 토큰 갱신 직렬화(갱신 토큰 1회용) · WebView/HTML 렌더 금지 · 릴리스 `--obfuscate --split-debug-info`
 
-**Scale/Scope**: 화면 약 35개(공개 15 · 학부모 5 · 교사 4 · 관리자 8 · 공통 3), Repository 5개, 엔드포인트 23개(+제안 1)
+**Scale/Scope**: 화면 약 35개(공개 15 · 학부모 5 · 교사 4 · 관리자 8 · 공통 3), Repository 5개, 엔드포인트 24개
 
 ## Constitution Check
 
@@ -50,7 +50,7 @@
 | 렌더링 | WebView·HTML 렌더 미사용 | ✅ |
 | 아키텍처 | 위젯 → ViewModel → Repository 인터페이스, domain에 Flutter·dio 없음, provider 한 곳에서 구현 선택, DioException → AppException | ✅ |
 | mock 케이스 | 401 갱신(테스트), 세션 만료·403·입력 오류·429(앱 mock) — research R8 | ✅ |
-| Contract-first | `openapi.yaml` 직접 수정 없음. 미확정 API는 proposal 문서로 분리 | ✅ |
+| Contract-first | `openapi.yaml` 직접 수정 없음(`/fetch-api`로만 갱신, 현재 api-v0.4) | ✅ |
 
 **재확인(Phase 1 후)**: data-model·contracts·quickstart 작성 후 위반 없음. Complexity Tracking 해당 없음.
 
@@ -66,8 +66,7 @@ specs/001-foundation-auth-signup/
 ├── quickstart.md
 ├── contracts/
 │   ├── api-usage.md                     # 화면 ↔ Repository ↔ 엔드포인트
-│   ├── routes.md                        # 경로·redirect 규칙
-│   └── invite-code-check.proposal.md    # 미확정 API (백엔드 요청)
+│   └── routes.md                        # 경로·redirect 규칙
 ├── checklists/requirements.md
 └── tasks.md                             # /speckit-tasks
 ```
@@ -145,15 +144,14 @@ test/
 
 ## Phase 0: Research
 
-[research.md](./research.md) — R1 기본 경로 · R2 세션·역할 · R3 갱신 직렬화 · R4 오류 타입 · R5 초대 코드 확인 API 부재 · R6 카운트다운 · R7 라우터 가드 · R8 mock 401/403 · R9 검증 · R10 가입 대기 ID · R11 코드 1회 표시 · R12 테스트. 미해결 항목 없음.
+[research.md](./research.md) — R1 기본 경로 · R2 세션·역할 · R3 갱신 직렬화 · R4 오류 타입 · R5 초대 코드 확인 API · R6 카운트다운 · R7 라우터 가드 · R8 mock 401/403 · R9 검증 · R10 가입 대기 ID · R11 코드 1회 표시 · R12 테스트. 미해결 항목 없음.
 
 ## Phase 1: Design & Contracts
 
 - [data-model.md](./data-model.md) — 세션 상태 전이, AppException, 기능별 모델·검증, 가입·재설정 상태 전이
 - [contracts/api-usage.md](./contracts/api-usage.md) — Repository 메서드 ↔ 엔드포인트 ↔ 오류 분기
 - [contracts/routes.md](./contracts/routes.md) — 경로·화면 ID·redirect 규칙
-- [contracts/invite-code-check.proposal.md](./contracts/invite-code-check.proposal.md) — 미확정 API
-- [quickstart.md](./quickstart.md) — mock 데모 입력표, 검증 시나리오 20개
+- [quickstart.md](./quickstart.md) — mock 데모 입력표, 검증 시나리오 21개
 
 ## 구현 순서 (tasks 입력용)
 
@@ -169,7 +167,7 @@ test/
 
 | 리스크 | 대응 |
 |---|---|
-| 초대 코드 확인 API 확정 시 요청에 이메일이 추가될 수 있음 | F1-1 ViewModel·Repository 시그니처만 바뀌도록 격리(R5). 확정 후 `/fetch-api` → 수정 |
+| 초대 코드 확인 API 계약 변경 | api-v0.4에서 확정(요청에 이메일 포함)되어 반영 완료(R5). 이후 변경은 `/fetch-api` → 수정 |
 | Figma 로그인 잠금 문구("5회, 10분")와 서버 단계적 대기 불일치 | 서버 `Retry-After`만 표시(FR-021). 디자인에 문구 수정 요청 |
 | 갱신 토큰 재사용 탐지로 인한 의도치 않은 로그아웃 | 갱신 직렬화(R3) + 동시 401 테스트 |
 | Figma 프레임 링크가 화면별로 아직 spec에 없음 | `docs/ia.md` 링크를 tasks 항목에 붙인다 |

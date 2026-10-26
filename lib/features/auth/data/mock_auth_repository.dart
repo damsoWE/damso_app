@@ -61,16 +61,18 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<InviteRole?> checkInviteCode(String code) async {
+  Future<InviteRole> checkInviteCode({
+    required String code,
+    required String email,
+  }) async {
     await Future<void>.delayed(_delay);
+    _checkEmail(email);
     return _checkCode(code);
   }
 
-  @override
-  Future<PendingSignup> startSignup(SignupForm form) async {
-    await Future<void>.delayed(_delay);
-    _pendingRole = _checkCode(form.inviteCode);
-    if (form.email == 'invalid@damso.test') {
+  /// `invalid@damso.test` 는 서버 필드 오류(INVALID_INPUT)를 재현한다(US1-7).
+  static void _checkEmail(String email) {
+    if (email == 'invalid@damso.test') {
       throw const AppException(
         message: '입력값이 올바르지 않습니다.',
         code: ErrorCodes.invalidInput,
@@ -78,6 +80,13 @@ class MockAuthRepository implements AuthRepository {
         fieldErrors: {'email': '사용할 수 없는 이메일 형식입니다.'},
       );
     }
+  }
+
+  @override
+  Future<PendingSignup> startSignup(SignupForm form) async {
+    await Future<void>.delayed(_delay);
+    _checkEmail(form.email);
+    _pendingRole = _checkCode(form.inviteCode);
     return const PendingSignup(
       pendingSignupId: 'mock-pending',
       codeExpiresIn: Duration(minutes: 10),

@@ -288,7 +288,22 @@ description: "F0·F1 공통 기반 및 인증·회원가입·학급 연결 화�
 - [X] T103 [P] 설계 문서 대조: 실제로 만든 파일 목록과 `specs/001-foundation-auth-signup/plan.md` Project Structure를 비교해 차이가 있으면 plan을 갱신한다(검증 함수 위치·splash ViewModel·admin/teacher validators·format·테스트 경로는 2026-10-26에 이미 반영됨).
 - [X] T104 `flutter analyze` 실행 → 경고·오류 0. 실패는 숨기지 않고 보고한다.
 - [X] T105 `flutter test` 실행 → 전부 통과.
-- [ ] T106 `flutter run --dart-define=USE_MOCK=true`로 `quickstart.md` 검증 시나리오 1~20을 수동 확인하고 결과(통과/실패·사유)를 PR 설명에 적는다.
+- [X] T106 `flutter run --dart-define=USE_MOCK=true`로 `quickstart.md` 검증 시나리오 1~20을 수동 확인하고 결과(통과/실패·사유)를 PR 설명에 적는다.
+
+---
+
+## Phase 12: api-v0.4 초대 코드 확인 API 반영
+
+**Purpose**: `POST /api/v1/auth/invite-codes/verify`(요청 `inviteCode`·`email` 필수, 응답 `role`, 실패는 이메일 기준으로 가입 1단계와 합산) 실서버 연결. spec FR-019·Clarifications 2026-10-26.
+
+- [X] T107 `lib/features/auth/domain/auth_repository.dart`: `checkInviteCode({required String code, required String email})` → `Future<InviteRole>`(null 제거). `lib/features/auth/domain/models.dart` 주석 갱신.
+- [X] T108 `lib/features/auth/data/auth_repository_impl.dart`: 🔓 `POST /api/v1/auth/invite-codes/verify` 본문 `{inviteCode, email}` 호출, `role` → `InviteRole`. `lib/features/auth/data/mock_auth_repository.dart`: 시그니처 변경, `invalid@damso.test` 필드 오류를 코드 확인 단계에서도 재현.
+- [X] T109 `lib/core/network/auth_interceptor.dart` 공개 경로에 `/api/v1/auth/invite-codes/verify` 추가, `test/core/auth_interceptor_test.dart` 공개 경로 목록 갱신.
+- [X] T110 `lib/features/auth/presentation/signup/signup_view_model.dart`: `submitCode(code:, email:)`(이메일 검증·보관), `submitAccount`는 보관한 이메일 사용(이메일 인자 제거).
+- [X] T111 `lib/features/auth/presentation/signup/invite_code_page.dart`(F1-1)에 이메일 입력 추가, `account_page.dart`(F1-3/F1-3a)는 이메일을 읽기 전용으로 표시하고 역할 모름(중립) 문구 제거.
+- [X] T112 테스트 갱신: `test/features/auth/signup_view_model_test.dart`, `test/features/auth/signup_flow_test.dart`, `test/features/mock_scenarios_test.dart`.
+- [X] T114 에뮬레이터 E2E에서 발견: 인증 중 초대 코드 무효 → F1-1 복귀를 `context.go('/signup')`으로 하면 스택이 교체되어 시작 화면이 사라지고 시스템 뒤로 가기에 앱이 닫힘. `verify_page.dart`가 `pop(SignupOutcome.backToCode)`를 돌려주고 `account_page.dart`가 이어서 pop 하도록 수정.
+- [X] T113 설계 문서 갱신: spec FR-019·Assumptions·Clarifications, research R5, data-model 가입 상태, contracts/api-usage.md·routes.md, quickstart, plan.md. 확정된 제안 문서 `contracts/invite-code-check.proposal.md`는 삭제(원본 계약은 `docs/api/openapi.yaml`).
 
 ---
 
@@ -406,6 +421,6 @@ US1 + US2 + US3까지 끝내면 "관리자 코드 발행(1회 표시)", "데모 
 
 ## Notes
 
-- 초대 코드 확인 API(`contracts/invite-code-check.proposal.md`)가 확정되면 `/fetch-api <태그>` 후 `AuthRepositoryImpl.checkInviteCode`(T018)만 바꾼다. 요청에 이메일이 추가되면 T028·T029도 바꾼다.
+- 초대 코드 확인 API는 api-v0.4에서 확정되어 Phase 12에서 반영했다(요청에 이메일 필수 → F1-1에서 함께 입력).
 - 기존 뼈대(`lib/features/inquiry`, `history`, `reply`)는 고치지 않는다(FR-013). `/inquiries` 경로만 PARENT·TEACHER에게 임시로 열어 둔다.
 - 커밋은 작업 또는 논리 묶음 단위로, 사용자 요청이 있을 때만 `Feat : <요약>` 형식으로 한다.

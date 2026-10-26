@@ -14,10 +14,21 @@ class AuthRepositoryImpl implements AuthRepository {
   final TokenStore _tokens;
 
   @override
-  Future<InviteRole?> checkInviteCode(String code) async {
-    // 초대 코드 확인 API 는 계약 확정 전이다(contracts/invite-code-check.proposal.md).
-    // 서버를 호출하지 않고 역할 모름으로 돌려주며, 코드 검증은 signup 응답으로 한다.
-    return null;
+  Future<InviteRole> checkInviteCode({
+    required String code,
+    required String email,
+  }) {
+    return mapDioErrors(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/auth/invite-codes/verify',
+        data: {'inviteCode': code, 'email': email},
+      );
+      return switch (res.data!['role']) {
+        'TEACHER' => InviteRole.teacher,
+        'PARENT' => InviteRole.parent,
+        _ => throw const AppException(message: AppException.fallbackMessage),
+      };
+    });
   }
 
   @override

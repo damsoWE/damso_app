@@ -9,8 +9,8 @@
 | `/splash` | — | checking·unreachable 상태 전용 |
 | `/` | C-0 시작 | |
 | `/login` | C-1 / C-1a | 대기는 같은 화면의 상태 |
-| `/signup` | F1-1 / F1-2 / F1-2b | 초대 코드 입력·오류·잠금 |
-| `/signup/account` | F1-3 / F1-3a | 역할에 따라 문구 차이, 역할 모르면 중립 문구 |
+| `/signup` | F1-1 / F1-2 / F1-2b | 초대 코드·이메일 입력·오류·잠금 |
+| `/signup/account` | F1-3 / F1-3a | 역할에 따라 문구 차이. 이메일은 F1-1 값을 보여 주기만 함 |
 | `/signup/verify` | C-2 | |
 | `/password-reset` | C-3 | 로그인 상태에서도 접근 가능(마이페이지 "비밀번호 변경") |
 | `/password-reset/code` | C-3b / C-3c | |

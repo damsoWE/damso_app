@@ -16,16 +16,20 @@ void main() {
   SignupViewModel vm() => container.read(signupViewModelProvider.notifier);
   SignupState state() => container.read(signupViewModelProvider);
 
+  Future<SignupOutcome> submitCode(
+    String code, {
+    String email = 'new@damso.test',
+  }) => vm().submitCode(code: code, email: email);
+
   Future<void> toAccount([String code = 'PARENTCDE2']) async {
-    expect(await vm().submitCode(code), SignupOutcome.next);
+    expect(await submitCode(code), SignupOutcome.next);
   }
 
-  Future<void> toVerifying({String email = 'new@damso.test'}) async {
+  Future<void> toVerifying() async {
     await toAccount();
     expect(
       await vm().submitAccount(
         name: '김보호',
-        email: email,
         password: 'abcd1234',
         termsAgreed: true,
       ),
@@ -52,6 +56,7 @@ void main() {
       expect(state().step, SignupStep.accountForm);
       expect(state().inviteRole, InviteRole.parent);
       expect(state().inviteCode, 'PARENTCDE2');
+      expect(state().email, 'new@damso.test'); // 가입 1단계에서 그대로 쓴다
     });
 
     test('교사 코드 → 계정 정보(교사)', () async {
@@ -60,39 +65,43 @@ void main() {
     });
 
     test('없는 코드 → 사유 구분 없는 안내 (F1-2)', () async {
-      expect(await vm().submitCode('AAAAAAAAAA'), SignupOutcome.stay);
+      expect(await submitCode('AAAAAAAAAA'), SignupOutcome.stay);
       expect(state().step, SignupStep.codeEntry);
       expect(state().errorMessage, '코드를 확인해 주세요.');
     });
 
     test('잠금 → 600초 대기, 대기 중에는 제출 안 됨 (F1-2b)', () async {
-      await vm().submitCode('ZZZZZZZZZZ');
+      await submitCode('ZZZZZZZZZZ');
       expect(state().attemptCooldown.isActive, isTrue);
       expect(state().attemptCooldown.remaining, const Duration(seconds: 600));
-      expect(await vm().submitCode('PARENTCDE2'), SignupOutcome.stay);
+      expect(await submitCode('PARENTCDE2'), SignupOutcome.stay);
       expect(state().step, SignupStep.codeEntry);
+    });
+
+    test('서버 필드 오류를 필드별로 담는다 (US1-7)', () async {
+      expect(
+        await submitCode('PARENTCDE2', email: 'invalid@damso.test'),
+        SignupOutcome.stay,
+      );
+      expect(state().step, SignupStep.codeEntry);
+      expect(state().fieldErrors['email'], isNotNull);
+    });
+
+    test('이메일 형식이 틀리면 서버에 보내지 않는다', () async {
+      expect(
+        await submitCode('PARENTCDE2', email: 'not-email'),
+        SignupOutcome.stay,
+      );
+      expect(state().isSubmitting, isFalse);
+      expect(state().fieldErrors['email'], isNotNull);
     });
   });
 
   group('계정 정보 (F1-3)', () {
-    test('서버 필드 오류를 필드별로 담는다', () async {
-      await toAccount();
-      final outcome = await vm().submitAccount(
-        name: '김보호',
-        email: 'invalid@damso.test',
-        password: 'abcd1234',
-        termsAgreed: true,
-      );
-      expect(outcome, SignupOutcome.stay);
-      expect(state().step, SignupStep.accountForm);
-      expect(state().fieldErrors['email'], isNotNull);
-    });
-
     test('약관 미동의는 서버에 보내지 않는다', () async {
       await toAccount();
       final outcome = await vm().submitAccount(
         name: '김보호',
-        email: 'new@damso.test',
         password: 'abcd1234',
         termsAgreed: false,
       );

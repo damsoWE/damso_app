@@ -95,25 +95,35 @@ class SignupViewModel extends Notifier<SignupState> {
 
   bool get _blocked => state.isSubmitting || state.attemptCooldown.isActive;
 
-  /// F1-1 코드 확인.
-  Future<SignupOutcome> submitCode(String raw) async {
+  /// F1-1 코드 확인. 서버는 실패 횟수를 이메일 기준으로 세므로 이메일을 함께 보낸다.
+  /// 이 이메일은 가입 1단계에서 그대로 쓴다(계정 정보 화면에서 바꾸지 않음).
+  Future<SignupOutcome> submitCode({
+    required String code,
+    required String email,
+  }) async {
     if (_blocked) return SignupOutcome.stay;
-    final clientError = validateInviteCode(raw);
-    if (clientError != null) {
-      state = state.copyWith(errorMessage: () => clientError);
+    final errors = <String, String>{
+      'inviteCode': ?validateInviteCode(code),
+      'email': ?validateEmail(email),
+    };
+    if (errors.isNotEmpty) {
+      state = state.copyWith(fieldErrors: errors);
       return SignupOutcome.stay;
     }
-    final code = normalizeInviteCode(raw);
+    final normalized = normalizeInviteCode(code);
+    final trimmedEmail = email.trim();
     _startSubmit();
     try {
-      final role = await ref.read(authRepositoryProvider).checkInviteCode(code);
+      final role = await ref
+          .read(authRepositoryProvider)
+          .checkInviteCode(code: normalized, email: trimmedEmail);
       _moveTo(SignupStep.accountForm);
       state = SignupState(
         step: SignupStep.accountForm,
         inviteRole: role,
-        inviteCode: code,
+        inviteCode: normalized,
         name: state.name,
-        email: state.email,
+        email: trimmedEmail,
       );
       return SignupOutcome.next;
     } on AppException catch (e) {
@@ -122,17 +132,16 @@ class SignupViewModel extends Notifier<SignupState> {
     }
   }
 
-  /// F1-3/F1-3a 계정 정보 제출.
+  /// F1-3/F1-3a 계정 정보 제출. 이메일은 코드 확인 때 받은 값을 쓴다.
   Future<SignupOutcome> submitAccount({
     required String name,
-    required String email,
     required String password,
     required bool termsAgreed,
   }) async {
     if (_blocked) return SignupOutcome.stay;
+    final email = state.email;
     final errors = <String, String>{
       'name': ?validateName(name),
-      'email': ?validateEmail(email),
       'password': ?validateNewPassword(password),
     };
     if (errors.isNotEmpty || !termsAgreed) {
@@ -143,8 +152,7 @@ class SignupViewModel extends Notifier<SignupState> {
       return SignupOutcome.stay;
     }
     final trimmedName = name.trim();
-    final trimmedEmail = email.trim();
-    state = state.copyWith(name: trimmedName, email: trimmedEmail);
+    state = state.copyWith(name: trimmedName);
     _startSubmit();
     try {
       final pending = await ref
@@ -153,7 +161,7 @@ class SignupViewModel extends Notifier<SignupState> {
             SignupForm(
               inviteCode: state.inviteCode,
               name: trimmedName,
-              email: trimmedEmail,
+              email: email,
               password: password,
               termsAgreed: termsAgreed,
             ),

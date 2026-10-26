@@ -36,7 +36,11 @@ class _SignupVerifyPageState extends ConsumerState<SignupVerifyPage> {
     final outcome = await ref
         .read(signupViewModelProvider.notifier)
         .verify(_code.text);
-    if (outcome == SignupOutcome.backToCode && mounted) context.go('/signup');
+    // 스택을 교체(go)하면 시작 화면이 사라져 시스템 뒤로 가기에 앱이 닫힌다.
+    // 계정 정보 화면에 결과를 넘겨 F1-1 까지 pop 으로 돌아간다.
+    if (outcome == SignupOutcome.backToCode && mounted) {
+      context.pop(SignupOutcome.backToCode);
+    }
   }
 
   @override

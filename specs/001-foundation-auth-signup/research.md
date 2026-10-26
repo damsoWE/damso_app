@@ -40,15 +40,14 @@
 - **Rationale**: spec FR-001~004. 화면은 `message`만 보여 주고, 분기 판단은 code로 한다.
 - **Alternatives**: 에러 코드별 sealed class 계층 — 정확하지만 F1 범위에서 과하다. 필요해지면 나중에 바꾼다.
 
-## R5. 초대 코드 확인 API가 없는 상태에서 F1-1 → F1-3/F1-3a 흐름
+## R5. 초대 코드 확인(F1-1) → F1-3/F1-3a 흐름
 
-- **Decision**: `AuthRepository.checkInviteCode(code)`를 둔다. 반환은 `InviteRole?`(TEACHER / PARENT / 알 수 없음=null).
-  - **mock**: 데모 코드에 따라 역할을 돌려주거나 `INVALID_INVITE_CODE`·`TOO_MANY_ATTEMPTS`를 던진다.
-  - **실서버(계약 확정 전)**: 서버를 호출하지 않고 `null`을 돌려준다. 화면은 역할 중립 문구의 계정 만들기 화면을 보이고, 코드 검증은 `POST /api/v1/auth/signup` 응답으로 한다(두 역할 모두 이름이 필수라 입력 항목은 같다).
-  - 계약이 확정되면 실서버 구현만 바꾼다. 화면·ViewModel은 그대로다.
-- **Rationale**: spec FR-019(Option C) + Assumptions. 백엔드가 막혀도 실서버 가입이 동작한다.
-- **Alternatives**: 제안 경로를 미리 호출 — 서버가 기본 거부로 401을 줘 오동작한다.
-- 요청 문구: [contracts/invite-code-check.proposal.md](./contracts/invite-code-check.proposal.md)
+- **Decision**: `AuthRepository.checkInviteCode(code:, email:)` → `InviteRole`. 🔓 `POST /api/v1/auth/invite-codes/verify`(api-v0.4)를 호출한다.
+  - 요청에 이메일이 필수다. 서버는 실패를 이메일 기준으로 세고 가입 1단계 실패와 합산한다(5회 실패 시 10분 잠금). 그래서 F1-1에서 코드와 이메일을 함께 받고, 계정 정보 화면(F1-3/F1-3a)은 그 이메일을 보여 주기만 한다(바꾸면 실패 횟수 기준이 갈라진다).
+  - 코드를 소모하지 않으므로 가입 1단계(`POST /api/v1/auth/signup`)가 코드를 다시 검증한다. 그사이 무효가 되면 `INVALID_INVITE_CODE` → F1-1로 돌아간다.
+  - **mock**: 데모 코드에 따라 역할을 돌려주거나 `INVALID_INVITE_CODE`·`TOO_MANY_ATTEMPTS`를, 이메일 `invalid@damso.test`면 `INVALID_INPUT`(fieldErrors)을 던진다.
+- **Rationale**: spec FR-019 + Assumptions(백엔드 의존 해소). 역할에 맞는 화면 문구(F1-3/F1-3a)를 처음부터 보인다.
+- **Alternatives**: 계정 정보 화면에서 이메일을 다시 입력받기 — 코드 확인 때와 다른 이메일이 들어가 실패 횟수 기준이 어긋날 수 있다.
 
 ## R6. 대기·잠금 카운트다운
 

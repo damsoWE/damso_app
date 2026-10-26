@@ -113,6 +113,7 @@ void main() {
   test('공개 경로의 401 은 갱신하지 않고 헤더도 넣지 않는다', () async {
     setUpDio((o) async => _json(401, _unauthorized));
     const publicPaths = [
+      '/api/v1/auth/invite-codes/verify',
       '/api/v1/auth/login',
       '/api/v1/auth/signup',
       '/api/v1/auth/signup/verify',
