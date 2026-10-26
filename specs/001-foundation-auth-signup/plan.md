@@ -46,7 +46,7 @@
 | VII. 식별자·권한 | 라우터 redirect 한 곳(contracts/routes.md), URL에는 UUID만, 권한 최종 판단은 서버(403 안내) | ✅ |
 | VIII. 안전한 기본값 | `env/*.json`에 호스트만, 기본 계정 없음. mock 데모 계정은 mock 구현 안에만 있고 실서버 빌드에 쓰이지 않음 | ✅ |
 | 토큰 보관 | 갱신 토큰 보안 저장소, 접근 토큰 메모리 (`TokenStore` 유지) | ✅ |
-| 토큰 주입·갱신 단일 지점 | `AuthInterceptor`만. 갱신 실패 시 토큰 삭제 + 시작 화면 | ✅ |
+| 토큰 주입·갱신 단일 지점 | `AuthInterceptor`만. 갱신 실패 시 토큰 삭제 + 로그인 화면(`SignedOut(sessionExpired)` → `/login`) | ✅ |
 | 렌더링 | WebView·HTML 렌더 미사용 | ✅ |
 | 아키텍처 | 위젯 → ViewModel → Repository 인터페이스, domain에 Flutter·dio 없음, provider 한 곳에서 구현 선택, DioException → AppException | ✅ |
 | mock 케이스 | 401 갱신(테스트), 세션 만료·403·입력 오류·429(앱 mock) — research R8 | ✅ |
@@ -94,16 +94,17 @@ lib/
 │   │   └── session_controller.dart
 │   ├── storage/token_store.dart
 │   ├── theme/app_theme.dart
+│   ├── validation/validators.dart       # 신규: 초대 코드·이름·이메일·비밀번호·6자리 코드 (auth·parent·me 공유)
 │   └── widgets/                         # 신규: 2개 이상 기능이 쓰는 위젯
 │       ├── cooldown.dart                # 남은 시간 상태 + 표시
 │       ├── async_view.dart              # 로딩·빈 목록·오류(다시 시도)
 │       └── field_error_text.dart
 └── features/
     ├── auth/
-    │   ├── domain/   auth_repository.dart · models.dart · validators.dart
+    │   ├── domain/   auth_repository.dart · models.dart
     │   ├── data/     auth_repository_impl.dart · mock_auth_repository.dart · auth_repository_provider.dart
     │   └── presentation/
-    │       start_page.dart (C-0) · splash_page.dart · login_page.dart + login_view_model.dart (C-1/C-1a)
+    │       start_page.dart (C-0) · splash_page.dart + splash_view_model.dart · login_page.dart + login_view_model.dart (C-1/C-1a)
     │       signup/ invite_code_page.dart (F1-1/2/2b) · account_page.dart (F1-3/3a) · verify_page.dart (C-2) · signup_view_model.dart
     │       password_reset/ email_page.dart (C-3) · code_page.dart (C-3b/3c) · new_password_page.dart (C-4) · done_page.dart (C-5) · password_reset_view_model.dart
     │       welcome_page.dart (C-6) · terms_page.dart (C-7)
@@ -116,26 +117,27 @@ lib/
     │   ├── data/     parent_repository_impl.dart · mock_parent_repository.dart · parent_repository_provider.dart
     │   └── presentation/ parent_home_page.dart (F2-1/1b) · child_select_page.dart (F2-1a) · parent_my_page.dart (F2-7) · children_page.dart (F1-4) · add_child_page.dart (F1-5) · view models
     ├── teacher/
-    │   ├── domain/   teacher_repository.dart · models.dart
+    │   ├── domain/   teacher_repository.dart · models.dart · validators.dart
     │   ├── data/     teacher_repository_impl.dart · mock_teacher_repository.dart · teacher_repository_provider.dart
     │   └── presentation/ teacher_home_page.dart (F3-4) · teacher_my_page.dart (F3-7) · profile_edit_page.dart (F3-9) · links_page.dart (F3-10) · view models
     ├── admin/
-    │   ├── domain/   admin_repository.dart · models.dart
+    │   ├── domain/   admin_repository.dart · models.dart · validators.dart
     │   ├── data/     admin_repository_impl.dart · mock_admin_repository.dart · admin_repository_provider.dart
-    │   └── presentation/ admin_home_page.dart (ADM-1a/1b) · classroom_new_page.dart (ADM-1c) · classroom_detail_page.dart (ADM-1/ADM-2) · students_new_page.dart (ADM-5/5a) · invite_codes_page.dart · reissue_confirm_page.dart (ADM-6) · invite_issued_page.dart (ADM-3/3t) · admin_my_page.dart (ADM-7) · view models
+    │   └── presentation/ admin_home_page.dart (ADM-1a/1b) · classroom_new_page.dart (ADM-1c) · classroom_detail_page.dart (ADM-1/ADM-2) · students_new_page.dart (ADM-5/5a) · invite_codes_page.dart · reissue_confirm_page.dart (ADM-6) · invite_issued_page.dart (ADM-3/3t) · admin_my_page.dart (ADM-7) · format.dart · view models
     ├── inquiry/ · history/ · reply/     # 기존 뼈대, 이 작업에서 동작 유지만 (FR-013)
 
 test/
-├── core/      app_exception_test.dart · auth_interceptor_test.dart · router_redirect_test.dart
+├── core/      app_exception_test.dart · auth_interceptor_test.dart · router_redirect_test.dart · validators_test.dart
 ├── features/
-│   ├── auth/   validators_test.dart · login_view_model_test.dart · signup_view_model_test.dart · password_reset_view_model_test.dart · signup_flow_test.dart
+│   ├── mock_scenarios_test.dart          # US8 mock 시연 시나리오
+│   ├── auth/   login_view_model_test.dart · signup_view_model_test.dart · password_reset_view_model_test.dart · signup_flow_test.dart
 │   ├── parent/ parent_home_test.dart
 │   ├── teacher/ profile_edit_test.dart
 │   └── admin/  invite_issue_test.dart
 └── widget_test.dart                     # 기존, 새 진입 흐름에 맞게 수정
 ```
 
-**Structure Decision**: 기존 feature-first 구조를 따른다. 역할별 화면은 역할 이름의 feature(`parent`, `teacher`, `admin`)로, 역할 공통 계정 기능은 `me`로, 로그인 전 흐름은 `auth`로 나눈다. 세션·오류·공통 위젯은 두 개 이상 기능이 쓰므로 `core`에 둔다. 기존 `/inquiries` 경로는 로그인한 모든 역할에 임시로 열어 두고, F2에서 역할별 경로로 옮긴다.
+**Structure Decision**: 기존 feature-first 구조를 따른다. 역할별 화면은 역할 이름의 feature(`parent`, `teacher`, `admin`)로, 역할 공통 계정 기능은 `me`로, 로그인 전 흐름은 `auth`로 나눈다. 세션·오류·공통 위젯은 두 개 이상 기능이 쓰므로 `core`에 둔다. 기존 `/inquiries` 경로는 PARENT·TEACHER에게만 임시로 열어 두고(SUPER_ADMIN은 FR-037에 따라 차단), F2에서 역할별 경로로 옮긴다.
 
 ## Phase 0: Research
 

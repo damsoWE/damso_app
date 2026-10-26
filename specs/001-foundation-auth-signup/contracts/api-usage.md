@@ -13,7 +13,7 @@
 | `verifySignup(id, code)` | 🔓 `POST /api/v1/auth/signup/verify` | 201 → 토큰 저장, `role` | `INVALID_VERIFICATION_CODE` · `INVALID_INVITE_CODE` · 429 | C-2 |
 | `resendSignupCode(id)` | 🔓 `POST /api/v1/auth/signup/resend` | 202 | 429 | C-2 |
 | `login(email, pw)` | 🔓 `POST /api/v1/auth/login` | 200 → 토큰 저장, `role` | `INVALID_CREDENTIALS`(401) · `INVALID_INPUT` · 429 | C-1/C-1a |
-| `restoreSession()` | 🔓 `POST /api/v1/auth/token/refresh` | 200 → 토큰 저장, `role` | 401 → 로그아웃 · 네트워크 → unreachable | splash |
+| `restoreSession()` | 🔓 `POST /api/v1/auth/token/refresh` | 200 → 토큰 저장, `role` | 저장된 토큰 없음 → null(시작 화면) · 401 → 토큰 삭제 후 `AppException` throw(세션 만료 → 로그인 화면) · 네트워크 → unreachable | splash |
 | `logout()` | `POST /api/v1/auth/logout` | 204 | 실패해도 기기 토큰 삭제 | 마이페이지 |
 | `requestPasswordReset(email)` | 🔓 `POST /api/v1/auth/password-reset` | 202 | `INVALID_INPUT` | C-3 |
 | `verifyPasswordResetCode(email, code)` | 🔓 `POST /api/v1/auth/password-reset/verify` | 204 | `INVALID_VERIFICATION_CODE` · 429 | C-3b/C-3c |

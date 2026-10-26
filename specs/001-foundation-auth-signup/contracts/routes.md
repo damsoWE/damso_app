@@ -25,6 +25,7 @@
 | `/welcome` | C-6 담소 이용 안내 (가입 직후 1회, 관리자 마이페이지에서도 열람) |
 | `/me/account` | C-9 계정 정보 (이름 수정) |
 | `/me/withdraw` | C-8 회원 탈퇴 (SUPER_ADMIN 접근 불가) |
+| `/inquiries` | 기존 뼈대 문의 목록 (PARENT·TEACHER만 임시 허용, F2에서 역할별 경로로 이동) |
 
 ## PARENT
 
@@ -63,12 +64,13 @@
 ## redirect 규칙
 
 1. `checking`·`unreachable` → `/splash`.
-2. `signedOut` → 공개 경로가 아니면 `/`.
+2. `signedOut` → 공개 경로가 아니면 `/`. 단 `signedOut(sessionExpired)`(갱신 거부로 로그아웃)이면 `/login`.
 3. `signedIn(justSignedUp)` → `/welcome`이 아니면 `/welcome`.
 4. `signedIn(role)` →
    - 공개 전용 경로(`/`, `/login`, `/signup*`, `/splash`)면 역할 홈(`/parent`·`/teacher`·`/admin`).
    - 다른 역할의 경로(`/parent/**` 등)면 자기 역할 홈.
    - SUPER_ADMIN이 `/me/withdraw`면 `/admin/me`.
+   - SUPER_ADMIN이 `/inquiries`면 `/admin` (FR-037).
 5. 그 외는 그대로.
 
 URL에 담는 식별자는 UUID뿐이다(학급 ID). 학생 이름·코드 원문은 URL에 넣지 않는다.

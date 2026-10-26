@@ -16,7 +16,7 @@
 
 - **Decision**: `lib/core/session/`에 세션 상태(`SessionState`: 확인 중 / 로그아웃 / 로그인(role))와 이를 관리하는 `SessionController`(Riverpod `Notifier`)를 둔다. 라우터·인터셉터·여러 기능(auth, me)이 함께 쓰므로 core에 둔다.
   - 역할은 저장하지 않는다. 앱 시작 시 저장된 갱신 토큰으로 `POST /api/v1/auth/token/refresh`를 호출해 새 토큰과 `role`을 함께 받는다(`TokenResponse.role`).
-  - 시작 시 갱신이 **401**이면 로그아웃 상태로, **네트워크 오류**면 저장된 토큰을 지우지 않고 "연결할 수 없음 + 다시 시도" 화면을 보인다(오프라인일 때 로그인이 풀리지 않게).
+  - 시작 시 저장된 갱신 토큰이 없으면 로그아웃 상태(시작 화면)로, 갱신이 **401**이면 세션 만료 상태(로그인 화면)로, **네트워크 오류**면 저장된 토큰을 지우지 않고 "연결할 수 없음 + 다시 시도" 화면을 보인다(오프라인일 때 로그인이 풀리지 않게).
 - **Rationale**: 역할을 기기에 저장하면 서버와 어긋날 수 있다. 응답의 role이 유일한 기준이다(원칙 VII: 권한 최종 판단은 서버).
 - **Alternatives**: 역할을 보안 저장소에 저장 — 시작이 빠르지만 탈퇴·역할 변경과 어긋나고 저장 항목이 늘어난다.
 
@@ -26,7 +26,7 @@
   - 갱신 경로를 `/api/v1/auth/token/refresh`로 바꾼다.
   - 진행 중인 갱신 `Future<bool>?`를 하나 두어, 동시에 401을 받은 요청들은 같은 갱신 결과를 기다린 뒤 각자 한 번만 재시도한다(갱신 토큰은 1회용이라 두 번 갱신하면 재사용 탐지로 세션이 폐기된다).
   - 공개 경로(`/api/v1/auth/login`, `signup*`, `password-reset*`, `token/refresh`)의 401과, 응답 `code`가 `INVALID_CREDENTIALS`인 401(회원 탈퇴 비밀번호 불일치)은 갱신하지 않고 그대로 넘긴다.
-  - 갱신이 거부되면 토큰을 지우고 `SessionController.expire()`를 호출한다 → 라우터가 시작 화면으로 보낸다.
+  - 갱신이 거부되면 토큰을 지우고 `SessionController.expire()`를 호출한다 → 라우터가 로그인 화면(`/login`)으로 보낸다(constitution "갱신이 실패하면 저장된 토큰을 지우고 로그인 화면으로"). 로그아웃·탈퇴·비밀번호 재설정 완료는 `signOut()`으로 시작 화면에 간다.
 - **Rationale**: constitution "토큰 주입·갱신 단일 지점" 요건. 재사용 탐지(FR-025)와 충돌하지 않게 갱신을 직렬화한다.
 - **Alternatives**: `QueuedInterceptorsWrapper` — 모든 요청을 직렬화해 느려진다. 별도 패키지(`dio_smart_retry` 등) — 새 패키지 추가가 필요하다.
 
@@ -69,15 +69,16 @@
 
 - **Decision**:
   - mock Repository는 dio를 거치지 않으므로, **401 → 갱신 → 재시도**는 `AuthInterceptor` 단위 테스트에서 가짜 `HttpClientAdapter`(테스트 코드 안에 직접 구현, 패키지 없음)로 검증한다.
-  - 앱 mock 실행에서는 **갱신 실패 → 시작 화면**을 데모 계정 `expired@damso.test`로 재현한다: 로그인은 성공하지만 이후 보호된 조회에서 mock이 `SessionController.expire()`를 호출하고 401을 던진다.
+  - 앱 mock 실행에서는 **갱신 실패 → 로그인 화면**을 데모 계정 `expired@damso.test`로 재현한다: 로그인은 성공하지만 이후 보호된 조회에서 mock이 `SessionController.expire()`를 호출하고 401을 던진다.
   - **403**은 데모 교사 계정 `noclass@damso.test`(담당 학급 없음 → `FORBIDDEN`)로 재현한다.
+  - **401 → 갱신 → 재시도 성공**은 데모 계정 `refresh@damso.test`로 재현한다: 학부모 홈 첫 조회에서 mock이 갱신 지연(600ms)을 흉내 낸 뒤 정상 응답한다. 갱신을 거쳤는지는 mock 내부 플래그로만 기록하고 `TokenStore`는 건드리지 않는다(토큰 갱신은 `AuthInterceptor` 한 곳에서만 — constitution). 사용자에게는 오류가 보이지 않는다(실제 인터셉터 동작은 `AuthInterceptor` 단위 테스트가 검증).
   - 전체 데모 입력표는 [quickstart.md](./quickstart.md).
 - **Rationale**: constitution "mock에는 401(갱신)·403 포함", spec FR-012·US8. 아키텍처 규칙(mock = Repository 구현) 유지.
 - **Alternatives**: mock 모드에서도 dio를 쓰고 어댑터만 바꿈 — 갱신 흐름까지 앱에서 보이지만, "provider 한 곳에서 구현 선택" 규칙과 겹쳐 구조가 둘이 된다.
 
 ## R9. 입력 검증과 글자 수
 
-- **Decision**: 검증 함수는 각 기능의 `domain`에 순수 Dart로 둔다(예: `auth/domain/validators.dart`).
+- **Decision**: 검증 함수는 순수 Dart로 둔다. 두 개 이상 기능이 쓰는 것(초대 코드·이름·이메일·비밀번호·6자리 코드 — auth·parent·me)은 `lib/core/validation/validators.dart`에, 한 기능만 쓰는 것은 그 기능의 `domain`(`admin/domain/validators.dart`, `teacher/domain/validators.dart`)에 둔다(CLAUDE.md "core는 두 개 이상 기능이 쓰는 코드만").
   - 글자 수는 `String.runes.length`(코드 포인트)로 센다. 서버도 코드 포인트로 센다(openapi `Content` 설명).
   - 초대 코드: 공백 제거 + 대문자 변환 후 `^[A-HJKMNP-Z2-9]{10}$`.
   - 비밀번호: 8~64자, `[A-Za-z]`와 `[0-9]` 각각 1자 이상.

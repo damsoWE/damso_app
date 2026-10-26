@@ -32,7 +32,8 @@ mock 상태는 앱 실행 동안 메모리에만 있고, 재시작하면 초기�
 | `teacher@damso.test` | 교사 · 담당 학급 있음 |
 | `noclass@damso.test` | 교사 · 담당 학급 조회 시 403 `FORBIDDEN` |
 | `admin@damso.test` | 슈퍼 관리자 |
-| `expired@damso.test` | 로그인 성공 → 첫 보호 조회에서 세션 만료 → 시작 화면 |
+| `expired@damso.test` | 학부모 · 로그인 성공 → 홈 첫 조회에서 세션 만료 → 로그인 화면 |
+| `refresh@damso.test` | 학부모 · 홈 첫 조회에서 접근 권한 만료 → 갱신 → 재시도 성공(오류 안내 없이 홈 표시) |
 | `wait@damso.test` (비밀번호 무관) | 429 `TOO_MANY_ATTEMPTS`, `Retry-After: 30` |
 | 위 계정 + 틀린 비밀번호 / 없는 이메일 | 401 `INVALID_CREDENTIALS` (같은 안내) |
 
@@ -78,7 +79,7 @@ mock 상태는 앱 실행 동안 메모리에만 있고, 재시작하면 초기�
 | 7 | 역할별 로그인(parent/teacher/admin) | 각 역할 홈 | US2-1 |
 | 8 | 틀린 비밀번호 / `wait@damso.test` | 같은 실패 안내 / C-1a 30초 카운트다운 | US2-2,3 |
 | 9 | 로그인 후 앱 재시작 (mock: 재시작 시 세션 없음 → 시작 화면이 정상) · 실서버: 홈으로 바로 | 실서버에서 홈 복구 | US2-4 |
-| 10 | `expired@damso.test` 로그인 | 시작 화면으로 이동, 다시 로그인 필요 | US2-6, US8-2 |
+| 10 | `expired@damso.test` 로그인 | 로그인 화면으로 이동, 다시 로그인 필요 | US2-6, US8-2 |
 | 11 | 학부모로 로그인 후 주소창/딥링크로 `/admin` | 학부모 홈으로 | US2-8 |
 | 12 | 관리자: 학급 추가 → 학생 3명 등록 → 교사 코드 발행 → 뒤로 | 발행 완료 화면에서만 코드 보임, 현황에 원문 없음 | US3 |
 | 13 | 관리자: 미사용 코드 학생 재발행 | ADM-6 확인 후 새 코드 | US3-6 |
@@ -89,10 +90,11 @@ mock 상태는 앱 실행 동안 메모리에만 있고, 재시작하면 초기�
 | 18 | 비밀번호 재설정 → `123456` → 새 비밀번호 | C-5 완료, 로그인 상태였다면 시작 화면 | US6 |
 | 19 | 마이페이지 이름 수정 / 로그아웃 / 탈퇴(틀린·맞는 비밀번호) | 반영 / 시작 화면 / 안내·시작 화면 | US7 |
 | 20 | 관리자 마이페이지 | 탈퇴 메뉴 없음 | FR-039 |
+| 21 | `refresh@damso.test` 로그인 | 학부모 홈이 잠깐 늦게 뜨지만 오류 안내 없이 자녀 목록 표시 | US2-5, US8-2 |
 
 ## 자동 테스트로 확인하는 것
 
-- `AuthInterceptor`: 401 → 갱신 1회 → 재시도, 동시 401 3건에도 갱신 1회, 공개 경로·`INVALID_CREDENTIALS` 401은 갱신 안 함, 갱신 실패 시 토큰 삭제 + `expire()` (US8-2, SC-003)
+- `AuthInterceptor`: 401 → 갱신 1회 → 재시도, 동시 401 3건에도 갱신 1회, 공개 경로·`INVALID_CREDENTIALS` 401은 갱신 안 함, 갱신 실패 시 토큰 삭제 + `expire()` → 로그인 화면 (US8-2, SC-003)
 - `AppException.fromDio`: fieldErrors·Retry-After·네트워크 오류·message 없을 때 일반 안내 (FR-001~004)
 - validators 경계값 (FR-015)
 - 라우터 redirect 규칙 전체 (SC-002)

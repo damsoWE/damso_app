@@ -17,16 +17,19 @@
 |---|---|---|
 | `checking` | 앱 시작 직후, 저장된 갱신 토큰으로 복구 중 | `/splash` |
 | `unreachable` | 복구 중 네트워크 오류(토큰은 유지) | `/splash`에 다시 시도 버튼 |
-| `signedOut` | 세션 없음 | 공개 경로만 |
+| `signedOut` | 세션 없음 | 공개 경로만. 보호 경로면 `/` |
+| `signedOut(sessionExpired)` | 갱신이 거부되어 로그아웃됨 | 공개 경로만. 보호 경로면 `/login` |
 | `signedIn(role, justSignedUp)` | 로그인됨 | 역할 경로 + `/me/**`. `justSignedUp`이면 `/welcome` 먼저 |
 
 전이:
 ```
 checking ──refresh 성공──▶ signedIn(role)
-checking ──토큰 없음 / refresh 401──▶ signedOut
+checking ──토큰 없음──▶ signedOut
+checking ──refresh 401──▶ signedOut(sessionExpired)
 checking ──네트워크 오류──▶ unreachable ──다시 시도──▶ checking
 signedOut ──login / signup verify 성공──▶ signedIn(role[, justSignedUp=true])
-signedIn ──logout / 탈퇴 / 비밀번호 재설정 완료 / 갱신 거부(expire)──▶ signedOut
+signedIn ──logout / 탈퇴 / 비밀번호 재설정 완료(signOut)──▶ signedOut
+signedIn ──갱신 거부(expire)──▶ signedOut(sessionExpired)
 signedIn(justSignedUp) ──이용 안내 확인──▶ signedIn(justSignedUp=false)
 ```
 
@@ -65,7 +68,7 @@ ErrorCode 상수(F0·F1 사용분): `INVALID_INPUT`, `UNAUTHORIZED`, `FORBIDDEN`
 | `PendingSignup` | `pendingSignupId`, `codeExpiresIn` (Duration) | `PendingSignupResponse`. 메모리 전용 |
 | `AuthResult` | `role` | `TokenResponse`에서 토큰은 Repository가 저장하고 역할만 위로 올린다 |
 
-### 검증 (`auth/domain/validators.dart`, 글자 수 = 코드 포인트)
+### 검증 (`lib/core/validation/validators.dart` — auth·parent·me 공유, 글자 수 = 코드 포인트)
 
 | 입력 | 규칙 | 정규화 |
 |---|---|---|
@@ -81,14 +84,17 @@ ErrorCode 상수(F0·F1 사용분): `INVALID_INPUT`, `UNAUTHORIZED`, `FORBIDDEN`
 ```
 codeEntry ──checkInviteCode 성공──▶ accountForm(role?)        (F1-1 → F1-3 / F1-3a)
 codeEntry ──INVALID_INVITE_CODE──▶ codeEntry(error)          (F1-2)
-codeEntry ──TOO_MANY_ATTEMPTS──▶ codeEntry(cooldown)          (F1-2b)
+codeEntry ──TOO_MANY_ATTEMPTS──▶ codeEntry(attemptCooldown)   (F1-2b)
 accountForm ──signup 202──▶ verifying(pending)                (C-2)
 accountForm ──INVALID_INVITE_CODE──▶ codeEntry(error)         (입력값 유지)
 accountForm ──INVALID_INPUT──▶ accountForm(fieldErrors)
+accountForm ──TOO_MANY_ATTEMPTS──▶ accountForm(attemptCooldown)
 verifying ──verify 201──▶ 완료 → Session.signedIn(justSignedUp) → /welcome (C-6)
 verifying ──INVALID_VERIFICATION_CODE──▶ verifying(error)
+verifying ──TOO_MANY_ATTEMPTS──▶ verifying(attemptCooldown)        (C-2 잠금, 인증 버튼 비활성)
 verifying ──INVALID_INVITE_CODE──▶ codeEntry(error)           (그사이 재발행·만료)
 verifying ──resend──▶ verifying(resendCooldown 60s)
+verifying ──resend TOO_MANY_ATTEMPTS──▶ verifying(resendCooldown = retryAfter)   (인증 버튼은 잠그지 않음)
 ```
 
 ### 비밀번호 재설정 상태 (`PasswordResetViewModel`)
@@ -97,6 +103,7 @@ emailEntry ──202──▶ codeEntry                                 (C-3 →
 codeEntry ──204──▶ newPassword                                (C-4)
 codeEntry ──INVALID_VERIFICATION_CODE──▶ codeEntry(error)
 codeEntry ──TOO_MANY_ATTEMPTS──▶ expiredOrLocked              (C-3c: 코드 다시 받기 / 로그인으로)
+newPassword ──INVALID_VERIFICATION_CODE / TOO_MANY_ATTEMPTS──▶ expiredOrLocked   (그사이 코드 만료, C-3c)
 newPassword ──204──▶ done → 로그인 상태였다면 Session.signedOut  (C-5)
 ```
 
