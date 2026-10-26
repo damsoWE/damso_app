@@ -20,7 +20,7 @@ Figma 프로토타입 탭에서 아래 흐름을 골라 재생하면 화면 이�
 
 | 흐름 | 시작 화면 |
 |---|---|
-| ① 시작 · 초대코드 가입 | [216:5016](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5016) |
+| ① 시작 · 초대코드 가입 | [285:6781](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=285-6781) |
 | ② 학부모 · 문의·진행 상태 | [216:5162](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5162) |
 | ②-1 학부모 · 긴급 전달 | [216:5319](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5319) |
 | ③ 교사 · 문의 확인·답변 | [216:5567](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5567) |
@@ -34,7 +34,7 @@ Figma 프로토타입 탭에서 아래 흐름을 골라 재생하면 화면 이�
 
 | ID | 화면 | 주요 이동 |
 |---|---|---|
-| [C-0](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5016) | 시작 | 로그인 → C-1 · 초대코드로 가입하기 → F1-1 |
+| [C-0](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=285-6781) | 시작 | 로그인 → C-1 · 초대코드로 가입하기 → F1-1 |
 | [C-1](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1169) | 로그인 | 로그인 → 역할별 홈 · 비밀번호 재설정 → C-3 · 가입하기 → F1-1 |
 | [C-1a](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1512) | 로그인 잠금 (5회 실패, 10분) | 비밀번호 재설정 → C-3 · 가입하기 → F1-1 |
 | [F1-1](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5050) | 초대코드 입력 | 코드 확인 → F1-3 (교사 코드면 F1-3a) |
