@@ -8,5 +8,8 @@ import 'core/config/env.dart';
 /// 서버 없이 실행하려면 USE_MOCK=true (예: --dart-define=USE_MOCK=true).
 void main() {
   Env.ensureConfigured();
-  runApp(const ProviderScope(child: DamsoApp()));
+  runApp(
+    // 실패한 조회를 자동 재시도하지 않는다. 다시 시도는 화면의 버튼으로만 한다(FR-041).
+    ProviderScope(retry: (_, _) => null, child: const DamsoApp()),
+  );
 }

@@ -1,4 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+final tokenStoreProvider = Provider<TokenStore>((_) => TokenStore());
 
 /// 토큰 보관 규칙: AT 는 메모리에만, RT 는 OS 보안 저장소에만 둔다.
 class TokenStore {
