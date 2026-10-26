@@ -26,6 +26,10 @@ class TeacherMyPage extends ConsumerWidget {
           MenuTile('계정 정보', onTap: () => openAccount(context)),
           MenuTile('공개 프로필', onTap: () => context.push('/teacher/profile')),
           MenuTile('학부모 연결 현황', onTap: () => context.push('/teacher/links')),
+          MenuTile(
+            '응답 가능 시간 · 알림',
+            onTap: () => context.push('/teacher/settings/notifications'),
+          ),
           MenuTile('비밀번호 변경', onTap: () => context.push('/password-reset')),
           MenuTile('이용약관 · 개인정보 처리방침', onTap: () => context.push('/terms')),
           const LogoutTile(),

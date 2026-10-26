@@ -93,7 +93,7 @@ hotlines 정리: 모르는 코드 제거 → (제거 전 비어 있지 않았는
 |---|---|---|
 | `child` | `Child` | 홈에서 고른 자녀(F1 모델). 담임 없음이면 작성 화면을 열지 않음(FR-003) |
 | `length` | `int` | `content.trim().runes.length` (research R4) |
-| `canSubmit` | `bool` | `1 ≤ length ≤ 2000` ∧ ¬`isSubmitting` ∧ ¬`cooldown.isActive` |
+| `canSubmit` | `bool` | `1 ≤ length ≤ 2000` ∧ ¬`isSubmitting` (1분 제한 중에도 막지 않음 — 긴급은 제한 없음, FR-005) |
 | `isSubmitting` | `bool` | 보내는 중 버튼 비활성(FR-004) |
 | `errorMessage` | `String?` | 서버 `message` 또는 고정 안내 |
 | `cooldown` | `Cooldown` | 429 `Retry-After`, F1 `CooldownTimer` 재사용(FR-005) |

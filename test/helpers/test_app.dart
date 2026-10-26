@@ -2,6 +2,9 @@ import 'package:damso_app/app/app.dart';
 import 'package:damso_app/core/session/session_controller.dart';
 import 'package:damso_app/core/storage/token_store.dart';
 import 'package:damso_app/features/me/data/me_repository_provider.dart';
+import 'package:damso_app/features/notification/data/mock_notification_repository.dart';
+import 'package:damso_app/features/notification/data/notification_repository_provider.dart';
+import 'package:damso_app/features/notification/domain/notification_repository.dart';
 import 'package:damso_app/features/me/data/mock_me_repository.dart';
 import 'package:damso_app/features/parent/data/mock_parent_repository.dart';
 import 'package:damso_app/features/parent/data/parent_repository_provider.dart';
@@ -12,8 +15,12 @@ import 'package:damso_app/features/admin/data/mock_admin_repository.dart';
 import 'package:damso_app/features/admin/domain/admin_repository.dart';
 import 'package:damso_app/features/auth/data/auth_repository_provider.dart';
 import 'package:damso_app/features/auth/data/mock_auth_repository.dart';
-import 'package:damso_app/features/inquiry/data/inquiry_repository_provider.dart';
-import 'package:damso_app/features/inquiry/data/mock_inquiry_repository.dart';
+import 'package:damso_app/features/inquiry/data/inquiry_repository_providers.dart';
+import 'package:damso_app/features/inquiry/data/mock_inquiry_store.dart';
+import 'package:damso_app/features/inquiry/data/mock_parent_inquiry_repository.dart';
+import 'package:damso_app/features/inquiry/data/mock_teacher_inquiry_repository.dart';
+import 'package:damso_app/features/inquiry/domain/parent_inquiry_repository.dart';
+import 'package:damso_app/features/inquiry/domain/teacher_inquiry_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -23,11 +30,32 @@ import 'package:flutter_test/flutter_test.dart';
 /// 테스트는 USE_MOCK 없이 실행되므로 모든 Repository 를 mock 으로 바꾼다.
 /// mock 들은 앱과 같은 tokenStoreProvider 를 공유한다(데모 계정 구분).
 /// 인자로 넘긴 Repository 가 있으면 그것을, 없으면 기본 mock 을 쓴다.
-List<Override> mockRepositoryOverrides({AdminRepository? admin}) => [
+List<Override> mockRepositoryOverrides({
+  AdminRepository? admin,
+  ParentInquiryRepository Function(Ref ref)? parentInquiry,
+  TeacherInquiryRepository Function(Ref ref)? teacherInquiry,
+  NotificationRepository? notification,
+}) => [
+  notificationRepositoryProvider.overrideWith(
+    (_) => notification ?? MockNotificationRepository(),
+  ),
   authRepositoryProvider.overrideWith(
     (ref) => MockAuthRepository(ref.watch(tokenStoreProvider)),
   ),
-  inquiryRepositoryProvider.overrideWithValue(MockInquiryRepository()),
+  // 문의 mock 은 학부모·교사가 저장소를 공유한다. 테스트마다 새 저장소(ProviderScope 마다 새로 만든다).
+  mockInquiryStoreProvider.overrideWith((_) => MockInquiryStore()),
+  parentInquiryRepositoryProvider.overrideWith(
+    (ref) => parentInquiry?.call(ref) ?? MockParentInquiryRepository(
+      ref.watch(tokenStoreProvider),
+      ref.watch(mockInquiryStoreProvider),
+    ),
+  ),
+  teacherInquiryRepositoryProvider.overrideWith(
+    (ref) => teacherInquiry?.call(ref) ?? MockTeacherInquiryRepository(
+      ref.watch(tokenStoreProvider),
+      ref.watch(mockInquiryStoreProvider),
+    ),
+  ),
   adminRepositoryProvider.overrideWith((ref) => admin ?? MockAdminRepository()),
   parentRepositoryProvider.overrideWith(
     (ref) => MockParentRepository(
@@ -44,11 +72,25 @@ List<Override> mockRepositoryOverrides({AdminRepository? admin}) => [
 ];
 
 /// 앱 전체를 mock 으로 띄운다. 자동 재시도는 끈다(main.dart 와 같은 설정).
-Widget testApp({AdminRepository? admin}) {
+Widget testApp({
+  AdminRepository? admin,
+  ParentInquiryRepository Function(Ref ref)? parentInquiry,
+  TeacherInquiryRepository Function(Ref ref)? teacherInquiry,
+  NotificationRepository? notification,
+  List<Override> extraOverrides = const [],
+}) {
   FlutterSecureStorage.setMockInitialValues({});
   return ProviderScope(
     retry: (_, _) => null,
-    overrides: mockRepositoryOverrides(admin: admin),
+    overrides: [
+      ...mockRepositoryOverrides(
+        admin: admin,
+        parentInquiry: parentInquiry,
+        teacherInquiry: teacherInquiry,
+        notification: notification,
+      ),
+      ...extraOverrides,
+    ],
     child: const DamsoApp(),
   );
 }
@@ -76,6 +118,12 @@ Future<void> enterField(WidgetTester tester, String label, String text) async {
 bool isEnabled(WidgetTester tester, String label) =>
     tester.widget<FilledButton>(find.widgetWithText(FilledButton, label)).onPressed !=
     null;
+
+/// 하단 탭 이동(홈 · 문의 · 마이페이지).
+Future<void> tapTab(WidgetTester tester, String label) async {
+  await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)));
+  await tester.pumpAndSettle();
+}
 
 /// 앱 시작 → 시작 화면 → 로그인.
 Future<void> login(WidgetTester tester, String email, {String password = 'damso1234'}) async {

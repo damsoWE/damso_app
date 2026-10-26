@@ -66,3 +66,7 @@ android/key.properties
 
 # 기획 원본 (비공개)
 docs/*.pdf
+
+# Firebase 연결 설정(빌드 때 --dart-define-from-file 로만 주입, specs/002 research R10)
+secrets/*.json
+!secrets/*.example.json
