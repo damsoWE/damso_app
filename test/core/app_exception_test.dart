@@ -118,4 +118,31 @@ void main() {
     expect(userMessageOf(const AppException(message: '서버 안내')), '서버 안내');
     expect(userMessageOf(StateError('내부 오류')), AppException.fallbackMessage);
   });
+
+  group('mapDioErrors', () {
+    test('응답 형식 오류(TypeError·FormatException)는 일반 안내로 바꾼다', () async {
+      final Map<String, dynamic> body = {'accessToken': null};
+      await expectLater(
+        mapDioErrors(() async => body['accessToken'] as String),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.message, 'message', AppException.fallbackMessage)
+              .having((e) => e.statusCode, 'statusCode', isNull),
+        ),
+      );
+      await expectLater(
+        mapDioErrors(() async => DateTime.parse('어제')),
+        throwsA(isA<AppException>()),
+      );
+    });
+
+    test('직접 던진 AppException 은 그대로 둔다', () async {
+      await expectLater(
+        mapDioErrors<void>(
+          () async => throw const AppException(message: '서버 안내', code: 'X'),
+        ),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', 'X')),
+      );
+    });
+  });
 }

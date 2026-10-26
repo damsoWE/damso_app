@@ -146,17 +146,23 @@ class AuthRepositoryImpl implements AuthRepository {
     });
   }
 
-  /// TokenResponse 저장 후 역할을 돌려준다. 모르는 역할이면 토큰을 지우고 실패시킨다.
+  /// TokenResponse 를 모두 확인한 뒤에 저장하고 역할을 돌려준다.
+  /// 하나라도 형식이 다르면(모르는 역할 포함) 토큰을 지우고 실패시킨다 — 반쪽만 저장하지 않는다.
+  /// 오류는 [mapDioErrors] 가 일반 안내로 바꾼다.
   Future<Role> _saveTokens(Map<String, dynamic> data) async {
+    final String accessToken;
+    final String refreshToken;
     final Role role;
     try {
+      accessToken = data['accessToken'] as String;
+      refreshToken = data['refreshToken'] as String;
       role = Role.fromServer(data['role'] as String);
-    } on FormatException {
+    } catch (_) {
       await _tokens.clear();
-      throw const AppException(message: AppException.fallbackMessage);
+      rethrow;
     }
-    _tokens.accessToken = data['accessToken'] as String;
-    await _tokens.saveRefreshToken(data['refreshToken'] as String);
+    _tokens.accessToken = accessToken;
+    await _tokens.saveRefreshToken(refreshToken);
     return role;
   }
 }

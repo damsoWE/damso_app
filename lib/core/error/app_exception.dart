@@ -90,11 +90,17 @@ class AppException implements Exception {
 String userMessageOf(Object error) =>
     error is AppException ? error.message : AppException.fallbackMessage;
 
-/// data 계층에서 dio 호출을 감싸 DioException 을 [AppException] 으로 변환한다.
+/// data 계층에서 dio 호출과 응답 해석을 감싸 [AppException] 으로 변환한다.
+/// 응답이 명세와 다르면(필드 누락·타입 불일치·모르는 값) 일반 안내로 바꾼다 —
+/// ViewModel 은 [AppException] 만 잡으므로, 그대로 두면 제출 중 상태에서 멈춘다.
 Future<T> mapDioErrors<T>(Future<T> Function() call) async {
   try {
     return await call();
   } on DioException catch (e) {
     throw AppException.fromDio(e);
+  } on TypeError {
+    throw const AppException(message: AppException.fallbackMessage);
+  } on FormatException {
+    throw const AppException(message: AppException.fallbackMessage);
   }
 }
