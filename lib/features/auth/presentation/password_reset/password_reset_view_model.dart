@@ -5,6 +5,7 @@ import '../../../../core/error/error_codes.dart';
 import '../../../../core/session/session_controller.dart';
 import '../../../../core/session/session_state.dart';
 import '../../../../core/validation/validators.dart';
+import '../../../me/data/me_repository_provider.dart';
 import '../../data/auth_repository_provider.dart';
 
 enum ResetStep { emailEntry, codeEntry, expiredOrLocked, newPassword, done }
@@ -84,6 +85,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
     }
     final trimmed = email.trim();
     _start();
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       await ref.read(authRepositoryProvider).requestPasswordReset(trimmed);
       state = state.copyWith(
@@ -96,6 +98,8 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
     } on AppException catch (e) {
       _fail(e);
       return false;
+    } finally {
+      link.close();
     }
   }
 
@@ -109,6 +113,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
     }
     final code = normalizeSixDigitCode(raw);
     _start();
+    final link = ref.keepAlive();
     try {
       await ref
           .read(authRepositoryProvider)
@@ -122,6 +127,8 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
     } on AppException catch (e) {
       _fail(e, step: _isExpiredOrLocked(e) ? ResetStep.expiredOrLocked : null);
       return false;
+    } finally {
+      link.close();
     }
   }
 
@@ -129,6 +136,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
   Future<void> resendCode() async {
     if (state.isSubmitting) return;
     _start();
+    final link = ref.keepAlive();
     try {
       await ref.read(authRepositoryProvider).requestPasswordReset(state.email);
       state = state.copyWith(
@@ -139,10 +147,13 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
       );
     } on AppException catch (e) {
       _fail(e);
+    } finally {
+      link.close();
     }
   }
 
-  /// 성공하면 true(→ C-5). 로그인 상태였다면 이 기기도 로그아웃한다(FR-025).
+  /// 성공하면 true(→ C-5). 내 계정을 재설정했다면 이 기기도 로그아웃한다(FR-025).
+  /// 다른 계정을 재설정했다면 지금 로그인한 세션은 그대로 둔다.
   Future<bool> confirm(String newPassword) async {
     if (state.isSubmitting) return false;
     final clientError = validateNewPassword(newPassword);
@@ -151,11 +162,14 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
       return false;
     }
     _start();
+    final link = ref.keepAlive();
     try {
+      // 재설정 뒤에는 그 계정의 세션이 폐기돼 내 정보를 조회할 수 없으므로 먼저 확인한다.
+      final ownAccount = await _isSignedInAs(state.email);
       await ref
           .read(authRepositoryProvider)
           .confirmPasswordReset(state.email, state.code, newPassword);
-      if (ref.read(sessionControllerProvider) is SignedIn) {
+      if (ownAccount) {
         await ref.read(sessionControllerProvider.notifier).signOut();
       }
       state = state.copyWith(step: ResetStep.done, code: '', isSubmitting: false);
@@ -166,6 +180,19 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
           e.code == ErrorCodes.invalidVerificationCode || _isExpiredOrLocked(e);
       _fail(e, step: expired ? ResetStep.expiredOrLocked : null);
       return false;
+    } finally {
+      link.close();
+    }
+  }
+
+  /// 로그인 상태이고 [email] 이 내 계정이면 true. 확인할 수 없으면 true(안전하게 로그아웃).
+  Future<bool> _isSignedInAs(String email) async {
+    if (ref.read(sessionControllerProvider) is! SignedIn) return false;
+    try {
+      final me = await ref.read(meRepositoryProvider).getMe();
+      return me.email.toLowerCase() == email.toLowerCase();
+    } on AppException {
+      return true;
     }
   }
 }

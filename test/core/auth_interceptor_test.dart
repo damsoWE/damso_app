@@ -212,4 +212,43 @@ void main() {
     expect(await tokens.readRefreshToken(), 'rt-1');
     expect(expiredCalls, 0);
   });
+
+  test('갱신이 503·429 면 토큰을 지우지 않고 그 오류를 넘긴다', () async {
+    for (final status in [503, 429]) {
+      FlutterSecureStorage.setMockInitialValues({'refresh_token': 'rt-1'});
+      tokens.accessToken = 'at-old';
+      setUpDio((o) async {
+        if (o.path == _refresh) {
+          return _json(status, {'code': 'X', 'message': '잠시 후 다시 시도'});
+        }
+        return _json(401, _unauthorized);
+      });
+      await expectLater(
+        dio.get<dynamic>(_protected),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.statusCode,
+            'status',
+            status,
+          ),
+        ),
+        reason: '$status',
+      );
+      expect(tokens.accessToken, 'at-old', reason: '$status');
+      expect(await tokens.readRefreshToken(), 'rt-1', reason: '$status');
+    }
+    expect(expiredCalls, 0);
+  });
+
+  test('갱신이 400(형식 오류 토큰)이면 만료로 보고 토큰을 지운다', () async {
+    setUpDio((o) async {
+      if (o.path == _refresh) {
+        return _json(400, {'code': 'INVALID_INPUT', 'message': '입력 오류'});
+      }
+      return _json(401, _unauthorized);
+    });
+    await expectLater(dio.get<dynamic>(_protected), throwsA(isA<DioException>()));
+    expect(await tokens.readRefreshToken(), isNull);
+    expect(expiredCalls, 1);
+  });
 }

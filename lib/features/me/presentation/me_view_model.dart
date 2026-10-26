@@ -56,6 +56,7 @@ class MeViewModel extends AsyncNotifier<MeState> {
       return false;
     }
     _set(isSubmitting: true);
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       final me = await ref.read(meRepositoryProvider).updateName(name.trim());
       _set(me: me);
@@ -63,17 +64,21 @@ class MeViewModel extends AsyncNotifier<MeState> {
     } on AppException catch (e) {
       _set(errorMessage: e.message, fieldErrors: e.fieldErrors);
       return false;
+    } finally {
+      link.close();
     }
   }
 
   /// 이 기기만 로그아웃. 서버 호출이 실패해도 기기 세션은 지운다(FR-022).
   Future<void> logout() async {
+    // 응답을 기다리는 사이 화면이 해제돼도 세션은 지워야 하므로 미리 잡아 둔다.
+    final session = ref.read(sessionControllerProvider.notifier);
     try {
       await ref.read(authRepositoryProvider).logout();
     } on AppException {
       // 서버 실패는 무시한다 — 기기 세션은 아래에서 지운다.
     } finally {
-      await ref.read(sessionControllerProvider.notifier).signOut();
+      await session.signOut();
     }
   }
 
@@ -86,11 +91,14 @@ class MeViewModel extends AsyncNotifier<MeState> {
       return;
     }
     _set(isSubmitting: true);
+    final link = ref.keepAlive();
     try {
       await ref.read(meRepositoryProvider).withdraw(password);
       await ref.read(sessionControllerProvider.notifier).signOut();
     } on AppException catch (e) {
       _set(errorMessage: e.message);
+    } finally {
+      link.close();
     }
   }
 }

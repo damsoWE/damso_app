@@ -16,7 +16,7 @@
 | 상태 | 의미 | 라우터 동작 |
 |---|---|---|
 | `checking` | 앱 시작 직후, 저장된 갱신 토큰으로 복구 중 | `/splash` |
-| `unreachable` | 복구 중 네트워크 오류(토큰은 유지) | `/splash`에 다시 시도 버튼 |
+| `unreachable` | 복구 중 네트워크 오류·5xx·429(토큰은 유지) | `/splash`에 다시 시도 버튼 |
 | `signedOut` | 세션 없음 | 공개 경로만. 보호 경로면 `/` |
 | `signedOut(sessionExpired)` | 갱신이 거부되어 로그아웃됨 | 공개 경로만. 보호 경로면 `/login` |
 | `signedIn(role, justSignedUp)` | 로그인됨 | 역할 경로 + `/me/**`. `justSignedUp`이면 `/welcome` 먼저 |
@@ -25,10 +25,11 @@
 ```
 checking ──refresh 성공──▶ signedIn(role)
 checking ──토큰 없음──▶ signedOut
-checking ──refresh 401──▶ signedOut(sessionExpired)
-checking ──네트워크 오류──▶ unreachable ──다시 시도──▶ checking
+checking ──refresh 400·401·403──▶ signedOut(sessionExpired)
+checking ──네트워크 오류·5xx·429──▶ unreachable
+checking ──저장소·응답 형식 오류──▶ signedOut ──다시 시도──▶ checking
 signedOut ──login / signup verify 성공──▶ signedIn(role[, justSignedUp=true])
-signedIn ──logout / 탈퇴 / 비밀번호 재설정 완료(signOut)──▶ signedOut
+signedIn ──logout / 탈퇴 / 본인 계정 비밀번호 재설정 완료(signOut)──▶ signedOut
 signedIn ──갱신 거부(expire)──▶ signedOut(sessionExpired)
 signedIn(justSignedUp) ──이용 안내 확인──▶ signedIn(justSignedUp=false)
 ```
@@ -105,7 +106,7 @@ codeEntry ──204──▶ newPassword                                (C-4)
 codeEntry ──INVALID_VERIFICATION_CODE──▶ codeEntry(error)
 codeEntry ──TOO_MANY_ATTEMPTS──▶ expiredOrLocked              (C-3c: 코드 다시 받기 / 로그인으로)
 newPassword ──INVALID_VERIFICATION_CODE / TOO_MANY_ATTEMPTS──▶ expiredOrLocked   (그사이 코드 만료, C-3c)
-newPassword ──204──▶ done → 로그인 상태였다면 Session.signedOut  (C-5)
+newPassword ──204──▶ done → 로그인한 본인 계정이었다면 Session.signedOut  (C-5)
 ```
 
 ---

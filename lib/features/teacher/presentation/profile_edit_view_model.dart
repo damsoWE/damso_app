@@ -46,6 +46,7 @@ class ProfileEditViewModel extends AsyncNotifier<ProfileEditState> {
       return false;
     }
     state = AsyncData(ProfileEditState(profile: current.profile, isSaving: true));
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       final saved = await ref
           .read(teacherRepositoryProvider)
@@ -66,6 +67,8 @@ class ProfileEditViewModel extends AsyncNotifier<ProfileEditState> {
         ),
       );
       return false;
+    } finally {
+      link.close();
     }
   }
 }

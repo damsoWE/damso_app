@@ -48,6 +48,7 @@ class AddChildViewModel extends Notifier<AddChildState> {
       return false;
     }
     state = state.copyWith(isSubmitting: true, errorMessage: () => null);
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       await ref.read(parentRepositoryProvider).linkChild(normalizeInviteCode(raw));
       ref.invalidate(childrenViewModelProvider);
@@ -59,6 +60,8 @@ class AddChildViewModel extends Notifier<AddChildState> {
         _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
       }
       return false;
+    } finally {
+      link.close();
     }
   }
 }

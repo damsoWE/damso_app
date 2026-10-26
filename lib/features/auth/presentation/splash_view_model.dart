@@ -23,10 +23,18 @@ class SplashViewModel extends Notifier<void> {
         session.signIn(role);
       }
     } on AppException catch (e) {
-      if (e.isUnauthorized) {
+      if (e.isRefreshRejected) {
         await session.expire(); // 서버가 거부 → 로그인 화면
       } else {
         session.markUnreachable(); // 토큰은 유지하고 다시 시도
+      }
+    } catch (_) {
+      // 보안 저장소 읽기 실패·응답 형식 오류는 다시 시도해도 같다.
+      // 저장된 세션을 버리고 시작 화면으로 보낸다. 지우기마저 실패하면 다시 시도 화면.
+      try {
+        await session.signOut();
+      } catch (_) {
+        session.markUnreachable();
       }
     } finally {
       _running = false;

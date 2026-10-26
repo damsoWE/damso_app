@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../error/app_exception.dart';
 import '../error/error_codes.dart';
 import '../storage/token_store.dart';
 
@@ -67,7 +68,7 @@ class AuthInterceptor extends Interceptor {
       final result = await (_refreshing ??= _refresh().whenComplete(
         () => _refreshing = null,
       ));
-      if (result.networkError != null) return handler.next(result.networkError!);
+      if (result.error != null) return handler.next(result.error!);
       if (!result.ok) return handler.next(err);
     }
 
@@ -109,9 +110,9 @@ class AuthInterceptor extends Interceptor {
       await _tokens.saveRefreshToken(newRt);
       return const _RefreshResult(ok: true);
     } on DioException catch (e) {
-      if (e.response == null) {
-        // 네트워크 오류: 세션은 살아 있을 수 있으므로 토큰을 지우지 않는다.
-        return _RefreshResult(ok: false, networkError: e);
+      if (!AppException.isRefreshRejectedStatus(e.response?.statusCode)) {
+        // 네트워크 오류·5xx·429: 세션은 살아 있을 수 있으므로 토큰을 지우지 않는다.
+        return _RefreshResult(ok: false, error: e);
       }
       await _expire(); // 만료·폐기·재사용 탐지 → 로그인 화면
       return const _RefreshResult(ok: false);
@@ -131,8 +132,10 @@ class AuthInterceptor extends Interceptor {
 }
 
 class _RefreshResult {
-  const _RefreshResult({required this.ok, this.networkError});
+  const _RefreshResult({required this.ok, this.error});
 
   final bool ok;
-  final DioException? networkError;
+
+  /// 세션 만료가 아닌 갱신 실패(네트워크 오류·5xx·429). 원 요청의 오류로 넘긴다.
+  final DioException? error;
 }

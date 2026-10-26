@@ -5,6 +5,8 @@ import 'package:damso_app/core/storage/token_store.dart';
 import 'package:damso_app/features/auth/data/auth_repository_provider.dart';
 import 'package:damso_app/features/auth/data/mock_auth_repository.dart';
 import 'package:damso_app/features/auth/presentation/password_reset/password_reset_view_model.dart';
+import 'package:damso_app/features/me/data/me_repository_provider.dart';
+import 'package:damso_app/features/me/data/mock_me_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,19 +20,19 @@ void main() {
 
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
+    final tokens = TokenStore()..accessToken = 'mock:parent'; // parent@damso.test
     container = ProviderContainer.test(
       retry: (_, _) => null,
       overrides: [
-        authRepositoryProvider.overrideWithValue(
-          MockAuthRepository(TokenStore()),
-        ),
+        authRepositoryProvider.overrideWithValue(MockAuthRepository(tokens)),
+        meRepositoryProvider.overrideWithValue(MockMeRepository(tokens)),
       ],
     );
     container.listen(passwordResetViewModelProvider, (_, _) {});
   });
 
-  Future<void> toCode() async {
-    expect(await vm().requestReset('anyone@damso.test'), isTrue);
+  Future<void> toCode([String email = 'anyone@damso.test']) async {
+    expect(await vm().requestReset(email), isTrue);
   }
 
   test('어떤 이메일이든 같은 안내와 함께 코드 입력으로 (FR-023)', () async {
@@ -57,13 +59,22 @@ void main() {
     expect(state().step, ResetStep.codeEntry);
   });
 
-  test('로그인 상태에서 완료하면 이 기기도 로그아웃 (FR-025)', () async {
+  test('로그인한 내 계정을 재설정하면 이 기기도 로그아웃 (FR-025)', () async {
     container.read(sessionControllerProvider.notifier).signIn(Role.parent);
-    await toCode();
+    await toCode('Parent@damso.test');
     await vm().verifyCode('123456');
     expect(await vm().confirm('abcd1234'), isTrue);
     expect(state().step, ResetStep.done);
     expect(container.read(sessionControllerProvider), const SignedOut());
+  });
+
+  test('다른 계정을 재설정하면 지금 로그인한 세션은 유지된다', () async {
+    container.read(sessionControllerProvider.notifier).signIn(Role.parent);
+    await toCode('other@damso.test');
+    await vm().verifyCode('123456');
+    expect(await vm().confirm('abcd1234'), isTrue);
+    expect(state().step, ResetStep.done);
+    expect(container.read(sessionControllerProvider), const SignedIn(Role.parent));
   });
 
   test('로그아웃 상태에서는 세션을 건드리지 않는다', () async {

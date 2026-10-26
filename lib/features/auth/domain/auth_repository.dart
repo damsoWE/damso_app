@@ -32,7 +32,8 @@ abstract class AuthRepository {
 
   Future<void> verifyPasswordResetCode(String email, String code);
 
-  /// 성공하면 이 기기의 토큰도 지운다(모든 세션 폐기).
+  /// 서버는 그 계정의 모든 세션을 폐기한다. 이 기기의 로그아웃 여부는 ViewModel 이 정한다
+  /// (다른 계정을 재설정했다면 지금 세션은 유지).
   Future<void> confirmPasswordReset(
     String email,
     String code,

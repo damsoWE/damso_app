@@ -62,6 +62,7 @@ class LoginViewModel extends Notifier<LoginState> {
       errorMessage: () => null,
       fieldErrors: const {},
     );
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       final result = await ref
           .read(authRepositoryProvider)
@@ -77,6 +78,8 @@ class LoginViewModel extends Notifier<LoginState> {
       if (e.code == ErrorCodes.tooManyAttempts) {
         _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
       }
+    } finally {
+      link.close();
     }
   }
 }

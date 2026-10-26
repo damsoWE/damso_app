@@ -46,7 +46,7 @@
 | VII. 식별자·권한 | 라우터 redirect 한 곳(contracts/routes.md), URL에는 UUID만, 권한 최종 판단은 서버(403 안내) | ✅ |
 | VIII. 안전한 기본값 | `env/*.json`에 호스트만, 기본 계정 없음. mock 데모 계정은 mock 구현 안에만 있고 실서버 빌드에 쓰이지 않음 | ✅ |
 | 토큰 보관 | 갱신 토큰 보안 저장소, 접근 토큰 메모리 (`TokenStore` 유지) | ✅ |
-| 토큰 주입·갱신 단일 지점 | `AuthInterceptor`만. 갱신 실패 시 토큰 삭제 + 로그인 화면(`SignedOut(sessionExpired)` → `/login`) | ✅ |
+| 토큰 주입·갱신 단일 지점 | `AuthInterceptor`만. 갱신 거절(400·401·403) 시 토큰 삭제 + 로그인 화면(`SignedOut(sessionExpired)` → `/login`) | ✅ |
 | 렌더링 | WebView·HTML 렌더 미사용 | ✅ |
 | 아키텍처 | 위젯 → ViewModel → Repository 인터페이스, domain에 Flutter·dio 없음, provider 한 곳에서 구현 선택, DioException → AppException | ✅ |
 | mock 케이스 | 401 갱신(테스트), 세션 만료·403·입력 오류·429(앱 mock) — research R8 | ✅ |

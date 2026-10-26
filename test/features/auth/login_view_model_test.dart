@@ -54,6 +54,21 @@ void main() {
       }
     });
 
+    test('요청 중에 화면을 떠나도 로그인을 마치고 세션에 반영한다', () async {
+      final c = ProviderContainer.test(
+        retry: (_, _) => null,
+        overrides: [authRepositoryProvider.overrideWithValue(auth)],
+      );
+      final sub = c.listen(loginViewModelProvider, (_, _) {});
+      final pending = c
+          .read(loginViewModelProvider.notifier)
+          .login(email: 'parent@damso.test', password: 'damso1234');
+      sub.close(); // 화면이 사라져 구독이 없어진 상태
+      await c.pump();
+      await pending; // UnmountedRefException 없이 끝나야 한다
+      expect(c.read(sessionControllerProvider), const SignedIn(Role.parent));
+    });
+
     test('틀린 비밀번호와 없는 이메일은 같은 안내 (FR-020)', () async {
       await vm().login(email: 'parent@damso.test', password: 'wrong');
       final wrongPassword = state().errorMessage;

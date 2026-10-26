@@ -1,4 +1,6 @@
+import 'package:damso_app/features/parent/presentation/children_view_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/test_app.dart';
@@ -28,6 +30,14 @@ void main() {
     expect(find.text('학부모 홈'), findsOneWidget);
     expect(find.text('김두리'), findsOneWidget);
     expect(find.text('담임 선생님이 아직 연결되지 않았습니다.'), findsOneWidget);
+
+    // 자녀 목록이 다시 불러와져도(자녀 추가 후 등) 고른 자녀가 유지된다.
+    ProviderScope.containerOf(
+      tester.element(find.text('학부모 홈')),
+    ).invalidate(childrenViewModelProvider);
+    await tester.pumpAndSettle();
+    expect(find.text('김두리'), findsOneWidget);
+    expect(find.text('김하나'), findsNothing);
   });
 
   testWidgets('자녀가 없으면 자녀 추가를 안내하고, 교사 코드는 같은 실패 안내', (tester) async {

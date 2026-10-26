@@ -35,6 +35,13 @@ class AppException implements Exception {
   bool get isUnauthorized => statusCode == 401;
   bool get isForbidden => statusCode == 403;
 
+  /// 토큰 갱신이 이 상태 코드로 거절되면 저장된 갱신 토큰은 다시 써도 소용없다(만료·폐기·형식 오류).
+  /// 5xx·429·네트워크 오류는 일시적일 수 있으므로 세션 만료로 보지 않는다.
+  static bool isRefreshRejectedStatus(int? statusCode) =>
+      statusCode == 400 || statusCode == 401 || statusCode == 403;
+
+  bool get isRefreshRejected => isRefreshRejectedStatus(statusCode);
+
   factory AppException.fromDio(DioException e) {
     final res = e.response;
     if (res == null) {

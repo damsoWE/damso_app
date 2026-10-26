@@ -38,6 +38,7 @@ class StudentsNewViewModel extends Notifier<StudentsNewState> {
       return;
     }
     state = const StudentsNewState(isSubmitting: true);
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       final added = await ref
           .read(adminRepositoryProvider)
@@ -47,6 +48,8 @@ class StudentsNewViewModel extends Notifier<StudentsNewState> {
       state = StudentsNewState(registered: added);
     } on AppException catch (e) {
       state = StudentsNewState(errorMessage: e.message);
+    } finally {
+      link.close();
     }
   }
 }

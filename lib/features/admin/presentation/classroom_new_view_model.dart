@@ -46,6 +46,7 @@ class ClassroomNewViewModel extends Notifier<ClassroomNewState> {
       classNumber: s.classNumber,
       isSubmitting: true,
     );
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       await ref
           .read(adminRepositoryProvider)
@@ -59,6 +60,8 @@ class ClassroomNewViewModel extends Notifier<ClassroomNewState> {
         errorMessage: e.message,
       );
       return false;
+    } finally {
+      link.close();
     }
   }
 }

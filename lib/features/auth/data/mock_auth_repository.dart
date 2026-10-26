@@ -167,7 +167,6 @@ class MockAuthRepository implements AuthRepository {
   ) async {
     await Future<void>.delayed(_delay);
     _checkResetCode(code);
-    await _tokens.clear();
   }
 
   /// 재설정에서 `999999` 는 일반 INVALID_VERIFICATION_CODE 다(INVALID_INVITE_CODE 는 가입 전용).

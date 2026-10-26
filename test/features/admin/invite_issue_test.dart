@@ -10,11 +10,18 @@ import '../../helpers/test_app.dart';
 
 class _CountingAdmin extends MockAdminRepository {
   int parentIssues = 0;
+  int inviteCodeLoads = 0;
 
   @override
   Future<IssuedInviteCode> issueParentInvite(String studentId) {
     parentIssues++;
     return super.issueParentInvite(studentId);
+  }
+
+  @override
+  Future<List<InviteCodeStatus>> listInviteCodes(String classroomId) {
+    inviteCodeLoads++;
+    return super.listInviteCodes(classroomId);
   }
 }
 
@@ -95,5 +102,26 @@ void main() {
         .issue(TeacherInviteTarget(c32.classroomId));
     expect(result, isA<IssueFailed>());
     expect((result as IssueFailed).message, '이미 담임이 연결된 학급입니다.');
+  });
+
+  test('발행이 실패해도(409) 학급 상세를 다시 불러온다', () async {
+    final admin = _CountingAdmin();
+    final container = ProviderContainer.test(
+      retry: (_, _) => null,
+      overrides: [adminRepositoryProvider.overrideWithValue(admin)],
+    );
+    final c32 = (await admin.listClassrooms()).firstWhere((c) => c.grade == 3);
+    final provider = classroomDetailViewModelProvider(c32.classroomId);
+    container.listen(provider, (_, _) {});
+    await container.read(provider.future);
+    final loads = admin.inviteCodeLoads;
+
+    // 3학년 2반은 담임이 있어 CLASSROOM_HAS_TEACHER(409).
+    final result = await container
+        .read(provider.notifier)
+        .issue(TeacherInviteTarget(c32.classroomId));
+    expect(result, isA<IssueFailed>());
+    await container.read(provider.future);
+    expect(admin.inviteCodeLoads, loads + 1);
   });
 }

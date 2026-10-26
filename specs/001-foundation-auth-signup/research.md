@@ -16,7 +16,7 @@
 
 - **Decision**: `lib/core/session/`에 세션 상태(`SessionState`: 확인 중 / 로그아웃 / 로그인(role))와 이를 관리하는 `SessionController`(Riverpod `Notifier`)를 둔다. 라우터·인터셉터·여러 기능(auth, me)이 함께 쓰므로 core에 둔다.
   - 역할은 저장하지 않는다. 앱 시작 시 저장된 갱신 토큰으로 `POST /api/v1/auth/token/refresh`를 호출해 새 토큰과 `role`을 함께 받는다(`TokenResponse.role`).
-  - 시작 시 저장된 갱신 토큰이 없으면 로그아웃 상태(시작 화면)로, 갱신이 **401**이면 세션 만료 상태(로그인 화면)로, **네트워크 오류**면 저장된 토큰을 지우지 않고 "연결할 수 없음 + 다시 시도" 화면을 보인다(오프라인일 때 로그인이 풀리지 않게).
+  - 시작 시 저장된 갱신 토큰이 없으면 로그아웃 상태(시작 화면)로, 갱신이 **400·401·403**으로 거절되면 세션 만료 상태(로그인 화면)로, **네트워크 오류·5xx·429**면 저장된 토큰을 지우지 않고 "연결할 수 없음 + 다시 시도" 화면을 보인다(오프라인일 때 로그인이 풀리지 않게).
 - **Rationale**: 역할을 기기에 저장하면 서버와 어긋날 수 있다. 응답의 role이 유일한 기준이다(원칙 VII: 권한 최종 판단은 서버).
 - **Alternatives**: 역할을 보안 저장소에 저장 — 시작이 빠르지만 탈퇴·역할 변경과 어긋나고 저장 항목이 늘어난다.
 
@@ -26,7 +26,7 @@
   - 갱신 경로를 `/api/v1/auth/token/refresh`로 바꾼다.
   - 진행 중인 갱신 `Future<bool>?`를 하나 두어, 동시에 401을 받은 요청들은 같은 갱신 결과를 기다린 뒤 각자 한 번만 재시도한다(갱신 토큰은 1회용이라 두 번 갱신하면 재사용 탐지로 세션이 폐기된다).
   - 공개 경로(`/api/v1/auth/login`, `signup*`, `password-reset*`, `token/refresh`)의 401과, 응답 `code`가 `INVALID_CREDENTIALS`인 401(회원 탈퇴 비밀번호 불일치)은 갱신하지 않고 그대로 넘긴다.
-  - 갱신이 거부되면 토큰을 지우고 `SessionController.expire()`를 호출한다 → 라우터가 로그인 화면(`/login`)으로 보낸다(constitution "갱신이 실패하면 저장된 토큰을 지우고 로그인 화면으로"). 로그아웃·탈퇴·비밀번호 재설정 완료는 `signOut()`으로 시작 화면에 간다.
+  - 갱신이 거부되면(400·401·403, `AppException.isRefreshRejectedStatus` — 앱 시작 복구와 같은 규칙) 토큰을 지우고 `SessionController.expire()`를 호출한다. 네트워크 오류·5xx·429는 토큰을 지우지 않고 그 오류를 원 요청에 넘긴다 → 라우터가 로그인 화면(`/login`)으로 보낸다(constitution "갱신이 실패하면 저장된 토큰을 지우고 로그인 화면으로"). 로그아웃·탈퇴·비밀번호 재설정 완료는 `signOut()`으로 시작 화면에 간다.
 - **Rationale**: constitution "토큰 주입·갱신 단일 지점" 요건. 재사용 탐지(FR-025)와 충돌하지 않게 갱신을 직렬화한다.
 - **Alternatives**: `QueuedInterceptorsWrapper` — 모든 요청을 직렬화해 느려진다. 별도 패키지(`dio_smart_retry` 등) — 새 패키지 추가가 필요하다.
 

@@ -109,8 +109,10 @@ class ClassroomDetailViewModel extends AsyncNotifier<ClassroomDetail> {
   void refresh() => ref.invalidateSelf();
 
   /// 발행·재발행. 결과 코드는 돌려주기만 하고 상태에 담지 않는다.
+  /// 실패(예: 그사이 교사가 연결돼 409)해도 현황이 바뀌었을 수 있으므로 다시 불러온다.
   Future<IssueResult> issue(InviteTarget target) async {
     final repo = ref.read(adminRepositoryProvider);
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       final code = switch (target) {
         TeacherInviteTarget() => await repo.issueTeacherInvite(target.classroomId),
@@ -118,11 +120,13 @@ class ClassroomDetailViewModel extends AsyncNotifier<ClassroomDetail> {
           studentId,
         ),
       };
-      ref.invalidateSelf();
-      ref.invalidate(adminHomeViewModelProvider);
       return Issued(code);
     } on AppException catch (e) {
       return IssueFailed(e.message);
+    } finally {
+      ref.invalidateSelf();
+      ref.invalidate(adminHomeViewModelProvider);
+      link.close();
     }
   }
 }

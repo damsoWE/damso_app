@@ -113,6 +113,7 @@ class SignupViewModel extends Notifier<SignupState> {
     final normalized = normalizeInviteCode(code);
     final trimmedEmail = email.trim();
     _startSubmit();
+    final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
       final role = await ref
           .read(authRepositoryProvider)
@@ -129,6 +130,8 @@ class SignupViewModel extends Notifier<SignupState> {
     } on AppException catch (e) {
       _fail(e);
       return SignupOutcome.stay;
+    } finally {
+      link.close();
     }
   }
 
@@ -154,6 +157,7 @@ class SignupViewModel extends Notifier<SignupState> {
     final trimmedName = name.trim();
     state = state.copyWith(name: trimmedName);
     _startSubmit();
+    final link = ref.keepAlive();
     try {
       final pending = await ref
           .read(authRepositoryProvider)
@@ -180,6 +184,8 @@ class SignupViewModel extends Notifier<SignupState> {
       }
       _fail(e);
       return SignupOutcome.stay;
+    } finally {
+      link.close();
     }
   }
 
@@ -193,6 +199,7 @@ class SignupViewModel extends Notifier<SignupState> {
       return SignupOutcome.stay;
     }
     _startSubmit();
+    final link = ref.keepAlive();
     try {
       final result = await ref
           .read(authRepositoryProvider)
@@ -209,6 +216,8 @@ class SignupViewModel extends Notifier<SignupState> {
       }
       _fail(e);
       return SignupOutcome.stay;
+    } finally {
+      link.close();
     }
   }
 
@@ -221,6 +230,7 @@ class SignupViewModel extends Notifier<SignupState> {
       return;
     }
     state = state.copyWith(errorMessage: () => null, notice: () => null);
+    final link = ref.keepAlive();
     try {
       await ref
           .read(authRepositoryProvider)
@@ -232,6 +242,8 @@ class SignupViewModel extends Notifier<SignupState> {
       if (e.code == ErrorCodes.tooManyAttempts) {
         _resendTimer.start(e.retryAfter, _onResendTick);
       }
+    } finally {
+      link.close();
     }
   }
 

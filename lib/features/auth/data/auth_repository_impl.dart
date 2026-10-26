@@ -97,7 +97,8 @@ class AuthRepositoryImpl implements AuthRepository {
         return _saveTokens(res.data!);
       });
     } on AppException catch (e) {
-      if (e.isUnauthorized) await _tokens.clear();
+      // 거절 판단은 AuthInterceptor 와 같은 규칙을 쓴다(5xx·429 는 토큰 유지).
+      if (e.isRefreshRejected) await _tokens.clear();
       rethrow;
     }
   }
@@ -142,7 +143,6 @@ class AuthRepositoryImpl implements AuthRepository {
         '/api/v1/auth/password-reset/confirm',
         data: {'email': email, 'code': code, 'newPassword': newPassword},
       );
-      await _tokens.clear(); // 모든 세션 폐기(FR-025)
     });
   }
 
