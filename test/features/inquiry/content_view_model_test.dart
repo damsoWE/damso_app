@@ -9,13 +9,13 @@ import 'package:damso_app/features/inquiry/presentation/teacher/teacher_inquirie
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 원문·상세·목록 호출을 세고, 실패를 끼워 넣는 mock.
+/// 원문·상세·목록 호출을 세고, 원문 실패를 끼워 넣는 mock.
 class _CountingRepo extends MockTeacherInquiryRepository {
   _CountingRepo() : super(TokenStore(), MockInquiryStore());
 
   int contentCalls = 0;
+  int detailCalls = 0;
   int listCalls = 0;
-  int failDetail = 0;
   int failContent = 0;
 
   @override
@@ -29,11 +29,8 @@ class _CountingRepo extends MockTeacherInquiryRepository {
   }
 
   @override
-  Future<TeacherInquiryDetail> detail(String inquiryId) async {
-    if (failDetail > 0) {
-      failDetail--;
-      throw const AppException(message: '불러오지 못했습니다.');
-    }
+  Future<TeacherInquiryDetail> detail(String inquiryId) {
+    detailCalls++;
     return super.detail(inquiryId);
   }
 
@@ -60,21 +57,16 @@ void main() {
 
   test('화면 하나에서 원문은 한 번만, 다시 읽어도 그대로', () async {
     c.listen(provider, (_, _) {});
-    final d = await c.read(provider.future);
-    expect(d.content, '(mock) 데모 문의 원문입니다.');
+    expect(await c.read(provider.future), '(mock) 데모 문의 원문입니다.');
     c.read(provider);
     await c.read(provider.future);
     expect(repo.contentCalls, 1);
   });
 
-  test('상세만 실패 → 다시 시도해도 원문은 다시 부르지 않는다', () async {
-    repo.failDetail = 1;
+  test('상세는 부르지 않는다(머리 줄은 상세 화면이 넘긴 요약, 코드 리뷰 반영)', () async {
     c.listen(provider, (_, _) {});
-    await expectLater(c.read(provider.future), throwsA(isA<AppException>()));
-    c.invalidate(provider);
-    final d = await c.read(provider.future);
-    expect(d.content, '(mock) 데모 문의 원문입니다.');
-    expect(repo.contentCalls, 1);
+    await c.read(provider.future);
+    expect(repo.detailCalls, 0);
   });
 
   test('원문 실패 → 원문 없이 오류, 다시 시도하면 다시 부른다', () async {

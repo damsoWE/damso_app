@@ -22,7 +22,13 @@ class GeneralDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = generalDetailViewModelProvider(inquiryId);
-    ref.listen(provider, (_, next) {
+    ref.listen(provider, (previous, next) {
+      // 긴급 문의였다 — 긴급 상세(F3-5)로 한 번만 바꾼다(그리는 중에 이동하지 않는다, 코드 리뷰 반영).
+      if (next.value?.view is UrgentRedirect &&
+          previous?.value?.view is! UrgentRedirect) {
+        context.replace('/teacher/inquiries/$inquiryId/urgent');
+        return;
+      }
       final message = next.value?.message;
       if (message == null) return;
       ScaffoldMessenger.of(context)
@@ -38,12 +44,7 @@ class GeneralDetailPage extends ConsumerWidget {
         onRetry: () => ref.invalidate(provider),
         data: (s) {
           final view = s.view;
-          if (view is UrgentRedirect) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) context.replace('/teacher/inquiries/$inquiryId/urgent');
-            });
-            return const SizedBox.shrink();
-          }
+          if (view is UrgentRedirect) return const SizedBox.shrink(); // ref.listen 이 옮긴다
           final notifier = ref.read(provider.notifier);
           return RefreshIndicator(
             onRefresh: notifier.recheck,
@@ -64,10 +65,10 @@ class GeneralDetailPage extends ConsumerWidget {
   }
 
   /// 원문 열람(F3-6)으로 가는 곳은 여기 한 곳이다. 돌아오면 상태를 다시 읽는다(FR-018).
-  Widget _contentButton() => Consumer(
+  Widget _contentButton(TeacherInquirySummary summary) => Consumer(
     builder: (context, ref, _) => OutlinedButton(
       onPressed: () async {
-        await context.push('/teacher/inquiries/$inquiryId/content');
+        await context.push('/teacher/inquiries/$inquiryId/content', extra: summary);
         if (context.mounted) {
           ref.read(generalDetailViewModelProvider(inquiryId).notifier).recheck();
         }
@@ -99,7 +100,7 @@ class GeneralDetailPage extends ConsumerWidget {
     const SizedBox(height: AppSpacing.md),
     const _LogHint(),
     const SizedBox(height: AppSpacing.lg),
-    _contentButton(),
+    _contentButton(view.detail.summary),
   ];
 
   List<Widget> _needsOriginal(
@@ -119,7 +120,7 @@ class GeneralDetailPage extends ConsumerWidget {
     // 정리 결과는 어떤 형태로도 두지 않는다(FR-010, 원칙 IV).
     const SystemNotice(NoticeText.refinementFailed, icon: Icons.warning_amber_outlined),
     const SizedBox(height: AppSpacing.md),
-    _contentButton(),
+    _contentButton(view.detail.summary),
     const SizedBox(height: AppSpacing.ms),
     if (view.detail.retryAvailable)
       OutlinedButton(
@@ -159,7 +160,7 @@ class GeneralDetailPage extends ConsumerWidget {
     const SizedBox(height: AppSpacing.md),
     const SystemNotice(NoticeText.refiningGuide, icon: Icons.info_outline),
     const SizedBox(height: AppSpacing.md),
-    _contentButton(),
+    _contentButton(view.detail.summary),
     const SizedBox(height: AppSpacing.ms),
     OutlinedButton(
       onPressed: s.isRechecking ? null : notifier.recheck,

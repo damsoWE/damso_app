@@ -5,16 +5,19 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
 import '../../../../core/widgets/system_notice.dart';
+import '../../domain/models.dart';
 import '../../domain/notice_text.dart';
 import '../format.dart';
 import 'content_view_model.dart';
 
 /// F3-6 원문 열람 (Figma 216-5653). 학부모가 쓴 원문을 그대로 일반 글자로 보인다.
 /// 학부모 이름·연락처는 없다(FR-019). 답변 작성은 F4 가 하단에 더한다(FR-023).
+/// 머리 줄은 상세 화면이 넘긴 [summary] 로 그린다. 없으면(주소로 바로 연 경우) 머리 줄 없이 원문만.
 class ContentPage extends ConsumerWidget {
-  const ContentPage({super.key, required this.inquiryId});
+  const ContentPage({super.key, required this.inquiryId, this.summary});
 
   final String inquiryId;
+  final TeacherInquirySummary? summary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,18 +27,20 @@ class ContentPage extends ConsumerWidget {
       body: AsyncView(
         value: ref.watch(provider),
         onRetry: () => ref.invalidate(provider),
-        data: (d) {
-          final s = d.detail.summary;
+        data: (content) {
+          final s = summary;
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              Text(s.title, style: AppTextStyles.display),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '${s.studentName} · ${formatDateTime(s.submittedAt)}',
-                style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.md),
+              if (s != null) ...[
+                Text(s.title, style: AppTextStyles.display),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '${s.studentName} · ${formatDateTime(s.submittedAt)}',
+                  style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
@@ -50,7 +55,7 @@ class ContentPage extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.sm),
                     // 일반 Text 만 쓴다(길게 눌러 복사하지 않음, FR-007).
                     Text(
-                      d.content,
+                      content,
                       style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
                     ),
                   ],

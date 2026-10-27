@@ -19,12 +19,13 @@ TeacherInquiryDetail _detail({
   RefinementStatus? status = RefinementStatus.refined,
   InquiryStage stage = InquiryStage.refined,
   bool retryAvailable = false,
+  bool? urgent,
 }) => TeacherInquiryDetail(
   summary: TeacherInquirySummary(
     inquiryId: _id,
     studentId: 's',
     studentName: '김하나',
-    urgent: status == null,
+    urgent: urgent ?? status == null,
     title: '제목',
     stage: stage,
     refinementStatus: status,
@@ -60,6 +61,9 @@ class _ScriptedRepo implements TeacherInquiryRepository {
   Completer<void>? retryGate;
   Completer<void>? detailGate;
 
+  /// 상세 n번째 호출(1부터)에서 던질 오류.
+  final detailErrors = <int, AppException>{};
+
   int detailCalls = 0;
   int refinementCalls = 0;
   int retryCalls = 0;
@@ -71,6 +75,8 @@ class _ScriptedRepo implements TeacherInquiryRepository {
   Future<TeacherInquiryDetail> detail(String inquiryId) async {
     detailCalls++;
     await detailGate?.future;
+    final error = detailErrors[detailCalls];
+    if (error != null) throw error;
     return _next(details, detailCalls);
   }
 
@@ -155,6 +161,30 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(s.view.detail.summary.stage, InquiryStage.teacherConfirmed);
       expect(repo.listCalls, greaterThan(before));
+    });
+
+    test('번역본을 받은 뒤 상세 재조회가 실패해도 목록 새로 고침은 일어난다(코드 리뷰 1)', () async {
+      final repo = _ScriptedRepo(details: [_detail()])
+        ..detailErrors[2] = const AppException(message: '불러오지 못했습니다.');
+      final c = containerFor(repo);
+      c.listen(teacherInquiriesViewModelProvider, (_, _) {});
+      await c.read(teacherInquiriesViewModelProvider.future);
+      final before = repo.listCalls;
+
+      await expectLater(c.read(provider.future), throwsA(isA<AppException>()));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expect(repo.refinementCalls, 1);
+      expect(repo.listCalls, greaterThan(before));
+    });
+
+    test('긴급이 아닌데 정리 상태가 비어 있으면 긴급으로 보내지 않고 오류(코드 리뷰 2)', () async {
+      final repo = _ScriptedRepo(
+        details: [_detail(status: null, stage: InquiryStage.received, urgent: false)],
+      );
+      final c = containerFor(repo);
+      await expectLater(c.read(provider.future), throwsA(isA<AppException>()));
+      expect(repo.refinementCalls, 0);
     });
 
     test('긴급 문의면 UrgentRedirect', () async {
@@ -246,6 +276,20 @@ void main() {
       await c.read(provider.future);
       await c.read(provider.notifier).retry();
       expect(c.read(provider).value!.view, isA<Refined>());
+    });
+
+    test('받아들인 뒤 결과를 읽지 못하면 다시 정리하는 중에 머문다(코드 리뷰 3)', () async {
+      final repo = _ScriptedRepo(details: [needs])
+        ..retryResult = (() => RefinementStatus.refined)
+        ..detailErrors[2] = const AppException(message: '불러오지 못했습니다.');
+      final c = containerFor(repo);
+      await c.read(provider.future);
+      await c.read(provider.notifier).retry();
+      final s = c.read(provider).value!;
+      expect(s.view, isA<Refining>());
+      expect((s.view as Refining).afterRetry, isTrue);
+      expect(s.message, '불러오지 못했습니다.');
+      expect(s.isRetrying, isFalse);
     });
 
     test('다시 확인하는 동안 보던 화면을 유지한다', () async {

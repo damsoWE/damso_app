@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:damso_app/features/inquiry/data/inquiry_repository_providers.dart';
 import 'package:damso_app/features/inquiry/domain/notice_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../helpers/test_app.dart';
 
@@ -245,5 +248,32 @@ void main() {
     unawaited(tester.state<RefreshIndicatorState>(indicator).show());
     await settle(tester);
     expect(find.text(NoticeText.factsLabel), findsOneWidget);
+  });
+
+  testWidgets('긴급 문의를 일반 상세 주소로 열면 긴급 상세로 한 번만 옮기고 원문도 한 번(코드 리뷰 6)', (tester) async {
+    await teacherInquiries(tester);
+    const urgentId = 'a1000000-0000-4000-8000-000000000001';
+    final context = tester.element(find.byType(Scaffold).first);
+    final store = ProviderScope.containerOf(context).read(mockInquiryStoreProvider);
+    unawaited(GoRouter.of(context).push('/teacher/inquiries/$urgentId/general'));
+    await settle(tester);
+    await tester.pump(const Duration(seconds: 1)); // 다시 그려도 이동이 반복되지 않는지
+    await settle(tester);
+
+    expect(find.text(NoticeText.urgentDetailGuide), findsOneWidget);
+    expect(store.contentViewsOf(urgentId), 1);
+
+    await back(tester); // replace 였으므로 바로 문의 목록
+    expect(find.text(NoticeText.urgentDetailGuide), findsNothing);
+    expect(find.byType(ListTile), findsWidgets);
+  });
+
+  testWidgets('원문 화면 머리 줄은 상세 화면의 요약으로 그린다(코드 리뷰 4·5)', (tester) async {
+    await teacherInquiries(tester);
+    await openInquiry(tester, '친구와 다툰 일 관련 문의', '이도윤');
+    await tapSettle(tester, '원문 보기');
+    expect(find.text('친구와 다툰 일 관련 문의'), findsOneWidget);
+    expect(find.textContaining('이도윤 · '), findsOneWidget);
+    expect(find.text('작성한 원문'), findsOneWidget);
   });
 }

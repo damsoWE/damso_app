@@ -26,6 +26,7 @@ import '../features/auth/presentation/splash_page.dart';
 import '../features/auth/presentation/start_page.dart';
 import '../features/auth/presentation/terms_page.dart';
 import '../features/auth/presentation/welcome_page.dart';
+import '../features/inquiry/domain/models.dart';
 import '../features/inquiry/presentation/parent/compose_page.dart';
 import '../features/inquiry/presentation/parent/parent_inquiries_page.dart';
 import '../features/inquiry/presentation/parent/submitted_page.dart';
@@ -160,7 +161,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/teacher/inquiries/:inquiryId/content',
-        builder: (_, s) => ContentPage(inquiryId: s.pathParameters['inquiryId']!),
+        builder: (_, s) => ContentPage(
+          inquiryId: s.pathParameters['inquiryId']!,
+          summary: s.extra is TeacherInquirySummary ? s.extra as TeacherInquirySummary : null,
+        ),
       ),
       GoRoute(
         path: '/teacher/settings/notifications',

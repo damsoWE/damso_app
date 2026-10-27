@@ -87,7 +87,8 @@ class GeneralDetailViewModel extends AsyncNotifier<GeneralDetailState> {
   Future<GeneralDetailState> _load() async {
     final repo = ref.read(teacherInquiryRepositoryProvider);
     var detail = await repo.detail(inquiryId);
-    if (detail.summary.refinementStatus != RefinementStatus.refined) {
+    if (detail.summary.urgent ||
+        detail.summary.refinementStatus != RefinementStatus.refined) {
       return GeneralDetailState(view: _choose(detail));
     }
     try {
@@ -102,30 +103,35 @@ class GeneralDetailViewModel extends AsyncNotifier<GeneralDetailState> {
     }
   }
 
-  /// 번역본 첫 열람은 "교사 확인"을 만든다. 머리 줄 단계가 맞도록 상세를 다시 읽고,
-  /// 목록·홈도 새로 고친다(FR-009).
+  /// 번역본 첫 열람은 "교사 확인"을 만든다(FR-009). 단계가 바뀌었으므로 다음 상세 조회의
+  /// 성공 여부와 관계없이 목록·홈 새로 고침을 먼저 예약하고, 머리 줄 단계가 맞도록 상세를 다시 읽는다.
   Future<Refined> _refined(TeacherInquiryDetail detail) async {
     final repo = ref.read(teacherInquiryRepositoryProvider);
     final refinement = await repo.refinement(inquiryId);
     if (detail.summary.stage == InquiryStage.refined) {
-      detail = await repo.detail(inquiryId);
       Future.microtask(() {
         if (ref.mounted) {
           ref.read(teacherInquiriesViewModelProvider.notifier).refresh();
         }
       });
+      detail = await repo.detail(inquiryId);
     }
     return Refined(detail, refinement);
   }
 
-  GeneralDetail _choose(TeacherInquiryDetail detail) =>
-      switch (detail.summary.refinementStatus) {
-        null => UrgentRedirect(detail),
-        RefinementStatus.needsOriginal => NeedsOriginal(detail),
-        RefinementStatus.pending => Refining(detail, afterRetry: _afterRetry),
-        // _load 가 정리 완료를 먼저 처리한다. 여기 오면 번역본 없이 정리 중처럼 보인다.
-        RefinementStatus.refined => Refining(detail, afterRetry: _afterRetry),
-      };
+  /// 긴급 여부는 `urgent` 로만 판단한다. 정리 상태가 비어 있다는 이유로 긴급 상세로 보내면
+  /// 그 화면이 원문을 바로 열어 열람 기록이 남는다(원칙 III, 코드 리뷰 반영).
+  GeneralDetail _choose(TeacherInquiryDetail detail) {
+    if (detail.summary.urgent) return UrgentRedirect(detail);
+    return switch (detail.summary.refinementStatus) {
+      // 일반 문의인데 정리 상태가 없다 — 서버 응답이 계약과 다르다. 화면을 고르지 않고 오류로 둔다.
+      null => throw const AppException(message: AppException.fallbackMessage),
+      RefinementStatus.needsOriginal => NeedsOriginal(detail),
+      // 정리 완료는 _load 가 먼저 처리하므로 여기서는 정리 중뿐이다.
+      RefinementStatus.pending ||
+      RefinementStatus.refined => Refining(detail, afterRetry: _afterRetry),
+    };
+  }
 
   /// 다시 확인·당겨서 새로 고침·원문 화면에서 돌아올 때. 받는 동안 보던 화면은 그대로 둔다.
   Future<void> recheck() async {
@@ -158,13 +164,20 @@ class GeneralDetailViewModel extends AsyncNotifier<GeneralDetailState> {
       final status = await ref
           .read(teacherInquiryRepositoryProvider)
           .retryRefinement(inquiryId);
+      // 여기부터는 서버가 받아들였다 — 1회를 썼으므로 다시 정리하기 버튼으로 돌아가지 않는다.
       _afterRetry = true;
+      final retrying = GeneralDetailState(
+        view: Refining(view.detail, afterRetry: true),
+      );
       if (status == RefinementStatus.pending) {
-        state = AsyncData(
-          GeneralDetailState(view: Refining(view.detail, afterRetry: true)),
-        );
-      } else {
+        state = AsyncData(retrying);
+        return;
+      }
+      try {
         state = AsyncData(await _load()); // 이미 끝났다
+      } on AppException catch (e) {
+        // 결과를 읽지 못했다. 다시 확인으로 확인하게 한다(코드 리뷰 반영).
+        state = AsyncData(retrying.copyWith(message: () => e.message));
       }
     } on AppException catch (e) {
       if (e.code == ErrorCodes.refinementRetryUnavailable) {
