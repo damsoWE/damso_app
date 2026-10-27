@@ -175,7 +175,7 @@ description: "F3 가명화·정제 파이프라인 화면 구현 작업 목록"
 **Independent Test**: `flutter run --dart-define=USE_MOCK=true`로 quickstart 1~20.
 
 - [X] T036 [US6] `test/features/mock_scenarios_test.dart`에 그룹 "F3 데모 문의" 추가 — research R10 표 행마다: `…000a` 상세 1번째 `pending`·2번째 `refined`(사이에 목록 조회 3번을 끼워도 같음), `…0003`은 F2 규칙 그대로(목록 2번째 조회에 `refined`), `…0004` 재시도 → 다음 상세 `refined`·번역본 있음·단계 정제, `…0006` 재시도 → 다음 상세 `needsOriginal`·`retryAvailable false`, `…0007` `retryAvailable false`, `…0008` 번역본 `high`·`[anger, frustration]`, `…0009` `requests == ''`·라벨 없음·`low`, `noclass` 계정 `refinement`·`retryRefinement` → 403.
-- [ ] T037 [US6] `quickstart.md`의 mock 데모 문의표와 실제 목록 순서·제목이 맞는지 에뮬레이터로 확인하고, 다르면 quickstart를 고친다(코드가 기준이 아니라 research R10이 기준 — 코드가 R10과 다르면 코드를 고친다).
+- [X] T037 [US6] `quickstart.md`의 mock 데모 문의표와 실제 목록 순서·제목이 맞는지 에뮬레이터로 확인하고, 다르면 quickstart를 고친다(코드가 기준이 아니라 research R10이 기준 — 코드가 R10과 다르면 코드를 고친다).
 
 **Checkpoint**: US6 확인 — T036 통과, quickstart 표와 앱이 일치.
 
@@ -188,7 +188,7 @@ description: "F3 가명화·정제 파이프라인 화면 구현 작업 목록"
 - [X] T040 **사용자 승인 후** `lib/features/inquiry/presentation/teacher/pending_detail_page.dart`·`pending_detail_view_model.dart` 삭제, `lib/app/router.dart`의 `/pending` 경로·import 삭제, `notice_text.dart`의 `pendingDetail` 삭제(research R9). 승인이 없으면 이 작업만 남기고 진행 상황에 적는다.
 - [X] T041 [P] 민감정보 점검: `grep -rn "print(\|debugPrint(\|log(" lib/features/inquiry`에 번역본·원문 출력이 없는지, `SelectableText`·`Html`·`WebView`가 `lib/`에 없는지 확인.
 - [X] T042 `flutter analyze` 경고 0, `flutter test` 전부 통과. 실패는 숨기지 않고 원인과 함께 보고.
-- [ ] T043 에뮬레이터 mock 실행으로 quickstart 1~20 확인(Android). 결과를 이 파일 끝 "구현 메모"에 적는다.
+- [X] T043 에뮬레이터 mock 실행으로 quickstart 1~20 확인(Android). 결과를 이 파일 끝 "구현 메모"에 적는다.
 - [X] T044 [P] F2 문서 정리: `specs/002-inquiry-intake-urgent/spec.md` FR-024 끝에 "(F3에서 대체: specs/003 FR-001~002)" 한 줄 추가. 그 외 F2 문서는 바꾸지 않는다.
 
 ---
@@ -273,4 +273,7 @@ T015 refinement_view.dart
 - **테스트**: `fake_async`는 프로젝트 의존성이 아니라서(새 패키지 금지) "자동 조회 없음"은 실제 2초 대기로 확인한다. 위젯 테스트 환경에서는 끌기 제스처가 `RefreshIndicator`를 작동시키지 않아, 당겨서 새로 고침은 `RefreshIndicatorState.show()`로 `onRefresh → recheck` 연결을 확인한다.
 - **기존 테스트 수정**: `urgent_detail_test.dart`(원문 확인 필요 → "준비 중" 대신 F3-3 실패 안내), `teacher_inquiries_view_model_test.dart`(가짜 Repository에 새 메서드 2개), `router_redirect_test.dart`(`/pending` → `/general`·`/content`).
 - **T040**: 2026-10-27 사용자 승인 후 준비 중 화면 2개·`/pending` 경로·`pendingDetail` 문구를 삭제했다.
-- **결과**: `flutter analyze` 문제 0건, `flutter test` 235개 통과. **T037·T043(에뮬레이터 확인)은 하지 않았다** — quickstart 1~20은 위젯·ViewModel·mock 테스트로 자동 확인했고, 화면 모양(배치·색)은 에뮬레이터에서 사람이 확인해야 한다.
+- **결과**: `flutter analyze` 문제 0건, `flutter test` 235개 통과.
+- **에뮬레이터 E2E (2026-10-27, Pixel_8 API, mock, adb 조작)**: quickstart 1~10·12~18 통과. 데모 목록 제목·순서가 quickstart 표와 같다(T037). 실제 기기에서 당겨서 새로 고침으로 정리 중 → 번역본 전환 확인(위젯 테스트에서 못 한 제스처). 다시 정리하기 두 번 연속 탭 → 요청 1번(409 안내 없음).
+  - 기기에서 하지 않은 것: 11(F3-3a에서 나갔다 다시 열기 — 10으로 대신 확인), 18의 상세 주소 직접 열기·19(주소 입력 경로가 없어 라우터 테스트로 확인).
+  - 발견·수정: 단계가 "접수"인 문의의 머리 줄이 `… 23:48 접수 · 접수`로 반복됐다(C1 형식). 사용자 결정(a)으로 단계가 "접수"면 단계를 붙이지 않는다(`_HeaderLine`, 흐름 테스트에 단언 추가).

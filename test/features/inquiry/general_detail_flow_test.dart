@@ -104,6 +104,9 @@ void main() {
 
     expect(find.text(NoticeText.refinementFailed), findsOneWidget);
     expect(find.text('원문 보기'), findsOneWidget);
+    // 단계가 접수면 머리 줄에 단계를 붙이지 않는다("… 접수 · 접수" 반복 방지).
+    expect(find.textContaining('접수 · 접수'), findsNothing);
+    expect(find.textContaining(RegExp(r'^이도윤 · .* 접수$')), findsOneWidget);
     expect(find.text(NoticeText.factsLabel), findsNothing); // 정리 결과 없음(원칙 IV)
     expectClean(tester);
 

@@ -197,6 +197,7 @@ class GeneralDetailPage extends ConsumerWidget {
 }
 
 /// 학생 이름 · 접수 시각 · 현재 처리 단계(FR-004). 학부모 정보는 넣지 않는다(FR-019).
+/// 단계가 "접수"면 "… 접수 · 접수"로 반복되므로 단계를 붙이지 않는다(E2E 2026-10-27).
 class _HeaderLine extends StatelessWidget {
   const _HeaderLine(this.summary);
 
@@ -204,11 +205,13 @@ class _HeaderLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final stage = summary.stage == InquiryStage.received
+        ? ''
+        : ' · ${NoticeText.stage(summary.stage)}';
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Text(
-        '${summary.studentName} · ${formatDateTime(summary.submittedAt)} 접수 · '
-        '${NoticeText.stage(summary.stage)}',
+        '${summary.studentName} · ${formatDateTime(summary.submittedAt)} 접수$stage',
         style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
       ),
     );
