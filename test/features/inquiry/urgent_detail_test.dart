@@ -3,6 +3,7 @@ import 'package:damso_app/core/storage/token_store.dart';
 import 'package:damso_app/features/inquiry/data/inquiry_repository_providers.dart';
 import 'package:damso_app/features/inquiry/data/mock_teacher_inquiry_repository.dart';
 import 'package:damso_app/features/inquiry/domain/models.dart';
+import 'package:damso_app/features/inquiry/domain/notice_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -73,7 +74,7 @@ void main() {
     expect(find.text('긴급 문의 1건'), findsNothing);
   });
 
-  testWidgets('문의 탭: 긴급이 맨 위, 일반 문의는 준비 중 화면이고 원문을 부르지 않는다', (tester) async {
+  testWidgets('문의 탭: 긴급이 맨 위, 원문 확인 필요 문의는 F3-3 이고 원문을 부르지 않는다', (tester) async {
     useTallScreen(tester);
     await tester.pumpWidget(app());
     await login(tester, 'teacher@damso.test');
@@ -87,8 +88,8 @@ void main() {
     expectNoEmail(tester);
 
     await tapText(tester, '원문 확인 필요');
-    expect(find.text('정리된 내용과 원문 보기는 준비 중입니다.'), findsOneWidget);
-    expect(repo.contentCalls, isEmpty);
+    expect(find.text(NoticeText.refinementFailed), findsOneWidget);
+    expect(repo.contentCalls, isEmpty); // 원문은 "원문 보기"를 누를 때만(specs/003 research R6)
   });
 
   testWidgets('상세만 실패해 다시 시도해도 원문 열람은 한 번, 홈 긴급 카드는 사라진다', (tester) async {

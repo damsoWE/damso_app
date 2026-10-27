@@ -41,7 +41,8 @@ const _rolePaths = {
     '/teacher/links',
     '/teacher/inquiries',
     '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/urgent',
-    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/pending',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/general',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/content',
     '/teacher/settings/notifications',
   ],
   Role.superAdmin: [

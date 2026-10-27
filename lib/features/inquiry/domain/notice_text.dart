@@ -29,5 +29,44 @@ abstract final class NoticeText {
   static const discardConfirm = '작성한 내용이 사라집니다. 나갈까요?';
   static const contentViewLogged = '원문을 열람한 기록이 남습니다.';
   static const urgentDetailGuide = '학생 안전과 관련된 내용이라 정리하지 않고 학부모가 쓴 글 그대로 바로 전달했어요.';
-  static const pendingDetail = '정리된 내용과 원문 보기는 준비 중입니다.';
+
+  // ───────── F3 일반 문의 상세 (specs/003 data-model "고정 문구") ─────────
+
+  static const refinedBadge = '자동 정리';
+  static const translationLabel = '번역본';
+  static const factsLabel = '사실관계';
+  static const requestsLabel = '요청사항';
+  static const noRequests = '요청사항이 없어요.';
+  static const emotionTitle = '정서강도';
+  static const contentViewWillLog = '원문을 열면 열람한 사람과 시각이 기록돼요.';
+  static const contentViewedLogged =
+      '원문을 열었어요. 열람한 사람과 시각이 기록돼요. 원문은 수정되거나 삭제되지 않아요.';
+  static const needsOriginalBadge = '원문 확인 필요';
+  static const needsOriginalHeading = '원문을 확인해 주세요';
+  static const refinementFailed = '자동 정리에 실패했습니다. 원문을 확인해 주세요';
+  static const retryButton = '다시 정리하기 · 1회 남음';
+  static const retryLimitReached = '다시 정리하기는 한 번만 할 수 있어요.';
+  static const retryingBadge = '다시 정리 중';
+  static const retryingHeading = '내용을 다시 정리하고 있어요';
+  static const refiningBadge = '정리 중';
+  static const refiningHeading = '내용을 정리하고 있어요';
+  static const refiningGuide = '정리가 끝나면 다시 확인을 눌러 주세요. 필요하면 원문을 먼저 확인할 수 있어요.';
+  static const retryRemainingTitle = '남은 재요청 0회';
+  static const retryRemainingNone = '다시 정리하지 못해도 원문으로 확인하고 답변할 수 있어요.';
+  static const recheckButton = '다시 확인';
+
+  static String emotionLevel(EmotionLevel level) => switch (level) {
+    EmotionLevel.low => '낮음',
+    EmotionLevel.medium => '보통',
+    EmotionLevel.high => '높음',
+  };
+
+  static String emotionLabel(EmotionLabel label) => switch (label) {
+    EmotionLabel.anxiety => '불안',
+    EmotionLabel.dissatisfaction => '불만',
+    EmotionLabel.anger => '분노',
+    EmotionLabel.worry => '걱정',
+    EmotionLabel.frustration => '답답함',
+    EmotionLabel.sadness => '슬픔',
+  };
 }

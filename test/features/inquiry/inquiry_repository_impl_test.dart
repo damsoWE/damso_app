@@ -156,4 +156,105 @@ void main() {
     expect(await TeacherInquiryRepositoryImpl(dio).content(_id), '원문');
     expect(adapter.calls.single.path, '/api/v1/teacher/inquiries/$_id/content');
   });
+
+  group('F3', () {
+    Map<String, dynamic> refinementBody({
+      String requests = '이번 주 안 회신 요청',
+      Object? level = 'HIGH',
+      List<Object?> labels = const ['ANGER'],
+    }) => {
+      'inquiryId': _id,
+      'title': '친구 관계 관련 문의',
+      'facts': '학생이 다쳐 귀가했다고 전했어요.',
+      'requests': requests,
+      'emotionLevel': level,
+      'emotionLabels': labels,
+      'refinedAt': '2026-10-27T09:30:00Z',
+    };
+
+    test('상세: retryAvailable 을 읽는다', () async {
+      adapter.respond = (_) => _json(200, {
+        'inquiryId': _id,
+        'studentId': _student,
+        'studentName': '김하나',
+        'urgent': false,
+        'title': '원문 확인 필요',
+        'stage': 'RECEIVED',
+        'refinementStatus': 'NEEDS_ORIGINAL',
+        'retryAvailable': true,
+        'submittedAt': '2026-10-27T09:00:00Z',
+        'timeline': [
+          {'stage': 'RECEIVED', 'occurredAt': '2026-10-27T09:00:00Z'},
+        ],
+      });
+      final d = await TeacherInquiryRepositoryImpl(dio).detail(_id);
+      expect(d.retryAvailable, isTrue);
+      expect(d.summary.refinementStatus, RefinementStatus.needsOriginal);
+    });
+
+    test('번역본: /refinement 경로와 해석', () async {
+      adapter.respond = (_) => _json(200, refinementBody());
+      final r = await TeacherInquiryRepositoryImpl(dio).refinement(_id);
+
+      expect(adapter.calls.single.path, '/api/v1/teacher/inquiries/$_id/refinement');
+      expect(adapter.calls.single.method, 'GET');
+      expect(r.title, '친구 관계 관련 문의');
+      expect(r.facts, '학생이 다쳐 귀가했다고 전했어요.');
+      expect(r.requests, '이번 주 안 회신 요청');
+      expect(r.emotionLevel, EmotionLevel.high);
+      expect(r.emotionLabels, [EmotionLabel.anger]);
+      expect(r.refinedAt, DateTime.parse('2026-10-27T09:30:00Z'));
+    });
+
+    test('번역본: 요청사항 빈 문자열은 그대로', () async {
+      adapter.respond = (_) => _json(200, refinementBody(requests: '', labels: []));
+      final r = await TeacherInquiryRepositoryImpl(dio).refinement(_id);
+      expect(r.requests, '');
+      expect(r.emotionLabels, isEmpty);
+    });
+
+    test('번역본: 모르는 정서강도는 null, 라벨은 모르는 값·중복을 빼고 앞에서 2개', () async {
+      adapter.respond = (_) => _json(
+        200,
+        refinementBody(
+          level: 'EXTREME',
+          labels: ['ANGER', 'UNKNOWN', 'ANGER', 'WORRY', 'SADNESS'],
+        ),
+      );
+      final r = await TeacherInquiryRepositoryImpl(dio).refinement(_id);
+      expect(r.emotionLevel, isNull);
+      expect(r.emotionLabels, [EmotionLabel.anger, EmotionLabel.worry]);
+    });
+
+    test('다시 정리하기: POST /refinement/retry, 202 → 정리 상태', () async {
+      adapter.respond = (_) =>
+          _json(202, {'inquiryId': _id, 'refinementStatus': 'PENDING'});
+      final status = await TeacherInquiryRepositoryImpl(dio).retryRefinement(_id);
+
+      final req = adapter.calls.single;
+      expect(req.path, '/api/v1/teacher/inquiries/$_id/refinement/retry');
+      expect(req.method, 'POST');
+      expect(req.data, isNull);
+      expect(status, RefinementStatus.pending);
+    });
+
+    for (final code in ['REFINEMENT_NOT_READY', 'REFINEMENT_RETRY_UNAVAILABLE']) {
+      test('409 $code → AppException.code', () async {
+        adapter.respond = (_) =>
+            _json(409, {'code': code, 'message': '서버 안내'});
+        final repo = TeacherInquiryRepositoryImpl(dio);
+        final call = code == 'REFINEMENT_NOT_READY'
+            ? repo.refinement(_id)
+            : repo.retryRefinement(_id);
+        await expectLater(
+          call,
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.code, 'code', code)
+                .having((e) => e.message, 'message', '서버 안내'),
+          ),
+        );
+      });
+    }
+  });
 }

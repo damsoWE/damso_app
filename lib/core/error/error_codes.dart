@@ -13,4 +13,6 @@ abstract final class ErrorCodes {
   static const classroomHasTeacher = 'CLASSROOM_HAS_TEACHER';
   static const studentHasGuardian = 'STUDENT_HAS_GUARDIAN';
   static const noHomeroomTeacher = 'NO_HOMEROOM_TEACHER';
+  static const refinementNotReady = 'REFINEMENT_NOT_READY';
+  static const refinementRetryUnavailable = 'REFINEMENT_RETRY_UNAVAILABLE';
 }

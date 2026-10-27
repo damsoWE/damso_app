@@ -58,6 +58,25 @@ void main() {
     expect(repo.detailCalls, 1);
   });
 
+  testWidgets('F3: 학부모 카드에는 단계만, 번역본·정서강도·정리 상태 문구는 없다(specs/003 US5)', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'parent@damso.test');
+    await tapTab(tester, '문의');
+
+    // 최근 순: …0003(2시간 전) · …000a(3시간 전, 정리 중) · …0009(4시간 전, 정리 완료)
+    await tester.tap(find.byTooltip('펼치기').at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('펼치기').at(1)); // 펼친 카드는 '접기'가 되어 다음 카드가 at(1)
+    await tester.pumpAndSettle();
+    expect(repo.detailCalls, 2);
+
+    expect(find.text('정제'), findsWidgets);
+    for (final hidden in ['번역본', '정서강도', '자동 정리', '원문 확인 필요', '정리 중']) {
+      expect(find.textContaining(hidden), findsNothing, reason: hidden);
+    }
+  });
+
   testWidgets('권한 확인(데모) 카드를 펼치면 서버 안내', (tester) async {
     useTallScreen(tester);
     await tester.pumpWidget(app());

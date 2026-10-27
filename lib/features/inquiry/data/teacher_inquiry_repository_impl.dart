@@ -44,4 +44,24 @@ class TeacherInquiryRepositoryImpl implements TeacherInquiryRepository {
       return res.data!['content'] as String;
     });
   }
+
+  @override
+  Future<InquiryRefinement> refinement(String inquiryId) {
+    return mapDioErrors(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/api/v1/teacher/inquiries/$inquiryId/refinement',
+      );
+      return InquiryJson.refinement(res.data!);
+    });
+  }
+
+  @override
+  Future<RefinementStatus> retryRefinement(String inquiryId) {
+    return mapDioErrors(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/teacher/inquiries/$inquiryId/refinement/retry',
+      );
+      return RefinementStatus.fromServer(res.data!['refinementStatus'])!;
+    });
+  }
 }

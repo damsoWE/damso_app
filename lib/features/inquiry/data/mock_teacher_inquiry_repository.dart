@@ -48,4 +48,18 @@ class MockTeacherInquiryRepository implements TeacherInquiryRepository {
     _checkClassroom();
     return _store.contentForTeacher(inquiryId);
   }
+
+  @override
+  Future<InquiryRefinement> refinement(String inquiryId) async {
+    await Future<void>.delayed(_delay);
+    _checkClassroom();
+    return _store.refinementForTeacher(inquiryId);
+  }
+
+  @override
+  Future<RefinementStatus> retryRefinement(String inquiryId) async {
+    await Future<void>.delayed(_delay);
+    _checkClassroom();
+    return _store.retryForTeacher(inquiryId);
+  }
 }
