@@ -26,7 +26,7 @@ void main() {
     expect(isEnabled(tester, '저장'), isTrue);
     await tapText(tester, '저장');
 
-    expect(find.text('마이페이지'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '마이페이지'), findsOneWidget);
     await tapText(tester, '공개 프로필');
     expect(find.text('김선생'), findsOneWidget);
   });

@@ -24,8 +24,26 @@ const _home = {
 
 /// 역할별 전용 경로 예시 (contracts/routes.md).
 const _rolePaths = {
-  Role.parent: ['/parent', '/parent/children', '/parent/children/add', '/parent/me'],
-  Role.teacher: ['/teacher', '/teacher/me', '/teacher/profile', '/teacher/links'],
+  Role.parent: [
+    '/parent',
+    '/parent/children',
+    '/parent/children/add',
+    '/parent/me',
+    '/parent/inquiries',
+    '/parent/inquiries/new',
+    '/parent/inquiries/submitted',
+    '/parent/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/urgent',
+  ],
+  Role.teacher: [
+    '/teacher',
+    '/teacher/me',
+    '/teacher/profile',
+    '/teacher/links',
+    '/teacher/inquiries',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/urgent',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/pending',
+    '/teacher/settings/notifications',
+  ],
   Role.superAdmin: [
     '/admin',
     '/admin/classrooms/new',
@@ -115,10 +133,12 @@ void main() {
       expect(resolveRedirect(const SignedIn(Role.teacher), '/me/withdraw'), isNull);
     });
 
-    test('/inquiries 는 학부모·교사만, 슈퍼 관리자는 관리자 홈으로 (FR-037)', () {
-      expect(resolveRedirect(const SignedIn(Role.parent), '/inquiries'), isNull);
-      expect(resolveRedirect(const SignedIn(Role.teacher), '/inquiries'), isNull);
-      expect(resolveRedirect(const SignedIn(Role.superAdmin), '/inquiries'), '/admin');
+    test('옛 경로 /inquiries 는 역할 문의 탭으로, 슈퍼 관리자는 관리자 홈으로 (FR-032, FR-037)', () {
+      for (final path in ['/inquiries', '/inquiries/abc']) {
+        expect(resolveRedirect(const SignedIn(Role.parent), path), '/parent/inquiries');
+        expect(resolveRedirect(const SignedIn(Role.teacher), path), '/teacher/inquiries');
+        expect(resolveRedirect(const SignedIn(Role.superAdmin), path), '/admin');
+      }
     });
   });
 }

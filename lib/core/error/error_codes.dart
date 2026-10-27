@@ -12,4 +12,5 @@ abstract final class ErrorCodes {
   static const tooManyAttempts = 'TOO_MANY_ATTEMPTS';
   static const classroomHasTeacher = 'CLASSROOM_HAS_TEACHER';
   static const studentHasGuardian = 'STUDENT_HAS_GUARDIAN';
+  static const noHomeroomTeacher = 'NO_HOMEROOM_TEACHER';
 }

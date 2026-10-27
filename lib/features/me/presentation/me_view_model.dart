@@ -4,6 +4,7 @@ import '../../../core/error/app_exception.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/validation/validators.dart';
 import '../../auth/data/auth_repository_provider.dart';
+import '../../notification/data/notification_repository_provider.dart';
 import '../data/me_repository_provider.dart';
 import '../domain/me.dart';
 
@@ -73,7 +74,10 @@ class MeViewModel extends AsyncNotifier<MeState> {
   Future<void> logout() async {
     // 응답을 기다리는 사이 화면이 해제돼도 세션은 지워야 하므로 미리 잡아 둔다.
     final session = ref.read(sessionControllerProvider.notifier);
+    final devices = ref.read(notificationRepositoryProvider);
     try {
+      // 이 기기의 알림 등록을 먼저 푼다(세션이 살아 있을 때만 가능). 실패는 무시(F2 FR-031).
+      await devices.unregisterCurrentDevice().catchError((Object _) {});
       await ref.read(authRepositoryProvider).logout();
     } on AppException {
       // 서버 실패는 무시한다 — 기기 세션은 아래에서 지운다.

@@ -1,35 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../inquiry/presentation/teacher/home_inquiry_section.dart';
+import '../../notification/presentation/device_registrar.dart';
 
-/// F3-4 교사 홈 (Figma 216-5567). 이 작업에서는 진입 화면만 둔다(FR-031, 문의는 F2).
-class TeacherHomePage extends StatelessWidget {
+/// F3-4 교사 홈 (Figma 216-5567). 확인 전 긴급 카드와 최근 문의(F2 FR-021).
+/// 마이페이지는 하단 탭으로 간다. 처음 들어오면 기기 알림 권한을 묻는다(FR-031a).
+class TeacherHomePage extends ConsumerStatefulWidget {
   const TeacherHomePage({super.key});
+
+  @override
+  ConsumerState<TeacherHomePage> createState() => _TeacherHomePageState();
+}
+
+class _TeacherHomePageState extends ConsumerState<TeacherHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(deviceRegistrarProvider).requestPermissionIfNeeded();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('교사 홈'),
-        actions: [
-          IconButton(
-            tooltip: '마이페이지',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/teacher/me'),
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
-          child: Text(
-            '선생님, 안녕하세요.\n학부모 연결 현황과 공개 프로필은 마이페이지에서 관리할 수 있습니다.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.body,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: const Text('교사 홈')),
+      body: const TeacherHomeInquirySection(),
     );
   }
 }

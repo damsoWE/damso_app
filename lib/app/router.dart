@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,8 +26,16 @@ import '../features/auth/presentation/splash_page.dart';
 import '../features/auth/presentation/start_page.dart';
 import '../features/auth/presentation/terms_page.dart';
 import '../features/auth/presentation/welcome_page.dart';
-import '../features/inquiry/presentation/inquiry_list_page.dart';
+import '../features/inquiry/presentation/parent/compose_page.dart';
+import '../features/inquiry/presentation/parent/parent_inquiries_page.dart';
+import '../features/inquiry/presentation/parent/submitted_page.dart';
+import '../features/inquiry/presentation/parent/urgent_notice_page.dart';
+import '../features/inquiry/presentation/teacher/pending_detail_page.dart';
+import '../features/inquiry/presentation/teacher/teacher_inquiries_page.dart';
+import '../features/inquiry/presentation/teacher/urgent_detail_page.dart';
 import '../features/me/presentation/account_page.dart';
+import '../features/notification/presentation/settings_page.dart';
+import '../features/parent/domain/child.dart';
 import '../features/me/presentation/withdraw_page.dart';
 import '../features/parent/presentation/add_child_page.dart';
 import '../features/parent/presentation/child_select_page.dart';
@@ -38,13 +46,17 @@ import '../features/teacher/presentation/links_page.dart';
 import '../features/teacher/presentation/profile_edit_page.dart';
 import '../features/teacher/presentation/teacher_home_page.dart';
 import '../features/teacher/presentation/teacher_my_page.dart';
+import 'shells/parent_shell.dart';
+import 'shells/teacher_shell.dart';
 
 /// 화면 경로 정의. 화면 트리는 docs/ia.md, 접근 규칙은
-/// specs/001-foundation-auth-signup/contracts/routes.md 와 일치시킨다.
+/// specs/001-foundation-auth-signup/contracts/routes.md 와
+/// specs/002-inquiry-intake-urgent/contracts/routes.md(하단 탭) 와 일치시킨다.
 /// 화면 접근 제어는 [resolveRedirect] 한 곳에서만 한다. 권한의 최종 판단은 서버다.
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _SessionListenable(ref);
   final router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: refresh,
     redirect: (_, state) =>
@@ -77,28 +89,103 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/welcome', builder: (_, _) => const WelcomePage()),
       GoRoute(path: '/terms', builder: (_, _) => const TermsPage()),
+      // 탭 위에 띄우는 화면(탭 바를 가림). 셸보다 먼저 두어 먼저 맞춘다.
       GoRoute(
-        path: '/parent',
-        builder: (_, _) => const ParentHomePage(),
-        routes: [
-          GoRoute(path: 'me', builder: (_, _) => const ParentMyPage()),
-          GoRoute(
-            path: 'children',
-            builder: (_, _) => const ChildrenPage(),
+        path: '/parent/children/add',
+        builder: (_, _) => const AddChildPage(),
+      ),
+      // 대상 자녀·안내 결과는 extra 로만 받는다. 없으면(재시작·딥링크) 탭 화면으로.
+      GoRoute(
+        path: '/parent/inquiries/new',
+        redirect: (_, s) => s.extra is Child ? null : '/parent',
+        builder: (_, s) => ComposePage(child: s.extra! as Child),
+      ),
+      GoRoute(
+        path: '/parent/inquiries/submitted',
+        redirect: (_, s) => s.extra is SubmittedArgs ? null : '/parent/inquiries',
+        builder: (_, s) => SubmittedPage(args: s.extra! as SubmittedArgs),
+      ),
+      GoRoute(
+        path: '/parent/inquiries/:inquiryId/urgent',
+        builder: (_, s) =>
+            UrgentNoticePage(inquiryId: s.pathParameters['inquiryId']!),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, shell) => ParentShell(shell: shell),
+        branches: [
+          StatefulShellBranch(
             routes: [
-              GoRoute(path: 'select', builder: (_, _) => const ChildSelectPage()),
-              GoRoute(path: 'add', builder: (_, _) => const AddChildPage()),
+              GoRoute(
+                path: '/parent',
+                builder: (_, _) => const ParentHomePage(),
+                routes: [
+                  GoRoute(
+                    path: 'children/select',
+                    builder: (_, _) => const ChildSelectPage(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/parent/inquiries',
+                builder: (_, _) => const ParentInquiriesPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/parent/me', builder: (_, _) => const ParentMyPage()),
+              GoRoute(
+                path: '/parent/children',
+                builder: (_, _) => const ChildrenPage(),
+              ),
             ],
           ),
         ],
       ),
       GoRoute(
-        path: '/teacher',
-        builder: (_, _) => const TeacherHomePage(),
-        routes: [
-          GoRoute(path: 'me', builder: (_, _) => const TeacherMyPage()),
-          GoRoute(path: 'profile', builder: (_, _) => const ProfileEditPage()),
-          GoRoute(path: 'links', builder: (_, _) => const LinksPage()),
+        path: '/teacher/inquiries/:inquiryId/urgent',
+        builder: (_, s) =>
+            UrgentDetailPage(inquiryId: s.pathParameters['inquiryId']!),
+      ),
+      GoRoute(
+        path: '/teacher/inquiries/:inquiryId/pending',
+        builder: (_, s) =>
+            PendingDetailPage(inquiryId: s.pathParameters['inquiryId']!),
+      ),
+      GoRoute(
+        path: '/teacher/settings/notifications',
+        builder: (_, _) => const SettingsPage(),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, shell) => TeacherShell(shell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/teacher', builder: (_, _) => const TeacherHomePage()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/teacher/inquiries',
+                builder: (_, _) => const TeacherInquiriesPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/teacher/me', builder: (_, _) => const TeacherMyPage()),
+              GoRoute(
+                path: '/teacher/profile',
+                builder: (_, _) => const ProfileEditPage(),
+              ),
+              GoRoute(path: '/teacher/links', builder: (_, _) => const LinksPage()),
+            ],
+          ),
         ],
       ),
       GoRoute(
@@ -145,8 +232,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/me/account', builder: (_, _) => const AccountPage()),
       GoRoute(path: '/me/withdraw', builder: (_, _) => const WithdrawPage()),
-      // 기존 뼈대(FR-013). PARENT·TEACHER 만 임시 허용, F2 에서 역할별 경로로 옮긴다.
-      GoRoute(path: '/inquiries', builder: (_, _) => const InquiryListPage()),
     ],
   );
   ref.onDispose(() {
@@ -155,6 +240,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
   return router;
 });
+
+/// 탭 위에 화면을 띄울 때 쓰는 루트 Navigator.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class _SessionListenable extends ChangeNotifier {
   _SessionListenable(Ref ref) {
@@ -202,9 +290,16 @@ String? resolveRedirect(SessionState state, String location) {
       if (_isPublicOnly(location)) return home;
       final owner = _ownerOf(location);
       if (owner != null && owner != role) return home;
-      if (role == Role.superAdmin) {
-        if (location == '/me/withdraw') return '/admin/me';
-        if (_under(location, '/inquiries')) return '/admin'; // FR-037
+      // 옛 문의 경로 → 역할 문의 탭(specs/002 routes.md 규칙 4-b, FR-032).
+      if (_under(location, '/inquiries')) {
+        return switch (role) {
+          Role.parent => '/parent/inquiries',
+          Role.teacher => '/teacher/inquiries',
+          Role.superAdmin => '/admin', // FR-037
+        };
+      }
+      if (role == Role.superAdmin && location == '/me/withdraw') {
+        return '/admin/me';
       }
       return null;
   }

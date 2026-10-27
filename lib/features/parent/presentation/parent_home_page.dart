@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../inquiry/presentation/parent/compose_view_model.dart';
+import '../../inquiry/presentation/parent/home_inquiry_section.dart';
 import '../domain/child.dart';
 import 'parent_home_view_model.dart';
 
 /// F2-1 학부모 홈 (Figma 216-5162) · F2-1b 빈 상태 (216-5199).
-/// 문의 작성·최근 문의 영역은 F2 범위라 두지 않는다(FR-028). 담임 이메일은 없다.
+/// 고른 자녀·담임 카드, 최근 문의(F2 FR-017), 문의 작성 버튼. 담임 이메일은 없다.
 class ParentHomePage extends ConsumerWidget {
   const ParentHomePage({super.key});
 
@@ -18,25 +20,70 @@ class ParentHomePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('학부모 홈'),
-        actions: [
-          IconButton(
-            tooltip: '마이페이지',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/parent/me'),
-          ),
-        ],
       ),
       body: AsyncView(
         value: home,
         onRetry: ref.read(parentHomeViewModelProvider.notifier).refresh,
         isEmpty: (s) => s.selected == null,
         empty: (_) => const _NoChild(),
-        data: (s) => ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        data: (s) => Column(
           children: [
-            _ChildCard(child: s.selected!, canSwitch: true),
-            const SizedBox(height: AppSpacing.md),
-            _TeacherCard(teacher: s.selected!.teacher),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  _ChildCard(child: s.selected!, canSwitch: true),
+                  const SizedBox(height: AppSpacing.md),
+                  _TeacherCard(teacher: s.selected!.teacher),
+                  const SizedBox(height: AppSpacing.lg),
+                  HomeInquirySection(studentId: s.selected!.studentId),
+                ],
+              ),
+            ),
+            _ComposeButton(child: s.selected!),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 고른 자녀로 문의 작성(F2-2). 담임이 없으면 열지 않고 안내만 보인다(FR-003).
+class _ComposeButton extends StatelessWidget {
+  const _ComposeButton({required this.child});
+
+  final Child child;
+
+  @override
+  Widget build(BuildContext context) {
+    final blocked = composeBlockedReason(child);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (blocked != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  blocked,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+            FilledButton(
+              onPressed: blocked != null
+                  ? null
+                  : () => context.push('/parent/inquiries/new', extra: child),
+              child: Text('${child.studentName} 학생 문의 작성'),
+            ),
           ],
         ),
       ),
