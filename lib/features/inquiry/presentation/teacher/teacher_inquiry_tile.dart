@@ -12,10 +12,10 @@ class TeacherInquiryTile extends StatelessWidget {
 
   final TeacherInquirySummary item;
 
-  /// 긴급은 원문 상세(F3-5), 일반은 준비 중(F3 범위, FR-024).
+  /// 긴급은 원문 상세(F3-5), 일반은 정리 상태별 상세(F3-2·F3-3·F3-3a, specs/003 FR-001).
   static String pathOf(TeacherInquirySummary item) => item.urgent
       ? '/teacher/inquiries/${item.inquiryId}/urgent'
-      : '/teacher/inquiries/${item.inquiryId}/pending';
+      : '/teacher/inquiries/${item.inquiryId}/general';
 
   @override
   Widget build(BuildContext context) {

@@ -65,6 +65,13 @@ class _PagedRepo implements TeacherInquiryRepository {
 
   @override
   Future<String> content(String inquiryId) => throw UnimplementedError();
+
+  @override
+  Future<InquiryRefinement> refinement(String inquiryId) => throw UnimplementedError();
+
+  @override
+  Future<RefinementStatus> retryRefinement(String inquiryId) =>
+      throw UnimplementedError();
 }
 
 void main() {

@@ -26,11 +26,13 @@ import '../features/auth/presentation/splash_page.dart';
 import '../features/auth/presentation/start_page.dart';
 import '../features/auth/presentation/terms_page.dart';
 import '../features/auth/presentation/welcome_page.dart';
+import '../features/inquiry/domain/models.dart';
 import '../features/inquiry/presentation/parent/compose_page.dart';
 import '../features/inquiry/presentation/parent/parent_inquiries_page.dart';
 import '../features/inquiry/presentation/parent/submitted_page.dart';
 import '../features/inquiry/presentation/parent/urgent_notice_page.dart';
-import '../features/inquiry/presentation/teacher/pending_detail_page.dart';
+import '../features/inquiry/presentation/teacher/content_page.dart';
+import '../features/inquiry/presentation/teacher/general_detail_page.dart';
 import '../features/inquiry/presentation/teacher/teacher_inquiries_page.dart';
 import '../features/inquiry/presentation/teacher/urgent_detail_page.dart';
 import '../features/me/presentation/account_page.dart';
@@ -151,10 +153,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) =>
             UrgentDetailPage(inquiryId: s.pathParameters['inquiryId']!),
       ),
+      // 일반 문의 상세(F3-2·F3-3·F3-3a·정리 중)와 원문 열람(F3-6), specs/003 contracts/routes.md.
       GoRoute(
-        path: '/teacher/inquiries/:inquiryId/pending',
+        path: '/teacher/inquiries/:inquiryId/general',
         builder: (_, s) =>
-            PendingDetailPage(inquiryId: s.pathParameters['inquiryId']!),
+            GeneralDetailPage(inquiryId: s.pathParameters['inquiryId']!),
+      ),
+      GoRoute(
+        path: '/teacher/inquiries/:inquiryId/content',
+        builder: (_, s) => ContentPage(
+          inquiryId: s.pathParameters['inquiryId']!,
+          summary: s.extra is TeacherInquirySummary ? s.extra as TeacherInquirySummary : null,
+        ),
       ),
       GoRoute(
         path: '/teacher/settings/notifications',

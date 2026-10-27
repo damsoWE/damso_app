@@ -235,10 +235,91 @@ class TeacherInquiryPage {
   bool get hasMore => (page + 1) * size < totalElements;
 }
 
-/// 교사 문의 상세(본문 없음). 원문은 [TeacherInquiryRepository.content] 로 따로 연다.
+/// 교사 문의 상세(본문·번역본 없음). 원문은 [TeacherInquiryRepository.content],
+/// 번역본은 [TeacherInquiryRepository.refinement] 로 따로 연다.
 class TeacherInquiryDetail {
-  const TeacherInquiryDetail({required this.summary, required this.timeline});
+  const TeacherInquiryDetail({
+    required this.summary,
+    required this.timeline,
+    required this.retryAvailable,
+  });
 
   final TeacherInquirySummary summary;
   final List<StageEvent> timeline;
+
+  /// "원문 확인 필요"이고 교사 재시도(1건당 1회)를 아직 쓰지 않았으면 true.
+  final bool retryAvailable;
+}
+
+/// 정서강도 3단계(specs/003 data-model). 모르는 값은 null 로 버린다(research R8).
+enum EmotionLevel {
+  low('LOW'),
+  medium('MEDIUM'),
+  high('HIGH');
+
+  const EmotionLevel(this.serverValue);
+
+  final String serverValue;
+
+  static EmotionLevel? fromServer(Object? value) {
+    for (final l in values) {
+      if (l.serverValue == value) return l;
+    }
+    return null;
+  }
+}
+
+/// 감정 라벨 고정 목록. 모르는 값은 null 로 버린다(research R8).
+enum EmotionLabel {
+  anxiety('ANXIETY'),
+  dissatisfaction('DISSATISFACTION'),
+  anger('ANGER'),
+  worry('WORRY'),
+  frustration('FRUSTRATION'),
+  sadness('SADNESS');
+
+  const EmotionLabel(this.serverValue);
+
+  final String serverValue;
+
+  static EmotionLabel? fromServer(Object? value) {
+    for (final l in values) {
+      if (l.serverValue == value) return l;
+    }
+    return null;
+  }
+
+  /// 모르는 값과 중복을 빼고 앞에서 2개까지.
+  static List<EmotionLabel> normalize(List<Object?> raw) =>
+      raw.map(fromServer).whereType<EmotionLabel>().toSet().take(2).toList();
+}
+
+/// 번역본(일반 문의 정리 결과). 서버가 이름·학급을 원래 값으로 되돌려 준다.
+/// 화면이 열려 있는 동안 메모리에만 둔다(원칙 III·VI).
+class InquiryRefinement {
+  const InquiryRefinement({
+    required this.inquiryId,
+    required this.title,
+    required this.facts,
+    required this.requests,
+    required this.emotionLevel,
+    required this.emotionLabels,
+    required this.refinedAt,
+  });
+
+  final String inquiryId;
+  final String title;
+
+  /// 사실관계.
+  final String facts;
+
+  /// 요청사항. 없으면 빈 문자열.
+  final String requests;
+
+  /// 앱이 모르는 값이면 null(정서강도 줄을 숨긴다).
+  final EmotionLevel? emotionLevel;
+
+  /// 0~2개.
+  final List<EmotionLabel> emotionLabels;
+  final DateTime refinedAt;
 }

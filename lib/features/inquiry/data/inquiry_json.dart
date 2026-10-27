@@ -75,5 +75,17 @@ abstract final class InquiryJson {
       TeacherInquiryDetail(
         summary: teacherSummary(j),
         timeline: timeline(j['timeline']),
+        retryAvailable: j['retryAvailable'] as bool,
       );
+
+  /// 모르는 정서강도·라벨은 버린다(specs/003 research R8).
+  static InquiryRefinement refinement(Map<String, dynamic> j) => InquiryRefinement(
+    inquiryId: j['inquiryId'] as String,
+    title: j['title'] as String,
+    facts: j['facts'] as String,
+    requests: j['requests'] as String,
+    emotionLevel: EmotionLevel.fromServer(j['emotionLevel']),
+    emotionLabels: EmotionLabel.normalize((j['emotionLabels'] as List).cast<Object?>()),
+    refinedAt: DateTime.parse(j['refinedAt'] as String),
+  );
 }

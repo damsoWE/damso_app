@@ -1,8 +1,11 @@
 import 'package:damso_app/core/error/app_exception.dart';
+import 'package:damso_app/core/error/error_codes.dart';
 import 'package:damso_app/core/session/role.dart';
 import 'package:damso_app/core/session/session_controller.dart';
 import 'package:damso_app/core/session/session_state.dart';
+import 'package:damso_app/core/storage/token_store.dart';
 import 'package:damso_app/features/inquiry/data/mock_inquiry_store.dart';
+import 'package:damso_app/features/inquiry/data/mock_teacher_inquiry_repository.dart';
 import 'package:damso_app/features/inquiry/domain/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -156,6 +159,158 @@ void main() {
         () => store.detailForParent('parent', MockInquiryStore.forbiddenDemoId),
         throwsA(isA<AppException>().having((e) => e.statusCode, 'status', 403)),
       );
+    });
+  });
+
+  group('F3 mock 저장소 규칙 (specs/003 research R10)', () {
+    const pending = 'a1000000-0000-4000-8000-00000000000a';
+    const retryOk = 'a1000000-0000-4000-8000-000000000004';
+    const refinedFresh = 'a1000000-0000-4000-8000-000000000008';
+    const refinedNoRequests = 'a1000000-0000-4000-8000-000000000009';
+    const urgent = 'a1000000-0000-4000-8000-000000000001';
+    late MockInquiryStore store;
+
+    setUp(() => store = MockInquiryStore());
+
+    Matcher appCode(String code) =>
+        throwsA(isA<AppException>().having((e) => e.code, 'code', code));
+
+    List<InquiryStage> stages(String id) =>
+        store.detailForTeacher(id).timeline.map((e) => e.stage).toList();
+
+    test('정리 완료가 아닌 문의의 번역본은 409', () {
+      expect(
+        () => store.refinementForTeacher(pending),
+        appCode(ErrorCodes.refinementNotReady),
+      );
+    });
+
+    test('번역본 첫 열람에 "교사 확인", 두 번째 열람은 이력 그대로', () {
+      expect(store.refinementForTeacher(refinedFresh).emotionLevel, EmotionLevel.high);
+      expect(stages(refinedFresh).last, InquiryStage.teacherConfirmed);
+      final count = stages(refinedFresh).length;
+      store.refinementForTeacher(refinedFresh);
+      expect(stages(refinedFresh), hasLength(count));
+    });
+
+    test('원문 확인 필요 문의는 원문 첫 열람에 접수 → 교사 확인, 번역본 있는 문의는 그대로', () {
+      store.contentForTeacher(retryOk);
+      expect(stages(retryOk), [InquiryStage.received, InquiryStage.teacherConfirmed]);
+
+      store.contentForTeacher(refinedNoRequests);
+      expect(stages(refinedNoRequests).last, InquiryStage.refined);
+    });
+
+    test('다시 정리하기는 1회: 정리 중으로 바뀌고 두 번째는 409', () {
+      expect(store.retryForTeacher(retryOk), RefinementStatus.pending);
+      expect(
+        () => store.retryForTeacher(retryOk),
+        appCode(ErrorCodes.refinementRetryUnavailable),
+      );
+    });
+
+    test('긴급 문의는 다시 정리할 수 없다(409)', () {
+      expect(
+        () => store.retryForTeacher(urgent),
+        appCode(ErrorCodes.refinementRetryUnavailable),
+      );
+    });
+
+    test('US5: 교사가 번역본을 연 뒤 학부모 타임라인은 접수 → 정제 → 교사 확인', () {
+      store.refinementForTeacher(refinedNoRequests);
+      expect(
+        store
+            .detailForParent('parent', refinedNoRequests)
+            .timeline
+            .map((e) => e.stage),
+        [InquiryStage.received, InquiryStage.refined, InquiryStage.teacherConfirmed],
+      );
+    });
+
+    test('교사가 원문을 연 뒤 다시 정리하기가 성공해도 "정제"는 더하지 않는다', () {
+      store.contentForTeacher(retryOk); // 접수 → 교사 확인
+      store.retryForTeacher(retryOk);
+      final d = store.detailForTeacher(retryOk);
+      expect(d.summary.refinementStatus, RefinementStatus.refined);
+      expect(
+        d.timeline.map((e) => e.stage),
+        [InquiryStage.received, InquiryStage.teacherConfirmed],
+      );
+    });
+  });
+
+  group('F3 데모 문의 (specs/003 research R10, quickstart 표)', () {
+    String id(String tail) => 'a1000000-0000-4000-8000-${tail.padLeft(12, '0')}';
+    late MockInquiryStore store;
+
+    setUp(() => store = MockInquiryStore());
+
+    TeacherInquiryDetail detail(String tail) => store.detailForTeacher(id(tail));
+
+    test('…000a: 목록 조회와 무관하게 자기 상세 두 번째 조회에서 정리 완료', () {
+      expect(detail('a').summary.refinementStatus, RefinementStatus.pending);
+      for (var n = 0; n < 3; n++) {
+        store.listForTeacher(page: 0, size: 50);
+      }
+      final second = detail('a');
+      expect(second.summary.refinementStatus, RefinementStatus.refined);
+      expect(second.timeline.last.stage, InquiryStage.refined);
+      expect(store.refinementForTeacher(id('a')).facts, isNotEmpty);
+    });
+
+    test('…0003: F2 규칙 그대로(목록 두 번째 조회에 정리 완료)', () {
+      expect(detail('3').summary.refinementStatus, RefinementStatus.pending);
+      store.listForTeacher(page: 0, size: 50);
+      store.listForTeacher(page: 0, size: 50);
+      expect(detail('3').summary.refinementStatus, RefinementStatus.refined);
+    });
+
+    test('…0004: 다시 정리하기 → 다음 상세에서 정리 완료·번역본·정제 단계', () {
+      expect(detail('4').retryAvailable, isTrue);
+      store.retryForTeacher(id('4'));
+      final next = detail('4');
+      expect(next.summary.refinementStatus, RefinementStatus.refined);
+      expect(next.timeline.last.stage, InquiryStage.refined);
+      expect(store.refinementForTeacher(id('4')).title, isNotEmpty);
+    });
+
+    test('…0006: 다시 정리하기 → 다음 상세에서 원문 확인 필요·재시도 없음', () {
+      store.retryForTeacher(id('6'));
+      final next = detail('6');
+      expect(next.summary.refinementStatus, RefinementStatus.needsOriginal);
+      expect(next.retryAvailable, isFalse);
+    });
+
+    test('…0007: 재시도를 이미 씀', () {
+      expect(detail('7').summary.refinementStatus, RefinementStatus.needsOriginal);
+      expect(detail('7').retryAvailable, isFalse);
+    });
+
+    test('…0008: 정서 높음 · 분노·답답함', () {
+      final r = store.refinementForTeacher(id('8'));
+      expect(r.emotionLevel, EmotionLevel.high);
+      expect(r.emotionLabels, [EmotionLabel.anger, EmotionLabel.frustration]);
+    });
+
+    test('…0009: 요청사항 없음 · 라벨 없음 · 낮음', () {
+      final r = store.refinementForTeacher(id('9'));
+      expect(r.requests, '');
+      expect(r.emotionLabels, isEmpty);
+      expect(r.emotionLevel, EmotionLevel.low);
+    });
+
+    test('담당 학급이 없는 교사(noclass)는 번역본·다시 정리하기 403', () async {
+      final tokens = TokenStore()..accessToken = 'mock:noclass';
+      final repo = MockTeacherInquiryRepository(tokens, store);
+      for (final call in [
+        () => repo.refinement(id('8')),
+        () => repo.retryRefinement(id('4')),
+      ]) {
+        await expectLater(
+          call(),
+          throwsA(isA<AppException>().having((e) => e.statusCode, 'status', 403)),
+        );
+      }
     });
   });
 
