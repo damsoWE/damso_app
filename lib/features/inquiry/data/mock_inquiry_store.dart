@@ -557,6 +557,9 @@ class _MockInquiry {
   /// 다시 정리하기를 받아들였고 결과가 아직 정해지지 않았다(다음 상세 조회에서 정함).
   bool retryPending = false;
   InquiryRefinement? refinement;
+
+  /// 마지막 답변 시각. 답변 기능(F4) 전이라 mock 문의는 모두 답변 없음(null).
+  DateTime? lastAnsweredAt;
   int detailReads = 0;
   int contentViews = 0;
 
@@ -569,6 +572,8 @@ class _MockInquiry {
     urgent: urgent,
     stage: stage,
     submittedAt: submittedAt,
+    hasAnswer: lastAnsweredAt != null,
+    lastAnsweredAt: lastAnsweredAt,
   );
 
   TeacherInquirySummary get teacherSummary => TeacherInquirySummary(
@@ -580,5 +585,7 @@ class _MockInquiry {
     stage: stage,
     refinementStatus: refinementStatus,
     submittedAt: submittedAt,
+    hasAnswer: lastAnsweredAt != null,
+    lastAnsweredAt: lastAnsweredAt,
   );
 }

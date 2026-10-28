@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/app_exception.dart';
-import '../../../../core/error/error_codes.dart';
 import '../../../../core/util/uuid.dart';
 import '../../../../core/widgets/cooldown.dart';
 import '../../../parent/domain/child.dart';
@@ -111,9 +110,7 @@ class ComposeViewModel extends Notifier<ComposeState> {
         errorMessage: () => e.message,
         showTimeoutHint: e.isNetworkError,
       );
-      if (e.code == ErrorCodes.tooManyAttempts) {
-        _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
-      }
+      _timer.startIfLimited(e, (c) => state = state.copyWith(cooldown: c));
       return null;
     } finally {
       link.close();

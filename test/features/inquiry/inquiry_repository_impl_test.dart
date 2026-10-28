@@ -135,7 +135,11 @@ void main() {
           'title': '정리 중',
           'stage': 'RECEIVED',
           'refinementStatus': 'PENDING',
+          'threatFlagged': false,
+          'threadThreatFlagged': false,
           'submittedAt': '2026-10-26T09:30:00Z',
+          'hasAnswer': false,
+          'lastAnsweredAt': null,
         },
       ],
       'page': 1,
@@ -148,7 +152,99 @@ void main() {
     expect(req.path, '/api/v1/teacher/inquiries');
     expect(req.queryParameters, {'page': 1, 'size': 20});
     expect(page.items.single.refinementStatus, RefinementStatus.pending);
+    expect(page.items.single.hasAnswer, isFalse);
+    expect(page.items.single.lastAnsweredAt, isNull);
     expect(page.hasMore, isTrue);
+  });
+
+  group('답변 여부(api-v0.7)', () {
+    Map<String, dynamic> parentItem({Object? hasAnswer = false}) => {
+      'inquiryId': _id,
+      'studentId': _student,
+      'studentName': '김하나',
+      'urgent': false,
+      'stage': 'TEACHER_CONFIRMED',
+      'submittedAt': '2026-10-26T09:30:00Z',
+      'hasAnswer': ?hasAnswer,
+      'lastAnsweredAt': hasAnswer == true ? '2026-10-27T08:00:00Z' : null,
+    };
+
+    test('학부모 목록: hasAnswer·lastAnsweredAt 을 읽는다', () async {
+      adapter.respond = (_) => _json(200, [parentItem(hasAnswer: true)]);
+      final item = (await ParentInquiryRepositoryImpl(dio).list()).single;
+
+      expect(item.hasAnswer, isTrue);
+      expect(item.lastAnsweredAt, DateTime.parse('2026-10-27T08:00:00Z'));
+      expect(item.stage, InquiryStage.teacherConfirmed);
+    });
+
+    test('목록에 hasAnswer 가 없으면 일반 안내(AppException)', () async {
+      adapter.respond = (_) => _json(200, [parentItem(hasAnswer: null)]);
+      await expectLater(
+        ParentInquiryRepositoryImpl(dio).list(),
+        throwsA(isA<AppException>()),
+      );
+    });
+
+    test('학부모 상세: answers 로 답변 여부와 마지막 답변 시각을 정한다', () async {
+      adapter.respond = (_) => _json(200, {
+        'inquiryId': _id,
+        'studentId': _student,
+        'studentName': '김하나',
+        'content': '본문',
+        'urgent': false,
+        'stage': 'TEACHER_CONFIRMED',
+        'submittedAt': '2026-10-26T09:30:00Z',
+        'timeline': [
+          {'stage': 'RECEIVED', 'occurredAt': '2026-10-26T09:30:00Z'},
+        ],
+        'notices': ['RECEIVED'],
+        'hotlines': <String>[],
+        'followUps': <Object>[],
+        'answers': [
+          {
+            'answerId': 'a1',
+            'content': '답변1',
+            'reviewed': false,
+            'sentAt': '2026-10-27T08:00:00Z',
+          },
+          {
+            'answerId': 'a2',
+            'content': '답변2',
+            'reviewed': true,
+            'sentAt': '2026-10-28T08:00:00Z',
+          },
+        ],
+      });
+      final d = await ParentInquiryRepositoryImpl(dio).detail(_id);
+
+      expect(d.summary.hasAnswer, isTrue);
+      expect(d.summary.lastAnsweredAt, DateTime.parse('2026-10-28T08:00:00Z'));
+    });
+
+    test('교사 상세: answers 가 비면 답변 없음', () async {
+      adapter.respond = (_) => _json(200, {
+        'inquiryId': _id,
+        'studentId': _student,
+        'studentName': '김하나',
+        'urgent': false,
+        'title': '정리 중',
+        'stage': 'RECEIVED',
+        'refinementStatus': 'PENDING',
+        'retryAvailable': false,
+        'threatFlagged': false,
+        'submittedAt': '2026-10-27T09:00:00Z',
+        'timeline': [
+          {'stage': 'RECEIVED', 'occurredAt': '2026-10-27T09:00:00Z'},
+        ],
+        'followUps': <Object>[],
+        'answers': <Object>[],
+      });
+      final d = await TeacherInquiryRepositoryImpl(dio).detail(_id);
+
+      expect(d.summary.hasAnswer, isFalse);
+      expect(d.summary.lastAnsweredAt, isNull);
+    });
   });
 
   test('교사 원문: /content 경로', () async {
