@@ -18,6 +18,8 @@ TeacherInquirySummary _item(int n, {bool urgent = false, InquiryStage? stage}) =
       stage: stage ?? (urgent ? InquiryStage.delivered : InquiryStage.received),
       refinementStatus: urgent ? null : RefinementStatus.pending,
       submittedAt: DateTime(2026, 10, 26),
+      hasAnswer: false,
+      lastAnsweredAt: null,
     );
 
 /// 전체 [total]건을 20건씩 나눠 주는 가짜 Repository.
