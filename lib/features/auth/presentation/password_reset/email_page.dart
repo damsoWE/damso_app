@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/cooldown.dart';
 import '../../../../core/widgets/field_error_text.dart';
 import '../../../../core/widgets/form_layout.dart';
 import 'password_reset_view_model.dart';
@@ -44,14 +45,16 @@ class _ResetEmailPageState extends ConsumerState<ResetEmailPage> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           decoration: const InputDecoration(labelText: '이메일'),
+          onChanged: ref.read(passwordResetViewModelProvider.notifier).emailChanged,
         ),
         FieldErrorText(state.fieldErrors['email']),
         MessageText(state.errorMessage),
+        CooldownNotice(state.cooldown),
         const SizedBox(height: AppSpacing.md),
         SubmitButton(
           label: '재설정 코드 받기',
           isLoading: state.isSubmitting,
-          onPressed: _submit,
+          onPressed: state.cooldown.isActive ? null : _submit,
         ),
       ],
     );
