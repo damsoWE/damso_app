@@ -148,9 +148,11 @@ class MockAuthRepository implements AuthRepository {
     await _tokens.clear();
   }
 
+  /// `wait@damso.test` 는 메일 발송 대기(429)를 재현한다(api-v0.8). 가입 여부와 관계없이 같다.
   @override
   Future<void> requestPasswordReset(String email) async {
     await Future<void>.delayed(_delay);
+    if (email.trim().toLowerCase() == 'wait@damso.test') throw _locked(30);
   }
 
   @override

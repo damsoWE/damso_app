@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/validation/validators.dart';
+import '../../../../core/widgets/cooldown.dart';
 import '../../../../core/widgets/form_layout.dart';
 import 'password_reset_view_model.dart';
 
@@ -49,14 +50,17 @@ class _ResetCodePageState extends ConsumerState<ResetCodePage> {
         children: [
           const Text('코드가 만료되었거나 입력 횟수를 넘었습니다.', style: AppTextStyles.subtitle),
           MessageText(state.errorMessage),
+          CooldownNotice(state.cooldown),
           const SizedBox(height: AppSpacing.md),
           SubmitButton(
             label: '코드 다시 받기',
             isLoading: state.isSubmitting,
-            onPressed: () {
-              _code.clear();
-              vm.resendCode();
-            },
+            onPressed: state.cooldown.isActive
+                ? null
+                : () {
+                    _code.clear();
+                    vm.resendCode();
+                  },
           ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton(onPressed: () => context.go('/'), child: const Text('로그인으로')),

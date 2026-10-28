@@ -1,7 +1,10 @@
+import 'package:damso_app/core/error/app_exception.dart';
+import 'package:damso_app/core/error/error_codes.dart';
 import 'package:damso_app/core/session/role.dart';
 import 'package:damso_app/core/session/session_controller.dart';
 import 'package:damso_app/core/session/session_state.dart';
 import 'package:damso_app/core/storage/token_store.dart';
+import 'package:damso_app/core/widgets/cooldown.dart';
 import 'package:damso_app/features/auth/data/auth_repository_provider.dart';
 import 'package:damso_app/features/auth/data/mock_auth_repository.dart';
 import 'package:damso_app/features/auth/presentation/password_reset/password_reset_view_model.dart';
@@ -11,8 +14,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// 코드 요청 횟수를 세고, [limit] 이 있으면 그 남은 시간으로 429 를 낸다.
+class _CountingAuth extends MockAuthRepository {
+  _CountingAuth(super.tokens);
+
+  int resetCalls = 0;
+  Duration? limit;
+
+  @override
+  Future<void> requestPasswordReset(String email) {
+    resetCalls++;
+    final retryAfter = limit;
+    if (retryAfter != null) {
+      throw AppException(
+        message: '잠시 후 다시 시도해 주세요.',
+        code: ErrorCodes.tooManyAttempts,
+        statusCode: 429,
+        retryAfter: retryAfter,
+      );
+    }
+    return super.requestPasswordReset(email);
+  }
+}
+
 void main() {
   late ProviderContainer container;
+  late _CountingAuth auth;
 
   PasswordResetViewModel vm() =>
       container.read(passwordResetViewModelProvider.notifier);
@@ -21,10 +48,11 @@ void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
     final tokens = TokenStore()..accessToken = 'mock:parent'; // parent@damso.test
+    auth = _CountingAuth(tokens);
     container = ProviderContainer.test(
       retry: (_, _) => null,
       overrides: [
-        authRepositoryProvider.overrideWithValue(MockAuthRepository(tokens)),
+        authRepositoryProvider.overrideWithValue(auth),
         meRepositoryProvider.overrideWithValue(MockMeRepository(tokens)),
       ],
     );
@@ -91,5 +119,55 @@ void main() {
     expect(await vm().confirm('abcdefgh'), isFalse);
     expect(state().fieldErrors['newPassword'], isNotNull);
     expect(state().step, ResetStep.newPassword);
+  });
+
+  group('코드 메일 발송 대기(429, api-v0.8)', () {
+    test('이메일 화면에 남아 서버 문구와 남은 시간을 보이고, 대기 중에는 보내지 않는다', () async {
+      expect(await vm().requestReset('wait@damso.test'), isFalse);
+      expect(state().step, ResetStep.emailEntry);
+      expect(state().errorMessage, '잠시 후 다시 시도해 주세요.');
+      expect(state().cooldown.remaining, const Duration(seconds: 30));
+
+      expect(await vm().requestReset('anyone@damso.test'), isFalse);
+      expect(auth.resetCalls, 1);
+    });
+
+    test('C-3c 코드 다시 받기가 대기에 걸리면 C-3c 에 남아 남은 시간을 보인다', () async {
+      await toCode();
+      await vm().verifyCode('000000');
+      auth.limit = const Duration(seconds: 45);
+      await vm().resendCode();
+      expect(state().step, ResetStep.expiredOrLocked);
+      expect(state().cooldown.remaining, const Duration(seconds: 45));
+
+      await vm().resendCode();
+      expect(auth.resetCalls, 2);
+    });
+
+    test('남은 시간이 1시간(3600초)이어도 그대로 보인다', () async {
+      auth.limit = const Duration(seconds: 3600);
+      await vm().requestReset('anyone@damso.test');
+      expect(state().cooldown.remaining, const Duration(hours: 1));
+      expect(formatRemaining(state().cooldown.remaining), '60분 0초');
+    });
+  });
+
+  testWidgets('대기 남은 시간이 1초씩 줄고 0이 되면 다시 요청할 수 있다', (tester) async {
+    auth.limit = const Duration(seconds: 2);
+    await vm().requestReset('anyone@damso.test');
+    expect(state().cooldown.remaining, const Duration(seconds: 2));
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(state().cooldown.remaining, const Duration(seconds: 1));
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(state().cooldown.isActive, isFalse);
+
+    auth.limit = null;
+    final retry = vm().requestReset('anyone@damso.test');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(await retry, isTrue);
+    expect(state().step, ResetStep.codeEntry);
+    expect(auth.resetCalls, 2);
   });
 }

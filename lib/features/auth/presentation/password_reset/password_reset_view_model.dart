@@ -5,6 +5,7 @@ import '../../../../core/error/error_codes.dart';
 import '../../../../core/session/session_controller.dart';
 import '../../../../core/session/session_state.dart';
 import '../../../../core/validation/validators.dart';
+import '../../../../core/widgets/cooldown.dart';
 import '../../../me/data/me_repository_provider.dart';
 import '../../data/auth_repository_provider.dart';
 
@@ -20,6 +21,7 @@ class PasswordResetState {
     this.notice,
     this.fieldErrors = const {},
     this.isSubmitting = false,
+    this.cooldown = Cooldown.none,
   });
 
   final ResetStep step;
@@ -30,6 +32,9 @@ class PasswordResetState {
   final Map<String, String> fieldErrors;
   final bool isSubmitting;
 
+  /// 코드 메일 발송 대기(429, api-v0.8). 남은 시간 동안 코드 요청 버튼을 잠근다.
+  final Cooldown cooldown;
+
   PasswordResetState copyWith({
     ResetStep? step,
     String? email,
@@ -38,6 +43,7 @@ class PasswordResetState {
     String? Function()? notice,
     Map<String, String>? fieldErrors,
     bool? isSubmitting,
+    Cooldown? cooldown,
   }) {
     return PasswordResetState(
       step: step ?? this.step,
@@ -47,6 +53,7 @@ class PasswordResetState {
       notice: notice != null ? notice() : this.notice,
       fieldErrors: fieldErrors ?? this.fieldErrors,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      cooldown: cooldown ?? this.cooldown,
     );
   }
 }
@@ -54,9 +61,13 @@ class PasswordResetState {
 /// C-3 → C-3b/C-3c → C-4 → C-5.
 class PasswordResetViewModel extends Notifier<PasswordResetState> {
   static const _sentNotice = '입력한 이메일로 안내를 보냈습니다.';
+  final _timer = CooldownTimer();
 
   @override
-  PasswordResetState build() => const PasswordResetState();
+  PasswordResetState build() {
+    ref.onDispose(_timer.cancel);
+    return const PasswordResetState();
+  }
 
   void _start() => state = state.copyWith(
     isSubmitting: true,
@@ -75,9 +86,17 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
   bool _isExpiredOrLocked(AppException e) =>
       e.code == ErrorCodes.tooManyAttempts;
 
+  /// 코드 요청이 발송 대기(429)에 걸리면 서버가 준 남은 시간만큼 잠근다. 시간 규칙은 서버만 안다.
+  void _startCooldownIfLimited(AppException e) {
+    if (e.code == ErrorCodes.tooManyAttempts) {
+      _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
+    }
+  }
+
   /// 가입 여부와 관계없이 같은 안내(FR-023). 성공하면 true.
+  /// 발송 대기(429)면 이 화면에 남아 서버 문구와 남은 시간을 보여 준다(api-v0.8).
   Future<bool> requestReset(String email) async {
-    if (state.isSubmitting) return false;
+    if (state.isSubmitting || state.cooldown.isActive) return false;
     final clientError = validateEmail(email);
     if (clientError != null) {
       state = state.copyWith(fieldErrors: {'email': clientError});
@@ -97,6 +116,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
       return true;
     } on AppException catch (e) {
       _fail(e);
+      _startCooldownIfLimited(e);
       return false;
     } finally {
       link.close();
@@ -132,9 +152,9 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
     }
   }
 
-  /// C-3c "코드 다시 받기".
+  /// C-3c "코드 다시 받기". 발송 대기(429)면 C-3c 에 남아 남은 시간을 보여 준다.
   Future<void> resendCode() async {
-    if (state.isSubmitting) return;
+    if (state.isSubmitting || state.cooldown.isActive) return;
     _start();
     final link = ref.keepAlive();
     try {
@@ -147,6 +167,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
       );
     } on AppException catch (e) {
       _fail(e);
+      _startCooldownIfLimited(e);
     } finally {
       link.close();
     }
