@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/error/app_exception.dart';
-import '../../../core/error/error_codes.dart';
 import '../../../core/validation/validators.dart';
 import '../../../core/widgets/cooldown.dart';
 import '../data/parent_repository_provider.dart';
@@ -56,9 +55,7 @@ class AddChildViewModel extends Notifier<AddChildState> {
       return true;
     } on AppException catch (e) {
       state = state.copyWith(isSubmitting: false, errorMessage: () => e.message);
-      if (e.code == ErrorCodes.tooManyAttempts) {
-        _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
-      }
+      _timer.startIfLimited(e, (c) => state = state.copyWith(cooldown: c));
       return false;
     } finally {
       link.close();

@@ -128,8 +128,34 @@ void main() {
       expect(state().errorMessage, '잠시 후 다시 시도해 주세요.');
       expect(state().cooldown.remaining, const Duration(seconds: 30));
 
-      expect(await vm().requestReset('anyone@damso.test'), isFalse);
+      expect(await vm().requestReset(' Wait@damso.test'), isFalse);
       expect(auth.resetCalls, 1);
+    });
+
+    test('대기는 걸린 이메일에만 — 다른 이메일로 바꾸면 풀리고 요청할 수 있다', () async {
+      await vm().requestReset('wait@damso.test');
+      vm().emailChanged('wait@damso.tes');
+      expect(state().cooldown.isActive, isFalse);
+      expect(state().errorMessage, isNull);
+
+      expect(await vm().requestReset('anyone@damso.test'), isTrue);
+      expect(auth.resetCalls, 2);
+    });
+
+    test('입력을 거치지 않고 다른 이메일로 요청해도 막지 않는다', () async {
+      await vm().requestReset('wait@damso.test');
+      expect(await vm().requestReset('anyone@damso.test'), isTrue);
+      expect(state().cooldown.isActive, isFalse);
+    });
+
+    test('남은 시간이 없는 429 는 서버 문구만 보이고 막지 않는다', () async {
+      auth.limit = Duration.zero; // Retry-After 없음과 같다(0 이하는 무시)
+      expect(await vm().requestReset('anyone@damso.test'), isFalse);
+      expect(state().errorMessage, '잠시 후 다시 시도해 주세요.');
+      expect(state().cooldown, Cooldown.none);
+
+      auth.limit = null;
+      expect(await vm().requestReset('anyone@damso.test'), isTrue);
     });
 
     test('C-3c 코드 다시 받기가 대기에 걸리면 C-3c 에 남아 남은 시간을 보인다', () async {
@@ -148,7 +174,7 @@ void main() {
       auth.limit = const Duration(seconds: 3600);
       await vm().requestReset('anyone@damso.test');
       expect(state().cooldown.remaining, const Duration(hours: 1));
-      expect(formatRemaining(state().cooldown.remaining), '60분 0초');
+      expect(formatRemaining(state().cooldown.remaining), '1시간');
     });
   });
 

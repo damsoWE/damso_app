@@ -63,6 +63,9 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
   static const _sentNotice = '입력한 이메일로 안내를 보냈습니다.';
   final _timer = CooldownTimer();
 
+  /// 발송 대기에 걸린 이메일. 서버는 이메일 단위로 제한하므로 다른 이메일은 막지 않는다(api-v0.8).
+  String? _limitedEmail;
+
   @override
   PasswordResetState build() {
     ref.onDispose(_timer.cancel);
@@ -86,23 +89,43 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
   bool _isExpiredOrLocked(AppException e) =>
       e.code == ErrorCodes.tooManyAttempts;
 
-  /// 코드 요청이 발송 대기(429)에 걸리면 서버가 준 남은 시간만큼 잠근다. 시간 규칙은 서버만 안다.
-  void _startCooldownIfLimited(AppException e) {
-    if (e.code == ErrorCodes.tooManyAttempts) {
-      _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
+  /// 코드 요청이 발송 대기(429)에 걸리면 서버가 준 남은 시간만큼 [email] 요청을 잠근다.
+  /// 시간 규칙은 서버만 안다.
+  void _startCooldownIfLimited(AppException e, String email) {
+    if (_timer.startIfLimited(e, (c) => state = state.copyWith(cooldown: c))) {
+      _limitedEmail = email;
+    }
+  }
+
+  bool _isLimited(String email) =>
+      state.cooldown.isActive &&
+      email.trim().toLowerCase() == _limitedEmail?.toLowerCase();
+
+  void _clearCooldown() {
+    _timer.cancel();
+    _limitedEmail = null;
+    state = state.copyWith(cooldown: Cooldown.none);
+  }
+
+  /// C-3 이메일 입력이 바뀌면 다른 이메일의 대기는 풀고 대기 안내를 지운다.
+  void emailChanged(String email) {
+    if (state.cooldown.isActive && !_isLimited(email)) {
+      _clearCooldown();
+      state = state.copyWith(errorMessage: () => null);
     }
   }
 
   /// 가입 여부와 관계없이 같은 안내(FR-023). 성공하면 true.
   /// 발송 대기(429)면 이 화면에 남아 서버 문구와 남은 시간을 보여 준다(api-v0.8).
   Future<bool> requestReset(String email) async {
-    if (state.isSubmitting || state.cooldown.isActive) return false;
+    if (state.isSubmitting || _isLimited(email)) return false;
     final clientError = validateEmail(email);
     if (clientError != null) {
       state = state.copyWith(fieldErrors: {'email': clientError});
       return false;
     }
     final trimmed = email.trim();
+    if (state.cooldown.isActive) _clearCooldown(); // 대기에 걸린 이메일이 아니다
     _start();
     final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
@@ -116,7 +139,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
       return true;
     } on AppException catch (e) {
       _fail(e);
-      _startCooldownIfLimited(e);
+      _startCooldownIfLimited(e, trimmed);
       return false;
     } finally {
       link.close();
@@ -167,7 +190,7 @@ class PasswordResetViewModel extends Notifier<PasswordResetState> {
       );
     } on AppException catch (e) {
       _fail(e);
-      _startCooldownIfLimited(e);
+      _startCooldownIfLimited(e, state.email);
     } finally {
       link.close();
     }

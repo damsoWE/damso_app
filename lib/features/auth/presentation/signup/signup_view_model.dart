@@ -239,9 +239,7 @@ class SignupViewModel extends Notifier<SignupState> {
       _resendTimer.start(const Duration(seconds: 60), _onResendTick);
     } on AppException catch (e) {
       state = state.copyWith(errorMessage: () => e.message);
-      if (e.code == ErrorCodes.tooManyAttempts) {
-        _resendTimer.start(e.retryAfter, _onResendTick);
-      }
+      _resendTimer.startIfLimited(e, _onResendTick);
     } finally {
       link.close();
     }
@@ -264,9 +262,7 @@ class SignupViewModel extends Notifier<SignupState> {
       errorMessage: () => e.message,
       fieldErrors: e.fieldErrors,
     );
-    if (e.code == ErrorCodes.tooManyAttempts) {
-      _attemptTimer.start(e.retryAfter, _onAttemptTick);
-    }
+    _attemptTimer.startIfLimited(e, _onAttemptTick);
   }
 
   void _moveTo(SignupStep step) {

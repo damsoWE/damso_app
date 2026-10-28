@@ -45,6 +45,7 @@ class _ResetEmailPageState extends ConsumerState<ResetEmailPage> {
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           decoration: const InputDecoration(labelText: '이메일'),
+          onChanged: ref.read(passwordResetViewModelProvider.notifier).emailChanged,
         ),
         FieldErrorText(state.fieldErrors['email']),
         MessageText(state.errorMessage),

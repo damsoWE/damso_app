@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/error/app_exception.dart';
-import '../../../core/error/error_codes.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/validation/validators.dart';
 import '../../../core/widgets/cooldown.dart';
@@ -75,9 +74,7 @@ class LoginViewModel extends Notifier<LoginState> {
         errorMessage: () => e.message,
         fieldErrors: e.fieldErrors,
       );
-      if (e.code == ErrorCodes.tooManyAttempts) {
-        _timer.start(e.retryAfter, (c) => state = state.copyWith(cooldown: c));
-      }
+      _timer.startIfLimited(e, (c) => state = state.copyWith(cooldown: c));
     } finally {
       link.close();
     }
