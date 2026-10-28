@@ -64,7 +64,11 @@ class UrgentDetailPage extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               const SystemNotice(NoticeText.contentViewLogged, icon: Icons.info_outline),
               const SizedBox(height: AppSpacing.lg),
-              StageTimeline(urgent: true, events: d.detail.timeline),
+              StageTimeline(
+                urgent: true,
+                events: d.detail.timeline,
+                answeredAt: d.detail.summary.lastAnsweredAt,
+              ),
             ],
           );
         },

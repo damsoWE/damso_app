@@ -141,6 +141,8 @@ class ParentInquirySummary {
     required this.urgent,
     required this.stage,
     required this.submittedAt,
+    required this.hasAnswer,
+    required this.lastAnsweredAt,
   });
 
   final String inquiryId;
@@ -149,6 +151,17 @@ class ParentInquirySummary {
   final bool urgent;
   final InquiryStage stage;
   final DateTime submittedAt;
+
+  /// 스레드(최초 문의 + 재문의)에 답변이 1건 이상 있는지(api-v0.7).
+  /// "답변한 문의는 스레드로"는 [stage]가 아니라 이 값으로 판단한다.
+  final bool hasAnswer;
+
+  /// 스레드의 마지막 답변 시각. 답변이 없으면 null.
+  final DateTime? lastAnsweredAt;
+
+  /// 화면에 보일 단계. 서버는 [InquiryStage.answered]를 만들지 않으므로(api-v0.7)
+  /// 답변이 있으면 "답변 완료"로 보인다.
+  InquiryStage get displayStage => hasAnswer ? InquiryStage.answered : stage;
 }
 
 /// 카드 펼침·긴급 안내 다시 보기용. 원문·재문의·답변은 F4 화면의 몫이라 담지 않는다.
@@ -202,6 +215,8 @@ class TeacherInquirySummary {
     required this.stage,
     required this.refinementStatus,
     required this.submittedAt,
+    required this.hasAnswer,
+    required this.lastAnsweredAt,
   });
 
   final String inquiryId;
@@ -214,6 +229,15 @@ class TeacherInquirySummary {
   final InquiryStage stage;
   final RefinementStatus? refinementStatus;
   final DateTime submittedAt;
+
+  /// 스레드에 답변이 1건 이상 있는지(api-v0.7). 답변 여부는 [stage]가 아니라 이 값으로 판단한다.
+  final bool hasAnswer;
+
+  /// 스레드의 마지막 답변 시각(이전 담임의 답변 포함). 답변이 없으면 null.
+  final DateTime? lastAnsweredAt;
+
+  /// 화면에 보일 단계. 답변이 있으면 "답변 완료"(api-v0.7, [ParentInquirySummary.displayStage]와 같음).
+  InquiryStage get displayStage => hasAnswer ? InquiryStage.answered : stage;
 
   /// 교사가 아직 원문을 열지 않은 긴급 문의(교사 홈 긴급 카드).
   bool get isUnconfirmedUrgent => urgent && stage == InquiryStage.delivered;

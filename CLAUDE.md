@@ -111,7 +111,8 @@ or bypass them.
 Run the app:
 
 ```
-flutter run --dart-define-from-file=env/dev.json   # real server (Android emulator: 10.0.2.2)
+flutter run --dart-define-from-file=env/prod.json  # deployed server (https://damso.jibang.site, from env/example.json)
+flutter run --dart-define-from-file=env/dev.json   # local server (API_BASE_URL=http://10.0.2.2:8080 on Android emulator)
 flutter run --dart-define=USE_MOCK=true             # mock Repository, no server
 ```
 

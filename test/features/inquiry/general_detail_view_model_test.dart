@@ -30,6 +30,8 @@ TeacherInquiryDetail _detail({
     stage: stage,
     refinementStatus: status,
     submittedAt: DateTime(2026, 10, 27),
+    hasAnswer: false,
+    lastAnsweredAt: null,
   ),
   timeline: const [],
   retryAvailable: retryAvailable,

@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 배포 서버(https) 연결. release 빌드에도 필요하다(specs/005 research R4). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="damso_app"
         android:name="${applicationName}"

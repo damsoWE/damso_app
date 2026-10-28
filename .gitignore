@@ -70,3 +70,6 @@ docs/*.pdf
 # Firebase 연결 설정(빌드 때 --dart-define-from-file 로만 주입, specs/002 research R10)
 secrets/*.json
 !secrets/*.example.json
+
+# E2E 캡처 (PR에 직접 첨부, 저장소에는 올리지 않음)
+docs/e2e/
