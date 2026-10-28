@@ -5,7 +5,7 @@ import 'app/app.dart';
 import 'core/config/env.dart';
 import 'core/push/push_messaging_provider.dart';
 
-/// 진입점. 실행: flutter run --dart-define-from-file=env/dev.json
+/// 진입점. 실행: flutter run --dart-define-from-file=env/prod.json(배포 서버) 또는 env/dev.json(로컬 서버)
 /// 서버 없이 실행하려면 USE_MOCK=true (예: --dart-define=USE_MOCK=true).
 /// 기기 알림은 --dart-define-from-file=secrets/firebase.json 이 있을 때만 켠다.
 Future<void> main() async {

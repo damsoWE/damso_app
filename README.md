@@ -17,9 +17,11 @@
 ## 실행
 
 ```bash
-cp env/example.json env/dev.json                        # 최초 1회, 값 수정
+cp env/example.json env/prod.json                       # 최초 1회 (배포 서버 주소가 들어 있음)
+# 로컬 서버용 env/dev.json 은 직접 만든다: {"API_BASE_URL": "http://10.0.2.2:8080", "USE_MOCK": false}
 flutter pub get
-flutter run --dart-define-from-file=env/dev.json        # 실서버 (Android 에뮬레이터는 10.0.2.2)
+flutter run --dart-define-from-file=env/prod.json       # 배포 서버 (https://damso.jibang.site)
+flutter run --dart-define-from-file=env/dev.json        # 로컬 서버 (API_BASE_URL=http://10.0.2.2:8080, Android 에뮬레이터)
 flutter run --dart-define=USE_MOCK=true                  # mock Repository (서버 불필요)
 flutter analyze && flutter test
 ```

@@ -7,16 +7,28 @@ import 'format.dart';
 
 /// 처리 단계 가로 진행 표시(spec FR-015, Figma F2-4 펼친 카드).
 /// 지나온 단계는 채운 점과 시각, 아직 오지 않은 단계는 흐린 빈 점으로 그린다.
+/// 서버는 "답변 완료" 단계를 기록하지 않으므로(api-v0.7) 그 칸은 [answeredAt]으로 채운다.
 class StageTimeline extends StatelessWidget {
-  const StageTimeline({super.key, required this.urgent, required this.events});
+  const StageTimeline({
+    super.key,
+    required this.urgent,
+    required this.events,
+    this.answeredAt,
+  });
 
   final bool urgent;
   final List<StageEvent> events;
 
+  /// 마지막 답변 시각(`lastAnsweredAt`). null 이면 답변 없음.
+  final DateTime? answeredAt;
+
   @override
   Widget build(BuildContext context) {
     final flow = InquiryStage.flowOf(urgent: urgent);
-    final reached = {for (final e in events) e.stage: e.occurredAt};
+    final reached = {
+      for (final e in events) e.stage: e.occurredAt,
+      InquiryStage.answered: ?answeredAt,
+    };
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
