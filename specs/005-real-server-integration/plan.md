@@ -4,13 +4,13 @@
 
 **Input**: Feature specification from `specs/005-real-server-integration/spec.md`
 
-**대응 백엔드 spec**: `damsoWE/damso_server` `specs/001-auth-signup`, `specs/002-inquiry-intake-urgent`, `specs/003-pseudonymization-pipeline` · **API 계약**: `api-v0.4` → `api-v0.6`으로 갱신([research R1](./research.md#r1-배포-서버의-api-계약--api-v06))
+**대응 백엔드 spec**: `damsoWE/damso_server` `specs/001-auth-signup`, `specs/002-inquiry-intake-urgent`, `specs/003-pseudonymization-pipeline` · **API 계약**: `api-v0.4` → `api-v0.6`으로 갱신([research R1](./research.md#r1-배포-서버의-api-계약--api-v06)), 구현 중 백엔드 재배포로 `api-v0.7`([research R13](./research.md#r13-api-v07-재배포-대응))
 
 ## Summary
 
 이미 만든 F1~F3 화면을 배포 서버(`https://damso.jibang.site`)에 연결해 끝까지 동작하는지 확인하고, 어긋난 곳을 고친다.
 
-접근 방식: **코드 변경은 최소로 하고 검증이 중심이다.** 배포 서버는 `api-v0.6`이고, v0.4 → v0.6 변경은 F4 경로와 응답 필드 추가뿐이라 기존 파서·모델은 그대로 둔다(R2). 바꾸는 것은 네 가지다.
+접근 방식: **코드 변경은 최소로 하고 검증이 중심이다.** 배포 서버는 `api-v0.6`이고, v0.4 → v0.6 변경은 F4 경로와 응답 필드 추가뿐이라 기존 파서·모델은 그대로 둔다(R2). 바꾸는 것은 네 가지다. 구현 중 `api-v0.7` 재배포로 목록 답변 여부(`hasAnswer`) 반영이 더해졌다(R13).
 1. 계약 사본 갱신
 2. 실행 설정(`env/example.json`·README)
 3. Android main 매니페스트의 INTERNET 권한 — 승인 필요(R4)
@@ -55,7 +55,7 @@
 | 토큰 보관·갱신 단일 지점 | 인터셉터 그대로, 실서버로 갱신 확인(Q1-3) | ✅ |
 | 아키텍처 | 구현 선택은 기존 provider + `USE_MOCK` 그대로. 화면 코드 변경 없음 | ✅ |
 | mock 케이스 | 지우지 않음. `flutter test` 회귀 0건(SC-006) | ✅ |
-| Contract-first | 사본은 `/fetch-api api-v0.6`으로만 갱신 | ✅ |
+| Contract-first | 사본은 `/fetch-api`로만 갱신(`api-v0.6` → `api-v0.7`) | ✅ |
 | 릴리스 빌드 | release 실행 확인(Q6-3). 난독화 빌드 배포는 범위 밖 | ✅ |
 | 큰 영향 결정 확인(CLAUDE.md) | **새 권한**: Android `INTERNET`을 main 매니페스트에 추가(R4) | ⏳ 구현 단계에서 승인 |
 
@@ -82,7 +82,7 @@ specs/005-real-server-integration/
 ### Source Code (repository root)
 
 ```text
-docs/api/openapi.yaml                    # 갱신: /fetch-api api-v0.6
+docs/api/openapi.yaml                    # 갱신: /fetch-api api-v0.6 → api-v0.7(R13)
 env/example.json                         # 수정: API_BASE_URL → https://damso.jibang.site
 README.md                                # 수정: 배포·로컬·mock 실행 방법
 android/app/src/main/AndroidManifest.xml # 수정(승인 후): INTERNET 권한

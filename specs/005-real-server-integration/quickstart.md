@@ -5,7 +5,7 @@
 ## 준비 (약 10분)
 
 1. 서버 상태 확인: `curl -s https://damso.jibang.site/actuator/health` → `{"status":"UP"}`
-2. 계약 버전 확인: `gh api repos/damsoWE/damso_server/compare/api-v0.6...main --jq .ahead_by` → `0` (아니면 새 태그 요청, research R1)
+2. 계약 버전 확인: `gh api repos/damsoWE/damso_server/compare/<앱 사본 태그>...main --jq .ahead_by` → `0` (아니면 새 태그 요청, research R1·R13)
 3. 실행 설정: `cp env/example.json env/prod.json` ([contracts/run-config.md](./contracts/run-config.md))
 4. 슈퍼 관리자 계정을 배포 담당자에게서 받는다(저장소 밖, research R8)
 5. 기기 2대 준비: Android 에뮬레이터 2개 또는 에뮬레이터 + 실기기. 기기 A = 관리자→교사, 기기 B = 학부모
@@ -73,7 +73,7 @@ Q4-3은 서버의 정리 실패가 나와야 확인된다. 일부러 만들 방�
 |---|---|---|
 | Q6-1 | `flutter run --dart-define=USE_MOCK=true` | 서버 없이 로그인 화면, mock 시나리오 동작 |
 | Q6-2 | `secrets/firebase.json` 없이 배포 서버로 교사 로그인 → 교사 홈·알림 설정 화면 | 알림 관련 오류 표시 없음 |
-| Q6-3 | `flutter run --release --dart-define-from-file=env/prod.json` (INTERNET 권한 추가 후) | 로그인 성공 |
+| Q6-3 | `flutter build apk --release --obfuscate --split-debug-info=build/debug-info --dart-define-from-file=env/prod.json` 후 설치(`adb install -r build/app/outputs/flutter-apk/app-release.apk`, INTERNET 권한 추가 후) | 로그인 성공 |
 
 ## 자동 검증
 

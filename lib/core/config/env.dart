@@ -35,7 +35,7 @@ class Env {
     if (!useMock && apiBaseUrl.isEmpty) {
       throw StateError(
         'API_BASE_URL 이 설정되지 않았습니다. '
-        '--dart-define-from-file=env/dev.json 으로 실행하세요.',
+        '--dart-define-from-file=env/prod.json(배포 서버) 또는 env/dev.json(로컬 서버)으로 실행하세요.',
       );
     }
   }

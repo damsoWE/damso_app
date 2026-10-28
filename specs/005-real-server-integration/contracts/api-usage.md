@@ -1,6 +1,6 @@
 # Contract: 앱이 쓰는 API와 검증 범위
 
-기준: `docs/api/openapi.yaml` `api-v0.6`(research R1). 앱이 실제로 부르는 경로 30개 전부가 대상이다. quickstart 시나리오 ID로 어디서 확인하는지 적는다.
+기준: `docs/api/openapi.yaml` `api-v0.6` → 구현 중 `api-v0.7`(research R1·R13). 앱이 실제로 부르는 경로 30개 전부가 대상이다. quickstart 시나리오 ID로 어디서 확인하는지 적는다.
 
 ## F1 인증·회원가입·학급 연결
 
@@ -50,9 +50,9 @@
 | `GET·PUT /api/v1/teacher/notification-settings` | Q6-2 |
 | `PUT /api/v1/me/devices` · `DELETE /api/v1/me/devices/current` | Q6-2(Firebase 없음 → 호출 안 됨) |
 
-## 쓰지 않는 v0.6 경로 (범위 밖)
+## 쓰지 않는 v0.6~v0.7 경로 (범위 밖)
 
-`/parent/inquiries/{id}/follow-ups`, `/teacher/inquiries/{id}/answer-reviews`, `/answers`, `/close`, `/parent/notification-settings` — F4 별도 이슈.
+`/parent/inquiries/{id}/follow-ups`, `/teacher/inquiries/{id}/answer-reviews`, `/answers`, `/close`(v0.7 deprecated), `/parent/notification-settings` — F4 별도 이슈.
 
 ## 오류 분기 (기존 그대로)
 

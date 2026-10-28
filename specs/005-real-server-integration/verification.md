@@ -5,7 +5,7 @@
 - **계약 태그**: `api-v0.6` → 2026-10-28 12:19 KST 백엔드 재배포로 `api-v0.7`(목록 항목에 `hasAnswer`·`lastAnsweredAt` 추가, `/close` deprecated). 앱 사본도 `api-v0.7`로 갱신. 이후 시나리오는 v0.7 서버 기준
 - **앱 커밋**: `58af6fa` (검증 시작 시점, 작업 중 변경은 커밋 후 갱신)
 - **서버 상태**: `/actuator/health` → `{"status":"UP"}` (2026-10-28)
-- **계약 버전 확인**: `api-v0.6...main` ahead_by = 0 → 배포본 = `api-v0.6`
+- **계약 버전 확인**: 시작 시 `api-v0.6...main` ahead_by = 0 → 배포본 `api-v0.6`. 12:19 KST 재배포 후 `api-v0.7...main` ahead_by = 0 → 배포본 `api-v0.7`
 
 기록 규칙: 역할 이름만 쓴다. 이메일·비밀번호·토큰·초대 코드 값·문의 본문·실명은 쓰지 않는다([data-model §2](./data-model.md#2-검증-기록-verificationmd)).
 

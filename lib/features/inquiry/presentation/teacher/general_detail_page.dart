@@ -206,9 +206,9 @@ class _HeaderLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stage = summary.stage == InquiryStage.received
+    final stage = summary.displayStage == InquiryStage.received
         ? ''
-        : ' · ${NoticeText.stage(summary.stage)}';
+        : ' · ${NoticeText.stage(summary.displayStage)}';
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Text(

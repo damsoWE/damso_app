@@ -24,7 +24,7 @@ description: "배포된 서버로 실연동 전환 작업 목록"
 - **실행**: 배포 서버는 `flutter run --dart-define-from-file=env/prod.json`. 기기 A = 관리자→교사, 기기 B = 학부모(quickstart "준비").
 - **기록**: 시나리오를 실행할 때마다 `specs/005-real-server-integration/verification.md`의 해당 행을 `통과`/`실패`/`차단됨`으로 바꾸고 비고를 적는다(data-model §2). 이메일·비밀번호·토큰·초대 코드 값·문의 본문·실명은 적지 않는다. 역할 이름만 쓴다.
 - **불일치 처리(research R10)**: 서버 응답이 앱 기대와 다르면 `verification.md`에 `M-<번호>`로 적고 원인을 정한다.
-  - 원인이 **앱**이면 해당 `*_repository_impl.dart`(또는 `inquiry_json.dart`)를 `docs/api/openapi.yaml`(api-v0.6)에 맞게 고치고, 같은 응답 모양으로 그 기능의 `test/features/<기능>/` 가짜 어댑터 테스트를 더한다. 파일 머리 주석의 `api-v0.3` 표기도 그때 `api-v0.6`으로 바꾼다(R12).
+  - 원인이 **앱**이면 해당 `*_repository_impl.dart`(또는 `inquiry_json.dart`)를 `docs/api/openapi.yaml`(api-v0.6, 구현 중 api-v0.7)에 맞게 고치고, 같은 응답 모양으로 그 기능의 `test/features/<기능>/` 가짜 어댑터 테스트를 더한다. 파일 머리 주석의 `api-v0.3` 표기도 그때 `api-v0.6`으로 바꾼다(R12).
   - 원인이 **서버**면 앱에서 우회하지 않는다. 사용자에게 백엔드 이슈 초안을 보여 주고 승인받은 뒤 `damsoWE/damso_server`에 올리고, 기록에 이슈 링크를 남긴다.
   - **계약에 없는 동작**(예: 인증 메일 미발송)이면 백엔드 확인 전까지 `차단됨`.
 - **바꾸지 않는 것**: 화면·ViewModel·mock 구현·Repository provider·`lib/core/config/env.dart`·`.gitignore`·`docs/api/openapi.yaml` 직접 편집. 불일치 수정이 이들을 건드려야 하면 먼저 사용자에게 알린다.
@@ -39,7 +39,7 @@ description: "배포된 서버로 실연동 전환 작업 목록"
 
 - [X] T001 `specs/005-real-server-integration/verification.md`를 만든다. 머리에 날짜·서버 주소(`https://damso.jibang.site`)·계약 태그(`api-v0.6`)·앱 커밋 해시를 적고, "시나리오 결과" 표에 quickstart의 28개 ID(Q2-1~Q2-4, Q1-1~Q1-8, Q3-1~Q3-5, Q4-1~Q4-4, Q5-1~Q5-4, Q6-1~Q6-3)를 `미실행`으로 미리 넣는다. 열은 data-model §2 "시나리오 결과 한 줄"(ID·역할·결과·비고). "계약 불일치" 표는 열(ID·화면·경로·기대(계약)·실제·원인·처리)만 두고 비운다.
 - [X] T002 서버·계약 상태를 확인해 `verification.md` 머리에 적는다: `curl -s https://damso.jibang.site/actuator/health` → `{"status":"UP"}`, `gh api repos/damsoWE/damso_server/compare/api-v0.6...main --jq .ahead_by` → `0`. 0이 아니면 멈추고 사용자에게 알린다(새 태그 필요, research R1).
-- [X] T003 `/fetch-api api-v0.6`으로 `docs/api/openapi.yaml`을 갱신한다. `git diff --stat docs/api/openapi.yaml`로 확인하고, 변경이 research R2 표(F4 경로·`parent/notification-settings`·`followUps`·`answers`·`threatFlagged`·`threadThreatFlagged`·ErrorCode 2개 추가)를 벗어나면 멈추고 사용자에게 알린다.
+- [X] T003 `/fetch-api api-v0.6`으로 `docs/api/openapi.yaml`을 갱신한다. `git diff --stat docs/api/openapi.yaml`로 확인하고, 변경이 research R2 표(F4 경로·`parent/notification-settings`·`followUps`·`answers`·`threatFlagged`·`threadThreatFlagged`·ErrorCode 2개 추가)를 벗어나면 멈추고 사용자에게 알린다. (구현 중 백엔드 `api-v0.7` 공지로 `/fetch-api api-v0.7` 재실행 — 변경 분석은 research R13)
 - [X] T004 `flutter analyze`와 `flutter test`를 실행해 사본 갱신 뒤 기준선이 통과하는지 확인한다. 실패하면 출력 그대로 보고한다.
 
 ---
@@ -146,7 +146,7 @@ description: "배포된 서버로 실연동 전환 작업 목록"
 
 - [X] T033 [P] [US6] Q6-1 실행: `flutter run --dart-define=USE_MOCK=true` → 서버 없이 로그인 화면, mock 계정으로 문의 목록까지. 기록한다.
 - [X] T034 [US6] Q6-2 실행: `secrets/firebase.json` 없이 배포 서버로 교사 로그인 → 교사 홈·알림 설정 화면에 알림 관련 오류 표시 없음(FR-014, research R7). 기록한다.
-- [X] T035 [US6] Q6-3 실행(T008 승인 시): `flutter run --release --dart-define-from-file=env/prod.json` → 로그인 성공. 기록한다.
+- [X] T035 [US6] Q6-3 실행(T008 승인 시): `flutter build apk --release --obfuscate --split-debug-info=build/debug-info --dart-define-from-file=env/prod.json` 후 설치(`adb install -r build/app/outputs/flutter-apk/app-release.apk`) → 로그인 성공. 기록한다.
 
 **Checkpoint**: 모든 Story 확인 완료.
 

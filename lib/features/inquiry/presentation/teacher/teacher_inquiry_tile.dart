@@ -29,7 +29,7 @@ class TeacherInquiryTile extends StatelessWidget {
         title: Text(item.title, style: AppTextStyles.subtitle),
         subtitle: Text(
           '${item.studentName} · ${formatDateTime(item.submittedAt)} · '
-          '${NoticeText.stage(item.stage)}',
+          '${NoticeText.stage(item.displayStage)}',
         ),
         trailing: item.urgent ? const _UrgentBadge() : null,
         onTap: () => context.push(pathOf(item)),

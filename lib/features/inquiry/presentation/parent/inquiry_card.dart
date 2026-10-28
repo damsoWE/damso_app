@@ -69,7 +69,7 @@ class _InquiryCardState extends ConsumerState<InquiryCard> {
             title: Text(title, style: AppTextStyles.subtitle),
             subtitle: Text(
               '${s.urgent ? '${s.studentName} · ' : ''}'
-              '${formatDateTime(s.submittedAt)} · ${NoticeText.stage(s.stage)}',
+              '${formatDateTime(s.submittedAt)} · ${NoticeText.stage(s.displayStage)}',
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -115,6 +115,7 @@ class _Timeline extends ConsumerWidget {
         AsyncData(:final value) => StageTimeline(
           urgent: summary.urgent,
           events: value.timeline,
+          answeredAt: value.summary.lastAnsweredAt,
         ),
         AsyncError(:final error) => Text(
           userMessageOf(error),

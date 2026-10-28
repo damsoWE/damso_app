@@ -7,6 +7,7 @@
 - **Decision**: 앱 사본을 `/fetch-api api-v0.6`으로 갱신한다. 손으로 고치지 않는다.
 - **Rationale**: 백엔드 `deploy.yml`은 `main` push 때 배포한다. 2026-10-28 기준 `api-v0.6...main` 비교 결과 `ahead_by = 0`이라 배포본이 곧 `api-v0.6`이다. 배포 서버의 `/v3/api-docs`·Swagger는 401이라 직접 볼 수 없다.
 - **Alternatives**: `api-v0.4` 유지 — 배포 서버와 사본이 어긋난 채 검증하게 되어 FR-003 위반. 배포 서버 문서 화면 열람 — 인증이 걸려 있어 불가.
+- **갱신(2026-10-28 12:19 KST)**: 구현 중 백엔드가 `api-v0.7`로 재배포됐다(`api-v0.7...main` ahead_by = 0). 사본을 `/fetch-api api-v0.7`로 다시 받았다 → R13.
 - **확인 방법(구현 시)**: 작업 시작 시점에 `gh api repos/damsoWE/damso_server/compare/api-v0.6...main --jq .ahead_by`를 다시 확인한다. 0이 아니면 새 태그를 백엔드에 요청한다.
 
 ## R2. v0.4 → v0.6 변경이 기존 화면에 주는 영향 = 없음(추가만)
@@ -92,4 +93,16 @@
 
 ## R12. 코드 주석의 계약 버전 표기
 
-- `*_repository_impl.dart` 머리 주석에 `api-v0.3`이 남아 있다. 기능과 무관한 수정이라 이 기능에서는 바꾸지 않는다. 해당 파일을 불일치 때문에 고치게 되면 그때 함께 `api-v0.6`으로 바꾼다.
+- `*_repository_impl.dart` 머리 주석에 `api-v0.3`이 남아 있다. 기능과 무관한 수정이라 이 기능에서는 바꾸지 않는다. 해당 파일을 불일치 때문에 고치게 되면 그때 함께 `api-v0.7`로 바꾼다.
+
+## R13. api-v0.7 재배포 대응
+
+구현 중(2026-10-28 12:19 KST) 백엔드가 `api-v0.7`로 재배포됐다. R2와 달리 기존 화면의 의미를 바꾸는 변경이 있다.
+
+| 변경 | 영향 | 처리 |
+|---|---|---|
+| 목록 항목(`ParentInquirySummary`·`TeacherInquirySummary`)에 필수 `hasAnswer`·`lastAnsweredAt` | 파서는 무시해도 깨지지 않음 | 모델·파서에 반영(PR #14와 같은 커밋). 상세에는 두 필드가 없어 `answers`로 같은 값을 만든다 |
+| 서버가 `ANSWERED` 단계를 만들지 않음(앱이 `/close`를 부르지 않음). 답변 여부는 `hasAnswer`로 판단 | `stage`만 보는 화면은 답변이 와도 "답변 완료"를 표시하지 못함 | 화면 표시 단계는 `displayStage`(`hasAnswer`면 답변 완료), 진행 표시의 "답변 완료" 칸은 `lastAnsweredAt`으로 채운다 |
+| `POST /teacher/inquiries/{id}/close` deprecated(운영 404) | 앱에서 부르지 않음 | 변경 없음 |
+
+- 이 변경 전에 실행한 E2E 시나리오는 v0.6 서버, 이후는 v0.7 서버 기준이다(`verification.md` 머리). 두 버전 모두 추가 필드뿐이라 기존 시나리오 결과는 유효하다.
