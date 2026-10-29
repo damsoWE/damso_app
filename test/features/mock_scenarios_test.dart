@@ -28,13 +28,19 @@ void main() {
     await login(tester, 'expired@damso.test');
 
     expect(find.text('학부모 홈'), findsNothing);
-    expect(find.widgetWithText(TextField, '이메일'), findsOneWidget); // C-1
+    expect(find.text('다시 오신 걸 환영해요'), findsOneWidget); // C-1
     expect(sessionOf(tester), const SignedOut(sessionExpired: true));
+    // 뒤로 갈 화면이 없어도 뒤로 아이콘이 있고, 누르면 시작 화면(C-0).
+    expect(find.byType(BackButton), findsOneWidget);
 
     GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/parent');
     await tester.pumpAndSettle();
     expect(find.text('학부모 홈'), findsNothing);
-    expect(find.widgetWithText(TextField, '이메일'), findsOneWidget);
+    expect(find.text('다시 오신 걸 환영해요'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('초대코드로 가입하기'), findsOneWidget);
   });
 
   testWidgets('접근 권한 만료 → 갱신 → 재시도 성공은 오류 없이 홈을 보인다', (tester) async {

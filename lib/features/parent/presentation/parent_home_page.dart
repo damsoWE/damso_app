@@ -45,7 +45,7 @@ class _ParentHomePageState extends ConsumerState<ParentHomePage> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 children: [
                   _ChildCard(child: s.selected!, canSwitch: true),
                   const SizedBox(height: AppSpacing.md),
@@ -76,9 +76,9 @@ class _ComposeButton extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
+          AppSpacing.lg,
           AppSpacing.sm,
-          AppSpacing.md,
+          AppSpacing.lg,
           AppSpacing.md,
         ),
         child: Column(
