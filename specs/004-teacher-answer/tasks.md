@@ -164,8 +164,8 @@ description: "Task list for 교사 답변 작성·점검·전송 화면 (F4 교�
 
 **Independent Test**: quickstart 1~25를 `--dart-define=USE_MOCK=true`로 확인.
 
-- [ ] T040 [P] [US5] `test/features/mock_scenarios_test.dart`에 그룹 "F4 시연" 추가: (a) 403 데모 카드에서 문의 열기 → 권한 없음, (b) `noclass` 계정 점검·전송 → 403, (c) 갱신 데모 계정(F1 quickstart)으로 전송 → 갱신 후 성공, (d) 데모 문의 `…000b`·`…000c`가 교사 목록에 보이고 답변 있음(`hasAnswer`)으로 표시.
-- [ ] T041 [US5] T040 결과로 빠진 mock 동작이 있으면 `mock_inquiry_store.dart`·`mock_answer_repository.dart`에 채운다(FR-027 목록 대조: 점검 3종, 전송 3종, 답변 안 한/한/재문의 문의, 403, 401 갱신).
+- [X] T040 [P] [US5] (a)는 문의 열기 화면이 없어져(T038 생략) "담당 학급이 아닌 문의 점검·전송·상세 거부"로, (c)는 T041에서 만든 `refresh-teacher@` 계정으로 위젯 테스트. `test/features/mock_scenarios_test.dart`에 그룹 "F4 시연" 추가: (a) 403 데모 카드에서 문의 열기 → 권한 없음, (b) `noclass` 계정 점검·전송 → 403, (c) 갱신 데모 계정(F1 quickstart)으로 전송 → 갱신 후 성공, (d) 데모 문의 `…000b`·`…000c`가 교사 목록에 보이고 답변 있음(`hasAnswer`)으로 표시.
+- [X] T041 [US5] (빠진 것: 교사용 갱신 데모 계정 → `refresh-teacher@damso.test` 추가. 사용자 승인으로 F1 mock `mock_auth_repository.dart`·`mock_me_repository.dart`도 고침, `mock_answer_repository.dart`는 첫 전송에 갱신 지연) T040 결과로 빠진 mock 동작이 있으면 `mock_inquiry_store.dart`·`mock_answer_repository.dart`에 채운다(FR-027 목록 대조: 점검 3종, 전송 3종, 답변 안 한/한/재문의 문의, 403, 401 갱신).
 
 **Checkpoint**: T040 통과.
 
@@ -190,12 +190,12 @@ description: "Task list for 교사 답변 작성·점검·전송 화면 (F4 교�
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T042 [P] `test/core/router_redirect_test.dart`에 새 경로 4개(`/teacher/inquiries/x`, `/answer`, `/thread`, `/follow-ups/y`) 추가 — 학부모·슈퍼 관리자는 각자 홈으로, 교사는 그대로. `/answer`에 `extra` 없으면 문의 열기로.
-- [ ] T043 [P] 원칙 VI 점검 — `lib/features/reply/`와 이번에 고친 파일에서 `print(`·`debugPrint(`·`log(` 검색, 답변 본문·점검 결과가 나가는 곳이 없음을 확인(SC-006). 위젯 테스트들에 `@` 검사(`expectNoEmail`)가 들어갔는지 확인.
-- [ ] T044 `flutter analyze`·`flutter test` 전부 통과(실패를 숨기거나 테스트를 지우지 않는다).
-- [ ] T045 quickstart 1~25를 에뮬레이터(Pixel 8, mock)로 확인하고, 실서버가 있으면 26~29 확인. 결과를 이 파일 아래 "검증 기록"에 날짜와 함께 적는다.
-- [ ] T046 [P] `docs/ia.md` 갱신 — "03 · 교사" 표의 Figma 링크를 새 노드로 바꾼다(F4-3 → `node-id=315-1789`, 재문의가 있는 스레드 `315-1822`, F4-3b 재문의 상세 `323-1843`, F3-6 원문 열람 · 재문의 `323-1863`; 원래 216-5533·225-1800은 Figma에서 빠짐). F4-3a를 "쓰지 않음(spec 004 FR-017, Figma에서 삭제)"으로, F4-3 이동을 "문의 목록으로"만으로, F3-1 이동에 "답변한 문의 → F4-3" 추가, 재문의 상세(F4-3b: 재문의 카드 → 원문 보기 F3-6 / 답변 작성 F4-2a) 행 추가, "아직 정해지지 않은 것"의 닫기 이름 겹침 항목을 해결로 고친다.
-- [ ] T047 PR 설명 초안에 팀 공유 사항을 적는다: 닫기 없음·점검 필수·제안 번호 제목(백엔드 `docs/decisions.md` 기록 요청), 점검 실서버 연동 여부·재문의 ID 전송 동작·멱등키 확인 요청, Figma 원본 섹션에 반영한 F4-3·재문의 스레드·F4-3b·재문의 F3-6과 빠진 F4-3a 안내. `Closes #9`.
+- [X] T042 [P] (`/teacher/inquiries/x` 경로는 T038 생략으로 없음 → `/answer`·`/thread`·`/follow-ups/y` 3개. extra 없이 열기는 `answer_flow_test.dart`에서 확인) `test/core/router_redirect_test.dart`에 새 경로 4개(`/teacher/inquiries/x`, `/answer`, `/thread`, `/follow-ups/y`) 추가 — 학부모·슈퍼 관리자는 각자 홈으로, 교사는 그대로. `/answer`에 `extra` 없으면 문의 열기로.
+- [X] T043 [P] 원칙 VI 점검 — `lib/features/reply/`와 이번에 고친 파일에서 `print(`·`debugPrint(`·`log(` 검색, 답변 본문·점검 결과가 나가는 곳이 없음을 확인(SC-006). 위젯 테스트들에 `@` 검사(`expectNoEmail`)가 들어갔는지 확인.
+- [X] T044 `flutter analyze`·`flutter test` 전부 통과(실패를 숨기거나 테스트를 지우지 않는다).
+- [X] T045 (mock 확인 완료, 실서버 26~29 미확인 — 검증 기록) quickstart 1~25를 에뮬레이터(Pixel 8, mock)로 확인하고, 실서버가 있으면 26~29 확인. 결과를 이 파일 아래 "검증 기록"에 날짜와 함께 적는다.
+- [X] T046 [P] `docs/ia.md` 갱신 — "03 · 교사" 표의 Figma 링크를 새 노드로 바꾼다(F4-3 → `node-id=315-1789`, 재문의가 있는 스레드 `315-1822`, F4-3b 재문의 상세 `323-1843`, F3-6 원문 열람 · 재문의 `323-1863`; 원래 216-5533·225-1800은 Figma에서 빠짐). F4-3a를 "쓰지 않음(spec 004 FR-017, Figma에서 삭제)"으로, F4-3 이동을 "문의 목록으로"만으로, F3-1 이동에 "답변한 문의 → F4-3" 추가, 재문의 상세(F4-3b: 재문의 카드 → 원문 보기 F3-6 / 답변 작성 F4-2a) 행 추가, "아직 정해지지 않은 것"의 닫기 이름 겹침 항목을 해결로 고친다.
+- [X] T047 PR 설명 초안에 팀 공유 사항을 적는다: 닫기 없음·점검 필수·제안 번호 제목(백엔드 `docs/decisions.md` 기록 요청), 점검 실서버 연동 여부·재문의 ID 전송 동작·멱등키 확인 요청, Figma 원본 섹션에 반영한 F4-3·재문의 스레드·F4-3b·재문의 F3-6과 빠진 F4-3a 안내. `Closes #9`.
 
 ---
 
@@ -228,4 +228,5 @@ description: "Task list for 교사 답변 작성·점검·전송 화면 (F4 교�
 
 ## 검증 기록
 
-(구현 후 T045에서 적는다)
+- 2026-10-29: mock(`--dart-define=USE_MOCK=true`) 에뮬레이터(Pixel 8)에서 사용자 확인 — 이상 없음. 실서버 26~29는 미확인.
+- 2026-10-29: `flutter analyze` 문제 없음, `flutter test` 331개 통과.

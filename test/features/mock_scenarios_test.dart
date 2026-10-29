@@ -7,6 +7,7 @@ import 'package:damso_app/core/storage/token_store.dart';
 import 'package:damso_app/features/inquiry/data/mock_inquiry_store.dart';
 import 'package:damso_app/features/inquiry/data/mock_teacher_inquiry_repository.dart';
 import 'package:damso_app/features/inquiry/domain/models.dart';
+import 'package:damso_app/features/reply/data/mock_answer_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -403,6 +404,111 @@ void main() {
       expect(
         () => store.sendAnswerForTeacher(fresh, '   ', reviewed: false),
         throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.invalidInput)),
+      );
+    });
+  });
+
+  testWidgets('refresh-teacher@ 계정: 접근 권한 갱신 뒤 답변 전송 성공(specs/004 US5-4, quickstart 23)', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(testApp());
+    await login(tester, 'refresh-teacher@damso.test');
+    expect(sessionOf(tester), const SignedIn(Role.teacher));
+    await tapTab(tester, '문의');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    final tile = find.byWidgetPredicate(
+      (w) =>
+          w is ListTile &&
+          (w.title as Text).data == '친구와 다툰 일 관련 문의' &&
+          ((w.subtitle as Text?)?.data ?? '').startsWith('이도윤'),
+    );
+    await tester.ensureVisible(tile);
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    await tapText(tester, '답변 작성');
+    await tester.enterText(find.byType(TextField), '확인하겠습니다.');
+    await tester.pump();
+    await tapText(tester, '답변 점검');
+    await tapText(tester, '직접 전송');
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('답변을 보냈어요. 문의와 답변은 기록으로 보관돼요.'), findsOneWidget);
+    expect(find.text('답변을 보내지 못했어요'), findsNothing);
+    expect(sessionOf(tester), const SignedIn(Role.teacher));
+  });
+
+  /// spec FR-027 대조(specs/004 US5, T040). 401 갱신 자체는 F1 AuthInterceptor 가 맡는다.
+  group('F4 시연', () {
+    late MockInquiryStore store;
+
+    setUp(() => store = MockInquiryStore());
+
+    MockAnswerRepository answers(String token) =>
+        MockAnswerRepository(TokenStore()..accessToken = token, store);
+
+    test('담당 학급이 없는 교사(noclass)는 점검·전송 403(서버 문구), 저장되지 않는다', () async {
+      final repo = answers('mock:noclass');
+      const id = MockInquiryStore.answeredDemoId;
+      for (final call in [
+        () => repo.review(id, '확인하겠습니다.'),
+        () => repo.send(id, '확인하겠습니다.', reviewed: true),
+      ]) {
+        await expectLater(
+          call(),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.statusCode, 'status', 403)
+                .having((e) => e.message, 'message', '담당 학급이 없습니다.'),
+          ),
+        );
+      }
+      expect(store.detailForTeacher(id).answers, hasLength(1)); // 데모 답변 그대로
+    });
+
+    test('담당 학급이 아닌 문의(남의 문의)는 점검·전송·상세 모두 거부', () async {
+      final repo = answers('mock:teacher');
+      const other = MockInquiryStore.forbiddenDemoId;
+      for (final call in <Future<Object?> Function()>[
+        () => repo.review(other, '확인하겠습니다.'),
+        () => repo.send(other, '확인하겠습니다.', reviewed: true),
+        () async => store.detailForTeacher(other),
+      ]) {
+        await expectLater(call(), throwsA(isA<AppException>()));
+      }
+    });
+
+    test('점검 3종(제안 있음·없음·실패)과 전송 성공·실패를 재현한다', () async {
+      final repo = answers('mock:teacher');
+      const id = 'a1000000-0000-4000-8000-000000000008';
+      expect(
+        (await repo.review(id, '어제 일은 확인해 보니 큰 문제는 아니었습니다.')).highlights,
+        isNotEmpty,
+      );
+      final none = await repo.review(id, '확인하겠습니다.');
+      expect(none.available, isTrue);
+      expect(none.highlights, isEmpty);
+      expect((await repo.review(id, '점검실패')).available, isFalse);
+      await expectLater(
+        repo.send(id, '전송실패', reviewed: true),
+        throwsA(isA<AppException>().having((e) => e.isNetworkError, 'network', isTrue)),
+      );
+      final sent = await repo.send(id, '확인하겠습니다.', reviewed: true);
+      expect(sent.inquiryId, id);
+    });
+
+    test('데모 문의 …000b·…000c 가 교사 목록에 답변 있음으로 보인다(답변 안 한 문의도 있음)', () {
+      final items = store.listForTeacher(page: 0, size: 100).items;
+      bool answered(String id) => items.firstWhere((i) => i.inquiryId == id).hasAnswer;
+      expect(answered(MockInquiryStore.answeredDemoId), isTrue);
+      expect(answered(MockInquiryStore.followUpDemoId), isTrue);
+      expect(items.where((i) => !i.hasAnswer), isNotEmpty);
+      expect(
+        store.detailForTeacher(MockInquiryStore.followUpDemoId).followUps,
+        isNotEmpty,
       );
     });
   });

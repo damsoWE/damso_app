@@ -23,6 +23,7 @@ class MockAuthRepository implements AuthRepository {
     'refresh@damso.test': Role.parent,
     'teacher@damso.test': Role.teacher,
     'noclass@damso.test': Role.teacher,
+    'refresh-teacher@damso.test': Role.teacher, // 답변 전송 때 갱신을 흉내 낸다(specs/004 FR-027)
     'admin@damso.test': Role.superAdmin,
   };
 

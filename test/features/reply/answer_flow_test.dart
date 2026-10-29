@@ -1,6 +1,7 @@
 import 'package:damso_app/features/reply/domain/answer_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../helpers/test_app.dart';
 
@@ -262,6 +263,23 @@ void main() {
     await settle(tester);
     expect(find.textContaining(RegExp(r'^답변 대기 \d+$')), findsOneWidget);
     expectNoEmail(tester);
+  });
+
+  testWidgets('extra 없이 주소로 열면 작성 화면은 문의 목록, 재문의 상세는 스레드로(T042)', (tester) async {
+    await teacherInquiries(tester);
+    await settle(tester);
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    const root = 'a1000000-0000-4000-8000-00000000000c';
+
+    router.go('/teacher/inquiries/$root/answer');
+    await settle(tester);
+    expect(find.text(AnswerText.composeTitle), findsNothing);
+    expect(find.textContaining(RegExp(r'^답변 대기 \d+$')), findsOneWidget);
+
+    router.go('/teacher/inquiries/$root/follow-ups/a1000000-0000-4000-8000-00000000c001');
+    await settle(tester);
+    expect(find.text(AnswerText.toListButton), findsOneWidget); // 스레드
+    expect(find.text(AnswerText.parentCardTitle('박서준', followUp: true)), findsOneWidget);
   });
 
   testWidgets('US3: 점검 실패(F4-2f) — 본문 그대로, 직접 확인 후 전송 → 스레드(quickstart 12)', (
