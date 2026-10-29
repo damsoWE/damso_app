@@ -68,11 +68,46 @@ abstract final class InquiryJson {
     lastAnsweredAt: answered.lastAnsweredAt,
   );
 
-  /// 학부모 상세. 응답의 content·followUps 와 답변 본문은 읽지 않는다(학부모 F4 화면의 몫).
+  /// 학부모 상세. 처음 문의 본문·재문의·답변이 모두 있어야 한다(specs/007, 필드가 없으면 형식 오류).
   static ParentInquiryDetail parentDetail(Map<String, dynamic> j) =>
       ParentInquiryDetail(
         summary: _parentSummary(j, _detailAnswered(j)),
         timeline: timeline(j['timeline']),
+        notices: notices(j['notices']),
+        hotlines: hotlines(j['hotlines']),
+        content: j['content'] as String,
+        followUps: [
+          for (final f in (j['followUps'] as List).cast<Map<String, dynamic>>())
+            parentFollowUp(f),
+        ],
+        answers: [
+          for (final a in (j['answers'] as List).cast<Map<String, dynamic>>())
+            parentAnswer(a),
+        ],
+      );
+
+  static ParentFollowUp parentFollowUp(Map<String, dynamic> j) => ParentFollowUp(
+    inquiryId: j['inquiryId'] as String,
+    content: j['content'] as String,
+    urgent: j['urgent'] as bool,
+    stage: InquiryStage.fromServer(j['stage'] as String),
+    submittedAt: DateTime.parse(j['submittedAt'] as String),
+    notices: notices(j['notices']),
+    hotlines: hotlines(j['hotlines']),
+  );
+
+  static ParentAnswer parentAnswer(Map<String, dynamic> j) => ParentAnswer(
+    answerId: j['answerId'] as String,
+    content: j['content'] as String,
+    sentAt: DateTime.parse(j['sentAt'] as String),
+  );
+
+  static FollowUpSubmitted followUpSubmitted(Map<String, dynamic> j) =>
+      FollowUpSubmitted(
+        inquiryId: j['inquiryId'] as String,
+        threadRootId: j['threadRootId'] as String,
+        urgent: j['urgent'] as bool,
+        submittedAt: DateTime.parse(j['submittedAt'] as String),
         notices: notices(j['notices']),
         hotlines: hotlines(j['hotlines']),
       );

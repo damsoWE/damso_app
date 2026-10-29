@@ -47,6 +47,9 @@ const _rolePaths = {
     '/parent/inquiries/new',
     '/parent/inquiries/submitted',
     '/parent/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/urgent',
+    '/parent/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/thread',
+    '/parent/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/follow-up',
+    '/parent/settings/notifications',
   ],
   Role.teacher: [
     '/teacher',
@@ -166,6 +169,13 @@ void main() {
           '/parent/inquiries',
           reason: id,
         );
+        for (final screen in ['thread', 'follow-up']) {
+          expect(
+            resolveRedirect(const SignedIn(Role.parent), '/parent/inquiries/$id/$screen'),
+            '/parent/inquiries',
+            reason: '$id/$screen',
+          );
+        }
         for (final screen in ['urgent', 'general', 'content', 'answer', 'thread']) {
           expect(
             resolveRedirect(const SignedIn(Role.teacher), '/teacher/inquiries/$id/$screen'),

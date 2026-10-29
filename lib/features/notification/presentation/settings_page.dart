@@ -108,7 +108,7 @@ class SettingsPage extends ConsumerWidget {
                     const SystemNotice(deferredGuide, icon: Icons.info_outline),
                     const SizedBox(height: AppSpacing.sm),
                     const SystemNotice(urgentAlwaysOn, icon: Icons.warning_amber_outlined),
-                    const _DevicePermissionNotice(),
+                    const DevicePermissionNotice(),
                     MessageText(f.errorMessage),
                     if (f.saved) const MessageText('저장했어요.', isError: false),
                   ],
@@ -168,8 +168,9 @@ class _TimeField extends StatelessWidget {
 }
 
 /// 기기 알림 권한이 꺼져 있으면 안내한다(FR-031a). 알림 기능이 없는 실행이면 그리지 않는다.
-class _DevicePermissionNotice extends ConsumerWidget {
-  const _DevicePermissionNotice();
+/// 학부모 알림 설정(F2-8)도 쓴다.
+class DevicePermissionNotice extends ConsumerWidget {
+  const DevicePermissionNotice({super.key});
 
   static const text = '기기 알림이 꺼져 있습니다. 기기 설정에서 담소 알림을 켜 주세요.';
 

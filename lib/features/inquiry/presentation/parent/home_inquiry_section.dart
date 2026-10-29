@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -35,13 +34,7 @@ class HomeInquirySection extends ConsumerWidget {
             return Column(
               children: [
                 for (final s in mine) ...[
-                  InquiryCard(
-                    summary: s,
-                    expandable: false,
-                    onTap: () => context.go('/parent/inquiries'),
-                    onUrgentTap: () =>
-                        context.push('/parent/inquiries/${s.inquiryId}/urgent'),
-                  ),
+                  InquiryCard(summary: s),
                   const SizedBox(height: AppSpacing.sm),
                 ],
               ],

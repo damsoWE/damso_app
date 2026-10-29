@@ -67,13 +67,13 @@ Figma 프로토타입 탭에서 아래 흐름을 골라 재생하면 화면 이�
 | [F2-3c](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5332) | 긴급 전달 · 자해 (109) | 보낸 문의 보기 → F2-4 |
 | [F2-3d](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5346) | 긴급 전달 · 학대 (112) | 보낸 문의 보기 → F2-4 |
 | [F2-3b](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5360) | 긴급 전달 · 기본 안내 (분류 실패·지연, 112·109) | 보낸 문의 보기 → F2-4 |
-| [F2-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5272) | 나의 문의 목록 | 카드 펼치기/접기 · 카드 → F4-1 / F4-1b / F2-3 · 새 문의 작성 → F2-2 |
-| [F4-1](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5241) | 문의 상세 (스레드) | 이어서 묻기 → F4-1a · 문의 목록 → F2-4 |
-| [F4-1a](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1722) | 이어서 묻기 | 보내기 → F2-5 |
+| [F2-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5272) | 나의 문의 목록 | 카드 → F4-1 (답변 없는 긴급 문의는 F2-3) · 새 문의 작성 → F2-2 · 카드 펼치기/접기는 없앰(앱 spec 007) |
+| [F4-1](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5241) | 문의 상세 (스레드) · `/parent/inquiries/:id/thread` · 앱 spec 007 | 이어서 묻기 → F4-1a · 문의 목록 → F2-4 |
+| [F4-1a](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1722) | 이어서 묻기 · `/parent/inquiries/:id/follow-up` · 앱 spec 007 | 보내기 → F2-5 / F2-3 (보낸 문의 보기 → F4-1) |
 | [F4-1b](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1752) | 종료된 문의 (교사가 닫음) | 새 문의 작성 → F2-2 · 문의 목록 → F2-4 |
 | [F2-6](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5289) | 알림 목록 | 알림 → F4-1 / F2-4 · 안내 → F2-8 |
 | [F2-7](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1228) | 마이페이지 | 연결된 자녀 → F1-4 · 비밀번호 변경 → C-3 · 알림 설정 → F2-8 · 약관 → C-7 · 로그아웃 → C-0 · 회원 탈퇴 → C-8 |
-| [F2-8](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5303) | 알림 설정 | 뒤로 |
+| [F2-8](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5303) | 알림 설정 · `/parent/settings/notifications` · 앱 spec 007 | 뒤로 |
 | [F1-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1210) | 연결된 자녀 | 초대코드로 자녀 추가 → F1-5 |
 | [F1-5](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1692) | 자녀 추가 · 초대코드 입력 | 코드 확인 → F1-4 |
 

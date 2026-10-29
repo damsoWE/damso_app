@@ -423,6 +423,198 @@ void main() {
       });
     }
   });
+  group('학부모 F4 상세', () {
+    Map<String, dynamic> detailJson({List<Object?>? followUps, List<Object?>? answers}) => {
+      'inquiryId': _id,
+      'studentId': _student,
+      'studentName': '김하나',
+      'content': '처음 문의',
+      'urgent': false,
+      'stage': 'TEACHER_CONFIRMED',
+      'submittedAt': '2026-10-26T09:30:00Z',
+      'timeline': [
+        {'stage': 'RECEIVED', 'occurredAt': '2026-10-26T09:30:00Z'},
+      ],
+      'notices': ['RECEIVED'],
+      'hotlines': <String>[],
+      'followUps': followUps ?? <Object>[],
+      'answers': answers ?? <Object>[],
+    };
+
+    Map<String, dynamic> followUp(String at, {String content = '재문의'}) => {
+      'inquiryId': 'f-$at',
+      'content': content,
+      'urgent': true,
+      'stage': 'DELIVERED',
+      'submittedAt': at,
+      'notices': ['URGENT_DELIVERED'],
+      'hotlines': ['SUICIDE_PREVENTION_109'],
+    };
+
+    Map<String, dynamic> answer(String at, {String content = '답변'}) => {
+      'answerId': 'a-$at',
+      'content': content,
+      'reviewed': true,
+      'sentAt': at,
+    };
+
+    test('content·followUps·answers 를 해석한다(reviewed 는 무시)', () async {
+      adapter.respond = (_) => _json(
+        200,
+        detailJson(
+          followUps: [followUp('2026-10-28T09:00:00Z')],
+          answers: [answer('2026-10-27T08:00:00Z')],
+        ),
+      );
+      final d = await ParentInquiryRepositoryImpl(dio).detail(_id);
+
+      expect(d.content, '처음 문의');
+      final f = d.followUps.single;
+      expect(f.inquiryId, 'f-2026-10-28T09:00:00Z');
+      expect(f.content, '재문의');
+      expect(f.urgent, isTrue);
+      expect(f.stage, InquiryStage.delivered);
+      expect(f.submittedAt, DateTime.parse('2026-10-28T09:00:00Z'));
+      expect(f.notices, [Notice.urgentDelivered]);
+      expect(f.hotlines, [Hotline.suicidePrevention]);
+      final a = d.answers.single;
+      expect(a.answerId, 'a-2026-10-27T08:00:00Z');
+      expect(a.content, '답변');
+      expect(a.sentAt, DateTime.parse('2026-10-27T08:00:00Z'));
+    });
+
+    test('thread: 시각 오름차순으로 처음 문의·답변·재문의를 섞는다', () async {
+      adapter.respond = (_) => _json(
+        200,
+        detailJson(
+          followUps: [followUp('2026-10-29T09:00:00Z')],
+          answers: [answer('2026-10-27T08:00:00Z')],
+        ),
+      );
+      final thread = (await ParentInquiryRepositoryImpl(dio).detail(_id)).thread;
+
+      expect(thread.map((i) => i.runtimeType), [RootItem, AnswerItem, FollowUpItem]);
+    });
+
+    test('thread: 시각이 같으면 입력 순서(처음 문의 → 재문의 → 답변)', () async {
+      const at = '2026-10-26T09:30:00Z';
+      adapter.respond = (_) =>
+          _json(200, detailJson(followUps: [followUp(at)], answers: [answer(at)]));
+      final thread = (await ParentInquiryRepositoryImpl(dio).detail(_id)).thread;
+
+      expect(thread.map((i) => i.runtimeType), [RootItem, FollowUpItem, AnswerItem]);
+    });
+
+    test('followUps·answers 가 모두 비면 thread 는 RootItem 하나', () async {
+      adapter.respond = (_) => _json(200, detailJson());
+      final thread = (await ParentInquiryRepositoryImpl(dio).detail(_id)).thread;
+
+      expect(thread, hasLength(1));
+      expect((thread.single as RootItem).content, '처음 문의');
+    });
+
+    test('필드가 없으면 일반 안내(AppException)', () async {
+      for (final missing in ['content', 'followUps', 'answers']) {
+        adapter.respond = (_) => _json(200, detailJson()..remove(missing));
+        await expectLater(
+          ParentInquiryRepositoryImpl(dio).detail(_id),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.message,
+              'message',
+              AppException.fallbackMessage,
+            ),
+          ),
+          reason: missing,
+        );
+      }
+    });
+  });
+
+  group('재문의 제출', () {
+    Future<FollowUpSubmitted> send() => ParentInquiryRepositoryImpl(dio).submitFollowUp(
+      inquiryId: 'r1',
+      content: '본문',
+      idempotencyKey: 'k1',
+    );
+
+    test('POST follow-ups: 키 헤더·본문을 보내고 결과를 해석한다', () async {
+      adapter.respond = (_) => _json(201, {
+        'inquiryId': 'f1',
+        'threadRootId': 'r1',
+        'urgent': true,
+        'submittedAt': '2026-10-29T09:00:00Z',
+        'notices': ['URGENT_DELIVERED'],
+        'hotlines': ['SUICIDE_PREVENTION_109'],
+      });
+      final result = await send();
+
+      final req = adapter.calls.single;
+      expect(req.method, 'POST');
+      expect(req.path, '/api/v1/parent/inquiries/r1/follow-ups');
+      expect(req.headers['Idempotency-Key'], 'k1');
+      expect(req.data, {'content': '본문'});
+      expect(result.inquiryId, 'f1');
+      expect(result.threadRootId, 'r1');
+      expect(result.urgent, isTrue);
+      expect(result.submittedAt, DateTime.parse('2026-10-29T09:00:00Z'));
+      expect(result.outcome, isA<UrgentNotice>());
+    });
+
+    test('409 는 서버 코드를 그대로 전한다', () async {
+      for (final code in ['NO_HOMEROOM_TEACHER', 'CONFLICT', 'THREAD_CLOSED']) {
+        adapter.respond = (_) => _json(409, {'code': code, 'message': '안내 $code'});
+        await expectLater(
+          send(),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.code, 'code', code)
+                .having((e) => e.message, 'message', '안내 $code')
+                .having((e) => e.statusCode, 'status', 409),
+          ),
+        );
+      }
+    });
+
+    test('429 + Retry-After → retryAfter', () async {
+      adapter.respond = (_) => _json(
+        429,
+        {'code': 'RATE_LIMITED', 'message': '잠시 후'},
+        headers: {'retry-after': ['30']},
+      );
+      await expectLater(
+        send(),
+        throwsA(
+          isA<AppException>().having(
+            (e) => e.retryAfter,
+            'retryAfter',
+            const Duration(seconds: 30),
+          ),
+        ),
+      );
+    });
+
+    test('400 fieldErrors → fieldErrors[content]', () async {
+      adapter.respond = (_) => _json(400, {
+        'code': 'INVALID_INPUT',
+        'message': '입력 오류',
+        'fieldErrors': [
+          {'field': 'content', 'reason': '최대 2000자입니다'},
+        ],
+      });
+      await expectLater(
+        send(),
+        throwsA(
+          isA<AppException>().having(
+            (e) => e.fieldErrors['content'],
+            'content',
+            '최대 2000자입니다',
+          ),
+        ),
+      );
+    });
+  });
+
   group('F4 상세 (specs/004)', () {
     Map<String, dynamic> detailBody({Object? followUps, Object? answers, String fuStage = 'REFINING'}) => {
       'inquiryId': _id,

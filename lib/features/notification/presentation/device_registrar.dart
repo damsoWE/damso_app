@@ -11,10 +11,11 @@ import '../../../core/session/session_state.dart';
 import '../data/notification_repository_provider.dart';
 import '../domain/models.dart';
 
-/// 교사 기기를 알림 수신 기기로 등록한다(spec FR-031, data-model §4 DeviceRegistrar).
-/// - 교사로 로그인(세션 복구 포함)하면 권한이 허용된 경우 토큰을 등록하고, 토큰이 바뀌면 다시 등록한다.
-/// - 권한은 교사 홈에 들어왔을 때 기기에서 아직 정하지 않은 경우에만 묻는다(FR-031a).
-/// - 학부모·관리자는 등록하지 않는다(학부모는 F4).
+/// 교사·학부모 기기를 알림 수신 기기로 등록한다(spec FR-031, data-model §4 DeviceRegistrar,
+/// specs/007 R8).
+/// - 교사·학부모로 로그인(세션 복구 포함)하면 권한이 허용된 경우 토큰을 등록하고, 토큰이 바뀌면 다시 등록한다.
+/// - 권한은 교사·학부모 홈에 들어왔을 때 기기에서 아직 정하지 않은 경우에만 묻는다(FR-031a).
+/// - 관리자는 등록하지 않는다.
 /// - 등록에 실패했거나 나중에 기기 설정에서 알림을 켠 경우, 앱이 다시 앞으로 올 때 다시 시도한다.
 /// 해제는 로그아웃·탈퇴 직전 MeViewModel 이 부르고, 세션이 끝나면 서버도 보내지 않는다.
 /// 로그아웃·탈퇴 때는 서버 해제가 실패해도 기기 알림 토큰을 폐기해 이 기기로 알림이 오지 않게 한다.
@@ -23,31 +24,32 @@ class DeviceRegistrar {
 
   final Ref _ref;
   StreamSubscription<String>? _tokenRefresh;
-  bool _teacher = false;
+  bool _eligible = false;
   bool _registered = false;
 
   PushMessaging get _push => _ref.read(pushMessagingProvider);
 
   Future<void> onSession(SessionState session) async {
-    final teacher = session is SignedIn && session.role == Role.teacher;
-    if (!teacher) {
+    final eligible =
+        session is SignedIn && (session.role == Role.teacher || session.role == Role.parent);
+    if (!eligible) {
       _stop();
       return;
     }
-    if (_teacher) return;
-    _teacher = true;
+    if (_eligible) return;
+    _eligible = true;
     await _registerIfGranted();
   }
 
   /// 앱이 다시 앞으로 왔을 때. 아직 등록하지 못했으면(실패·뒤늦게 권한 허용) 다시 시도한다.
   Future<void> onResume() async {
     _ref.invalidate(pushPermissionProvider);
-    if (_teacher && !_registered) await _registerIfGranted();
+    if (_eligible && !_registered) await _registerIfGranted();
   }
 
-  /// 교사 홈 진입 때 부른다. 이미 허용·거부했으면 묻지 않는다.
+  /// 교사·학부모 홈 진입 때 부른다. 이미 허용·거부했으면 묻지 않는다.
   Future<void> requestPermissionIfNeeded() async {
-    if (!_teacher || !_push.isAvailable) return;
+    if (!_eligible || !_push.isAvailable) return;
     try {
       if (await _push.permissionStatus() != PushPermission.notDetermined) return;
       if (await _push.requestPermission() == PushPermission.granted) {
@@ -72,7 +74,7 @@ class DeviceRegistrar {
   }
 
   /// 로그아웃·탈퇴로 세션을 끝낼 때 기기 알림 토큰을 폐기한다. 서버 결과와 관계없이 부른다.
-  /// 상태를 비워 두므로 다음 교사 로그인에서 새 토큰을 받아 다시 등록한다.
+  /// 상태를 비워 두므로 다음 로그인에서 새 토큰을 받아 다시 등록한다.
   Future<void> deleteToken() async {
     _stop();
     try {
@@ -95,13 +97,13 @@ class DeviceRegistrar {
 
   Future<void> _register() async {
     final token = await _push.getToken();
-    if (token == null || !_teacher) return;
+    if (token == null || !_eligible) return;
     await _send(token);
     _tokenRefresh ??= _push.onTokenRefresh.listen(_send);
   }
 
   Future<void> _send(String token) async {
-    if (!_teacher) return;
+    if (!_eligible) return;
     try {
       await _ref
           .read(notificationRepositoryProvider)
@@ -119,7 +121,7 @@ class DeviceRegistrar {
   }
 
   void _stop() {
-    _teacher = false;
+    _eligible = false;
     _registered = false;
     _tokenRefresh?.cancel();
     _tokenRefresh = null;

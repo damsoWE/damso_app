@@ -58,12 +58,31 @@ void main() {
     expect(repo.registeredToken, 'token-2');
   });
 
-  test('학부모·관리자는 등록하지 않는다', () async {
+  test('학부모 로그인 + 권한 허용 → 등록 1회(specs/007 R8)', () async {
     session().signIn(Role.parent);
     await settle();
+    expect(repo.registerCalls, 1);
+    expect(repo.registeredToken, 'token-1');
+  });
+
+  test('관리자는 등록하지 않는다', () async {
     session().signIn(Role.superAdmin);
     await settle();
     expect(repo.registerCalls, 0);
+  });
+
+  test('학부모 로그아웃 → 서버 해제와 기기 토큰 폐기, 토큰 갱신을 더 보내지 않는다', () async {
+    session().signIn(Role.parent);
+    await settle();
+    final registrar = container.read(deviceRegistrarProvider);
+    await registrar.unregisterDevice();
+    await registrar.deleteToken();
+    expect(repo.unregisterCalls, 1);
+    expect(push.deleteTokenCalls, 1);
+
+    push.tokenRefresh.add('token-2');
+    await settle();
+    expect(repo.registerCalls, 1);
   });
 
   test('권한 거부면 등록하지 않고, 교사 홈에서도 다시 묻지 않는다', () async {

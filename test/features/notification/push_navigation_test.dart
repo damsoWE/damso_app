@@ -9,6 +9,10 @@ import '../../helpers/test_app.dart';
 
 const _urgentId = 'a1000000-0000-4000-8000-000000000001'; // mock 의 확인 전 긴급 문의
 
+const _threadId = 'a1000000-0000-4000-8000-000000000003'; // mock 의 학부모 문의
+
+PushData _answer() => const PushData(kind: PushKind.answer, inquiryId: _threadId);
+
 PushData _urgent() => const PushData(kind: PushKind.urgent, inquiryId: _urgentId);
 
 void main() {
@@ -91,5 +95,81 @@ void main() {
     await tapTab(tester, '마이페이지');
     await tapTab(tester, '홈');
     expect(find.text('긴급 문의 1건'), findsNothing);
+  });
+
+  testWidgets('학부모 로그인 중 답변 알림 열기 → 학부모 스레드로 이동', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'parent@damso.test');
+
+    push.opened.add(_answer());
+    await tester.pumpAndSettle();
+    expect(find.text('이어서 묻기'), findsOneWidget);
+  });
+
+  testWidgets('교사 로그인 중 답변 알림은 이동하지 않고 배너도 없다', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'teacher@damso.test');
+
+    push.opened.add(_answer());
+    push.foreground.add(
+      PushMessage(title: '답변이 도착했습니다', body: '문의 상세에서 답변을 확인해 주세요.', data: _answer()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('이어서 묻기'), findsNothing);
+    expect(find.textContaining('답변이 도착했습니다'), findsNothing);
+    expect(find.widgetWithText(AppBar, '교사 홈'), findsOneWidget);
+  });
+
+  testWidgets('학부모 로그인 중 긴급 알림은 이동하지 않고 배너도 없다', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'parent@damso.test');
+
+    push.opened.add(_urgent());
+    push.foreground.add(
+      PushMessage(title: '긴급 문의가 도착했습니다', body: '지금 확인해 주세요.', data: _urgent()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('긴급 문의가 도착했습니다'), findsNothing);
+    expect(find.text('학부모 홈'), findsOneWidget);
+  });
+
+  testWidgets('학부모 로그인 중 열린 상태 답변 수신 → 배너, 보기 → 스레드', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'parent@damso.test');
+
+    push.foreground.add(
+      PushMessage(title: '답변이 도착했습니다', body: '문의 상세에서 답변을 확인해 주세요.', data: _answer()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('답변이 도착했습니다'), findsOneWidget);
+    await tapText(tester, '보기');
+    expect(find.text('이어서 묻기'), findsOneWidget);
+  });
+
+  testWidgets('로그아웃 중 답변 알림 → 학부모 로그인 뒤 그 스레드, 교사로 로그인하면 버린다', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    push.opened.add(_answer());
+    await tester.pumpAndSettle();
+    await login(tester, 'parent@damso.test');
+    expect(find.text('이어서 묻기'), findsOneWidget);
+  });
+
+  testWidgets('로그아웃 중 답변 알림 → 교사로 로그인하면 버린다', (tester) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    push.opened.add(_answer());
+    await tester.pumpAndSettle();
+    await login(tester, 'teacher@damso.test');
+    expect(find.text('이어서 묻기'), findsNothing);
+    expect(find.widgetWithText(AppBar, '교사 홈'), findsOneWidget);
   });
 }
