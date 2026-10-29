@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../../core/widgets/bottom_actions.dart';
 import '../../../core/widgets/field_error_text.dart';
 import '../../../core/widgets/form_layout.dart';
 import '../domain/models.dart';
@@ -66,42 +67,56 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         validateDisplayName(_name.text) == null &&
         validateIntroduction(_intro.text) == null;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return Column(
       children: [
-        const Text('학부모에게 보이는 이름과 소개입니다.', style: AppTextStyles.body),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          controller: _name,
-          decoration: const InputDecoration(labelText: '표시 이름'),
-        ),
-        FieldErrorText.pick(
-          server: state?.fieldErrors['displayName'],
-          client: _name.text.isEmpty ? null : validateDisplayName(_name.text),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
-          controller: _intro,
-          minLines: 2,
-          maxLines: 3,
-          decoration: InputDecoration(
-            labelText: '소개',
-            counterText: '$introLength/$introductionMaxLength',
-            counterStyle: over
-                ? AppTextStyles.micro.copyWith(color: AppColors.statusUrgentText)
-                : null,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            children: [
+              const Text('학부모에게 보이는 이름과 소개입니다.', style: AppTextStyles.body),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: '표시 이름'),
+              ),
+              FieldErrorText.pick(
+                server: state?.fieldErrors['displayName'],
+                client: _name.text.isEmpty
+                    ? null
+                    : validateDisplayName(_name.text),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _intro,
+                minLines: 2,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: '소개',
+                  counterText: '$introLength/$introductionMaxLength',
+                  counterStyle: over
+                      ? AppTextStyles.micro.copyWith(
+                          color: AppColors.statusUrgentText,
+                        )
+                      : null,
+                ),
+              ),
+              FieldErrorText.pick(
+                server: state?.fieldErrors['introduction'],
+                client: validateIntroduction(_intro.text),
+              ),
+              MessageText(state?.errorMessage),
+            ],
           ),
         ),
-        FieldErrorText.pick(
-          server: state?.fieldErrors['introduction'],
-          client: validateIntroduction(_intro.text),
-        ),
-        MessageText(state?.errorMessage),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '저장',
-          isLoading: state?.isSaving ?? false,
-          onPressed: valid ? _save : null,
+        // Figma F3-9: 저장은 하단 고정.
+        BottomActions(
+          children: [
+            SubmitButton(
+              label: '저장',
+              isLoading: state?.isSaving ?? false,
+              onPressed: valid ? _save : null,
+            ),
+          ],
         ),
       ],
     );

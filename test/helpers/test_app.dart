@@ -124,8 +124,16 @@ Future<void> tapText(WidgetTester tester, String text) async {
   await tester.pumpAndSettle();
 }
 
+/// 라벨이 입력칸 안에 있으면 그 입력칸, 입력칸 위에 따로 붙어 있으면(로그인) 같은 묶음의 입력칸.
 Future<void> enterField(WidgetTester tester, String label, String text) async {
-  await tester.enterText(find.widgetWithText(TextField, label), text);
+  final inside = find.widgetWithText(TextField, label);
+  final field = inside.evaluate().isNotEmpty
+      ? inside
+      : find.descendant(
+          of: find.ancestor(of: find.text(label), matching: find.byType(Column)).first,
+          matching: find.byType(TextField),
+        );
+  await tester.enterText(field, text);
   await tester.pump();
 }
 

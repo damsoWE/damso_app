@@ -31,7 +31,8 @@ class AppColors {
 
   // 배경
   static const bgCanvas = Color(0xFFFAF7F2); // 전체 배경 · 종이 크림
-  static const bgSurface = Color(0xFFFFFFFF); // 카드 배경 · 화이트
+  /// 화면·앱바·카드·입력칸·하단 탭 바 바탕 · Figma `color/bg/surface`(사용자 지정, 2026-10-30).
+  static const bgSurface = Color(0xFFF9FFFD);
   static const bgSubtle = Color(0xFFE9F0F7);
 
   // 글자
@@ -41,7 +42,7 @@ class AppColors {
   static const textInverse = Color(0xFFFFFFFF);
 
   // 브랜드
-  static const brandPrimary = Color(0xFF3F7665); // 메인 컬러 · 칠판 그린
+  static const brandPrimary = Color(0xFF60AB94); // 메인 컬러 · Figma `color/brand/primary`(사용자 지정, 2026-10-30)
   static const brandAccent = Color(0xFFF3A76F); // 강조 컬러 · 살구 오렌지
   static const brandAccentSoft = Color(0xFFDCEFE8); // 메인 연한 배경 · 민트 크림
 
@@ -112,15 +113,19 @@ ThemeData buildAppTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
-    // 화면 바탕은 "메인 연한 배경 · 민트 크림"을 쓴다(사용자 지정, 2026-10-29).
-    scaffoldBackgroundColor: AppColors.brandAccentSoft,
+    // 화면 바탕도 카드와 같은 bg/surface(사용자 지정, 2026-10-30). 카드는 테두리로 구분한다.
+    scaffoldBackgroundColor: AppColors.bgSurface,
     dividerColor: AppColors.borderDefault,
-    // 헤더(앱 바)도 화면 바탕과 같은 민트 크림. 스크롤해도 색이 바뀌지 않게 한다(사용자 지정, 2026-10-29).
+    // 헤더(앱 바)도 화면 바탕과 같은 색. 스크롤해도 색이 바뀌지 않게 한다(사용자 지정, 2026-10-29).
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.brandAccentSoft,
+      backgroundColor: AppColors.bgSurface,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       foregroundColor: AppColors.textPrimary,
+    ),
+    // Figma `icon/back`: 플랫폼과 관계없이 왼쪽 꺾쇠(‹).
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (_) => const Icon(Icons.chevron_left),
     ),
     // Figma Button: 높이 52, 가로 여백 20, 모서리 radius/md, 글자 `담소/Body Strong`.
     filledButtonTheme: FilledButtonThemeData(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../../core/widgets/bottom_actions.dart';
 import 'admin_home_view_model.dart';
 import 'format.dart';
 
@@ -17,10 +18,14 @@ class AdminHomePage extends ConsumerWidget {
     final classrooms = ref.watch(adminHomeViewModelProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('관리자 홈')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/admin/classrooms/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('학급 추가'),
+      // Figma ADM-1b: "학급 추가"는 하단 고정 보조 버튼.
+      bottomNavigationBar: BottomActions(
+        children: [
+          OutlinedButton(
+            onPressed: () => context.push('/admin/classrooms/new'),
+            child: const Text('학급 추가'),
+          ),
+        ],
       ),
       body: AsyncView(
         value: classrooms,
@@ -28,7 +33,6 @@ class AdminHomePage extends ConsumerWidget {
         isEmpty: (list) => list.isEmpty,
         empty: (_) => const Center(child: Text('등록된 학급이 없습니다. 학급을 추가해 주세요.')),
         data: (list) => ListView.separated(
-          padding: const EdgeInsets.only(bottom: 88),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (_, i) {
