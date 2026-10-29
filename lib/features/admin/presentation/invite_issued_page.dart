@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,30 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/form_layout.dart';
 import 'classroom_detail_view_model.dart';
 import 'format.dart';
+
+/// 복사한 코드를 클립보드에서 지우기까지의 시간.
+const _clipboardClearDelay = Duration(seconds: 60);
+
+/// 위젯과 무관하게 두는 타이머 — 복사 뒤 화면을 떠나도 코드가 클립보드에 남지 않게 한다.
+/// (위젯 dispose 에 묶으면 떠나는 순간 취소돼 오히려 남는다.) 다시 복사하면 이전 예약은 취소한다.
+Timer? _clipboardClearTimer;
+
+/// 코드를 복사하고, [_clipboardClearDelay] 뒤에도 클립보드가 그 코드 그대로일 때만 비운다.
+/// 그 사이 다른 내용을 복사했으면 건드리지 않는다.
+Future<void> _copyCode(String code) async {
+  await Clipboard.setData(ClipboardData(text: code));
+  _clipboardClearTimer?.cancel();
+  _clipboardClearTimer = Timer(_clipboardClearDelay, () async {
+    try {
+      final current = await Clipboard.getData(Clipboard.kTextPlain);
+      if (current?.text == code) {
+        await Clipboard.setData(const ClipboardData(text: ''));
+      }
+    } catch (_) {
+      // 백그라운드에서 클립보드를 읽지 못하는 기기 등. 지우지 못해도 앱 동작에는 영향 없다.
+    }
+  });
+}
 
 /// ADM-3 학부모 코드 발행 완료 (Figma 216-5828) · ADM-3t 교사 코드 발행 완료 (227-1743).
 /// 코드 원문은 extra 로 받은 값만 쓰고 어디에도 보관하지 않는다(FR-035, research R11).
@@ -61,7 +87,7 @@ class InviteIssuedPage extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         OutlinedButton.icon(
           onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: a.code.code));
+            await _copyCode(a.code.code);
             if (context.mounted) {
               ScaffoldMessenger.of(
                 context,

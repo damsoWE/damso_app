@@ -158,6 +158,44 @@ void main() {
       });
     }
 
+    test('경로 ID 가 UUID 가 아니면 역할 목록으로 (API 경로 변조 방지)', () {
+      const bad = ['abc', '..', '%2e%2e', '..%2Fadmin', '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a%2F..'];
+      for (final id in bad) {
+        expect(
+          resolveRedirect(const SignedIn(Role.parent), '/parent/inquiries/$id/urgent'),
+          '/parent/inquiries',
+          reason: id,
+        );
+        for (final screen in ['urgent', 'general', 'content', 'answer', 'thread']) {
+          expect(
+            resolveRedirect(const SignedIn(Role.teacher), '/teacher/inquiries/$id/$screen'),
+            '/teacher/inquiries',
+            reason: '$id/$screen',
+          );
+        }
+        expect(
+          resolveRedirect(
+            const SignedIn(Role.teacher),
+            '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/follow-ups/$id',
+          ),
+          '/teacher/inquiries',
+          reason: 'follow-ups/$id',
+        );
+        for (final tail in ['', '/students/new', '/invite-codes']) {
+          expect(
+            resolveRedirect(const SignedIn(Role.superAdmin), '/admin/classrooms/$id$tail'),
+            '/admin',
+            reason: '$id$tail',
+          );
+        }
+      }
+    });
+
+    test('다른 역할 경로는 ID 가 틀려도 역할 홈으로', () {
+      expect(resolveRedirect(const SignedIn(Role.teacher), '/admin/classrooms/abc'), '/teacher');
+      expect(resolveRedirect(const SignedIn(Role.parent), '/teacher/inquiries/abc/thread'), '/parent');
+    });
+
     test('슈퍼 관리자는 탈퇴 화면 대신 관리자 마이페이지로', () {
       expect(resolveRedirect(const SignedIn(Role.superAdmin), '/me/withdraw'), '/admin/me');
       expect(resolveRedirect(const SignedIn(Role.parent), '/me/withdraw'), isNull);

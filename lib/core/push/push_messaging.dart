@@ -62,6 +62,10 @@ abstract class PushMessaging {
 
   Future<String?> getToken();
 
+  /// 이 기기의 알림 토큰을 폐기한다. 로그아웃·탈퇴 뒤 이 기기로 알림이 오지 않게 한다.
+  /// 다음에 [getToken] 을 부르면 새 토큰이 나온다.
+  Future<void> deleteToken();
+
   Stream<String> get onTokenRefresh;
 
   Stream<PushMessage> get onForegroundMessage;

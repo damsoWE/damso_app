@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:damso_app/core/error/app_exception.dart';
 import 'package:damso_app/core/storage/token_store.dart';
@@ -8,6 +7,7 @@ import 'package:damso_app/features/auth/data/auth_repository_provider.dart';
 import 'package:damso_app/features/auth/domain/models.dart';
 import 'package:damso_app/features/auth/presentation/login_view_model.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +37,13 @@ class _FixedAdapter implements HttpClientAdapter {
 
   @override
   void close({bool force = false}) {}
+}
+
+/// 보안 저장소 쓰기가 실패하는 기기(Keystore 오류 등).
+class _FailingTokenStore extends TokenStore {
+  @override
+  Future<void> saveRefreshToken(String token) =>
+      Future.error(PlatformException(code: 'keystore-broken'));
 }
 
 const _tokenResponse = {
@@ -118,5 +125,18 @@ void main() {
 
     await vm.login(email: 'a@damso.test', password: 'damso1234');
     expect(adapter.calls, 2); // 제출 중 상태에 막히지 않고 다시 요청한다
+  });
+
+  test('갱신 토큰 저장이 실패하면 일반 안내로 바꾸고 접근 토큰도 남기지 않는다', () async {
+    final failing = _FailingTokenStore();
+    final failingRepo = AuthRepositoryImpl(
+      Dio(BaseOptions(baseUrl: 'http://test'))..httpClientAdapter = adapter,
+      failing,
+    );
+    await expectLater(
+      failingRepo.login(email: 'a@damso.test', password: 'damso1234'),
+      fallback(),
+    );
+    expect(failing.accessToken, isNull);
   });
 }

@@ -158,11 +158,18 @@ class AuthRepositoryImpl implements AuthRepository {
       refreshToken = data['refreshToken'] as String;
       role = Role.fromServer(data['role'] as String);
     } catch (_) {
-      await _tokens.clear();
+      await _tokens.clear().catchError((Object _) {});
       rethrow;
     }
+    // 갱신 토큰을 먼저 저장하고, 성공한 뒤에만 접근 토큰을 메모리에 둔다.
+    // 보안 저장소 오류(PlatformException 등)는 내용을 노출하지 않고 일반 안내로 바꾼다.
+    try {
+      await _tokens.saveRefreshToken(refreshToken);
+    } catch (_) {
+      await _tokens.clear().catchError((Object _) {});
+      throw const AppException(message: AppException.fallbackMessage);
+    }
     _tokens.accessToken = accessToken;
-    await _tokens.saveRefreshToken(refreshToken);
     return role;
   }
 }

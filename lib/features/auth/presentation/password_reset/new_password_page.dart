@@ -54,6 +54,7 @@ class _ResetNewPasswordPageState extends ConsumerState<ResetNewPasswordPage> {
         const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _password,
+          autofillHints: const [AutofillHints.newPassword],
           obscureText: true,
           autocorrect: false,
           enableSuggestions: false,

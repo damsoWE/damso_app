@@ -98,6 +98,7 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
         const SizedBox(height: AppSpacing.sm),
         TextField(
           controller: _password,
+          autofillHints: const [AutofillHints.newPassword],
           obscureText: true,
           autocorrect: false,
           enableSuggestions: false,

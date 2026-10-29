@@ -75,6 +75,11 @@ class ThreadViewModel extends AsyncNotifier<ThreadState> {
   /// 스레드 루트 ID.
   final String inquiryId;
 
+  /// 이 ViewModel 이 이미 받은 번역본의 요청사항(문의 ID → 요청사항). 다시 읽을 때(reload·다시 시도) 재사용한다.
+  /// 번역본 호출은 서버에 열람 기록을 남기고 첫 호출은 단계를 "교사 확인"으로 바꾸기 때문이다(F5).
+  /// 스레드를 처음 열 때 루트·재문의 번역본을 자동으로 부르는 동작은 그대로다 — 바꾸려면 제품 결정이 필요하다.
+  final _requestsCache = <String, String?>{};
+
   @override
   Future<ThreadState> build() async {
     final repo = ref.read(teacherInquiryRepositoryProvider);
@@ -109,10 +114,11 @@ class ThreadViewModel extends AsyncNotifier<ThreadState> {
   }
 
   /// 번역본의 요청사항. 아직 정리되지 않았거나(409) 비어 있으면 null.
-  static Future<String?> _requests(TeacherInquiryRepository repo, String id) async {
+  Future<String?> _requests(TeacherInquiryRepository repo, String id) async {
+    if (_requestsCache.containsKey(id)) return _requestsCache[id];
     try {
       final requests = (await repo.refinement(id)).requests;
-      return requests.isEmpty ? null : requests;
+      return _requestsCache[id] = requests.isEmpty ? null : requests;
     } on AppException catch (e) {
       if (e.code == ErrorCodes.refinementNotReady) return null;
       rethrow;

@@ -123,14 +123,16 @@ void main() {
     expect(repo.contentCalls, hasLength(2));
   });
 
-  testWidgets('상세만 실패해 다시 시도해도 원문 열람은 한 번, 홈 긴급 카드는 사라진다', (tester) async {
+  testWidgets('상세가 먼저 실패하면 원문을 열지 않고, 다시 시도하면 원문 열람은 한 번, 홈 긴급 카드는 사라진다', (
+    tester,
+  ) async {
     useTallScreen(tester);
     await tester.pumpWidget(app());
     await login(tester, 'teacher@damso.test');
     repo.failDetail = 1;
     await tapText(tester, '긴급 문의 1건');
     expect(find.text('불러오지 못했습니다.'), findsOneWidget);
-    expect(repo.contentCalls, hasLength(1));
+    expect(repo.contentCalls, isEmpty); // 긴급인지 확인하기 전에는 원문을 열지 않는다
 
     await tapText(tester, '다시 시도');
     expect(find.text('(mock) 데모 문의 원문입니다.'), findsOneWidget);

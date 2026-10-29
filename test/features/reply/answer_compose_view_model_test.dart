@@ -81,6 +81,7 @@ TeacherFollowUp _followUp(String id, int minute) => TeacherFollowUp(
 /// 409 NEW_FOLLOW_UP 뒤 상세를 다시 받는 가짜 Repository. 상세만 쓴다.
 class _FakeInquiryRepo implements TeacherInquiryRepository {
   List<TeacherFollowUp> followUps = const [];
+  List<SentAnswer> answers = const [];
   AppException? detailError;
   int detailCalls = 0;
 
@@ -105,6 +106,7 @@ class _FakeInquiryRepo implements TeacherInquiryRepository {
       timeline: const [],
       retryAvailable: false,
       followUps: followUps,
+      answers: answers,
     );
   }
 
@@ -259,6 +261,78 @@ void main() {
       await vm().resend();
       expect(repo.sends.map((e) => e.content), ['확인하겠습니다.', '확인하겠습니다.']);
       expect(s().sent, isNotNull);
+    });
+
+    test('보냈을 수 있는 전송을 다시 보내기 전에 저장된 같은 답변이 있으면 다시 보내지 않고 성공 처리', () async {
+      repo.sendResult = () => throw const AppException(
+        message: AppException.networkMessage,
+        isNetworkError: true,
+      );
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      expect((s().step as SendFailed).maybeSent, isTrue);
+
+      inquiryRepo.answers = [
+        SentAnswer(
+          answerId: 'saved',
+          content: '확인하겠습니다.',
+          reviewed: true,
+          sentAt: DateTime.now().add(const Duration(seconds: 1)),
+        ),
+      ];
+      await vm().resend();
+      expect(repo.sends, hasLength(1)); // 두 번째로 보내지 않았다
+      expect(inquiryRepo.detailCalls, 1);
+      expect(s().sent?.answerId, 'saved');
+    });
+
+    test('저장된 답변이 시도 이전 것이거나 본문이 다르면 다시 보낸다', () async {
+      var fail = true;
+      repo.sendResult = () {
+        if (fail) {
+          fail = false;
+          throw const AppException(message: AppException.networkMessage, isNetworkError: true);
+        }
+        return AnswerSent(answerId: 'a', inquiryId: _id, sentAt: DateTime(2026));
+      };
+      inquiryRepo.answers = [
+        SentAnswer(
+          answerId: 'old',
+          content: '확인하겠습니다.',
+          reviewed: true,
+          sentAt: DateTime.now().subtract(const Duration(hours: 1)),
+        ),
+        SentAnswer(
+          answerId: 'other',
+          content: '다른 답변입니다.',
+          reviewed: true,
+          sentAt: DateTime.now().add(const Duration(seconds: 1)),
+        ),
+      ];
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      await vm().resend();
+      expect(repo.sends, hasLength(2));
+      expect(s().sent?.answerId, 'a');
+    });
+
+    test('저장 여부를 확인하지 못하면 다시 보내지 않고 보냈을 수 있는 상태로 둔다', () async {
+      repo.sendResult = () => throw const AppException(
+        message: AppException.networkMessage,
+        isNetworkError: true,
+      );
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      inquiryRepo.detailError = const AppException(message: '불러오지 못했습니다.');
+      await vm().resend();
+      expect(repo.sends, hasLength(1));
+      final step = s().step as SendFailed;
+      expect(step.maybeSent, isTrue);
+      expect(step.canResend, isTrue);
+      expect(s().message, '불러오지 못했습니다.');
     });
 
     test('전송 중 화면이 닫혀도(구독 해제) 응답 처리를 마친다', () async {

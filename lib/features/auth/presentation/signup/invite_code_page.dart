@@ -76,6 +76,7 @@ class _InviteCodePageState extends ConsumerState<InviteCodePage> {
         const SizedBox(height: AppSpacing.sm),
         TextField(
           controller: _email,
+          autofillHints: const [AutofillHints.email],
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           decoration: const InputDecoration(labelText: '이메일'),

@@ -12,7 +12,7 @@
 - 토큰 주입·갱신은 dio Interceptor 단일 지점
 - WebView·HTML 렌더 패키지를 사용하지 않음
 - 앱에 API 키 등 시크릿을 넣지 않음 (`env/`에는 서버 주소만)
-- 릴리스 빌드는 `--obfuscate --split-debug-info`
+- 릴리스 빌드는 `--obfuscate --split-debug-info`, 진입점은 `scripts/build-release.sh` (mock·http 주소는 릴리스에서 기동 거부, 디버그 키 서명 불가)
 
 ## 실행
 
@@ -24,6 +24,29 @@ flutter run --dart-define-from-file=env/prod.json       # 배포 서버 (https:/
 flutter run --dart-define-from-file=env/dev.json        # 로컬 서버 (API_BASE_URL=http://10.0.2.2:8080, Android 에뮬레이터)
 flutter run --dart-define=USE_MOCK=true                  # mock Repository (서버 불필요)
 flutter analyze && flutter test
+```
+
+## 릴리스 빌드
+
+업로드 키는 저장소 밖에 한 번만 만들고, 키스토어와 비밀번호는 저장소에 올리지 않는다(`*.jks`, `android/key.properties`는 `.gitignore` 대상).
+
+```bash
+keytool -genkey -v -keystore ~/damso-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+`android/key.properties`를 만든다(아래는 자리 표시 값).
+
+```properties
+storePassword=<키스토어 비밀번호>
+keyPassword=<키 비밀번호>
+keyAlias=upload
+storeFile=<damso-upload.jks 의 절대 경로>
+```
+
+`env/prod.json`, `secrets/firebase.json`, `android/key.properties`가 모두 있어야 빌드된다.
+
+```bash
+bash scripts/build-release.sh        # appbundle (APK는 `bash scripts/build-release.sh apk`)
 ```
 
 ## 구조

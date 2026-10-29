@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/error/app_exception.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/validation/validators.dart';
 import '../../auth/data/auth_repository_provider.dart';
-import '../../notification/data/notification_repository_provider.dart';
+import '../../notification/presentation/device_registrar.dart';
 import '../data/me_repository_provider.dart';
 import '../domain/me.dart';
 
@@ -72,16 +74,19 @@ class MeViewModel extends AsyncNotifier<MeState> {
 
   /// 이 기기만 로그아웃. 서버 호출이 실패해도 기기 세션은 지운다(FR-022).
   Future<void> logout() async {
-    // 응답을 기다리는 사이 화면이 해제돼도 세션은 지워야 하므로 미리 잡아 둔다.
+    // 응답을 기다리는 사이 화면이 해제돼도 세션은 지워야 하므로 await 전에 모두 잡아 둔다.
     final session = ref.read(sessionControllerProvider.notifier);
-    final devices = ref.read(notificationRepositoryProvider);
+    final registrar = ref.read(deviceRegistrarProvider);
+    final auth = ref.read(authRepositoryProvider);
     try {
       // 이 기기의 알림 등록을 먼저 푼다(세션이 살아 있을 때만 가능). 실패는 무시(F2 FR-031).
-      await devices.unregisterCurrentDevice().catchError((Object _) {});
-      await ref.read(authRepositoryProvider).logout();
+      await registrar.unregisterDevice();
+      await auth.logout();
     } on AppException {
       // 서버 실패는 무시한다 — 기기 세션은 아래에서 지운다.
     } finally {
+      // 오프라인이라 서버 해제가 안 돼도 이 기기로 알림이 오지 않게 토큰을 폐기한다(기다리지 않는다).
+      unawaited(registrar.deleteToken());
       await session.signOut();
     }
   }
@@ -96,11 +101,19 @@ class MeViewModel extends AsyncNotifier<MeState> {
     }
     _set(isSubmitting: true);
     final link = ref.keepAlive();
+    // await 뒤에 ref 를 쓰지 않도록 미리 잡아 둔다.
+    final me = ref.read(meRepositoryProvider);
+    final session = ref.read(sessionControllerProvider.notifier);
+    final registrar = ref.read(deviceRegistrarProvider);
     try {
-      await ref.read(meRepositoryProvider).withdraw(password);
-      await ref.read(sessionControllerProvider.notifier).signOut();
+      // 탈퇴하면 세션이 끊기므로 알림 등록은 요청 전에 푼다. 실패는 무시(F2 FR-031).
+      await registrar.unregisterDevice();
+      await me.withdraw(password);
+      unawaited(registrar.deleteToken()); // 탈퇴 성공 뒤 기기 알림 토큰을 폐기한다.
+      await session.signOut();
     } on AppException catch (e) {
       _set(errorMessage: e.message);
+      unawaited(registrar.onResume()); // 탈퇴가 안 됐으면 세션이 남으므로 알림 등록을 되살린다.
     } finally {
       link.close();
     }

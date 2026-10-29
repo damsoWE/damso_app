@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../core/session/role.dart';
 import '../core/session/session_controller.dart';
 import '../core/session/session_state.dart';
+import '../core/theme/app_theme.dart';
+import '../core/util/uuid.dart';
 import '../features/admin/presentation/admin_home_page.dart';
 import '../features/admin/presentation/admin_my_page.dart';
 import '../features/admin/presentation/classroom_detail_page.dart';
@@ -69,6 +71,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (_, state) =>
         resolveRedirect(ref.read(sessionControllerProvider), state.uri.path),
+    // 없는 경로는 go_router 기본 오류 화면(예외 문구 노출) 대신 고정 안내로 보인다.
+    errorBuilder: (_, _) => const _NotFoundPage(),
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const SplashPage()),
       GoRoute(path: '/', builder: (_, _) => const StartPage()),
@@ -185,6 +189,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => ThreadPage(inquiryId: s.pathParameters['inquiryId']!),
       ),
       // 재문의 상세(F4-3b, research R13). 재문의 정보는 스레드가 extra 로 넘긴다. 없으면 스레드로.
+      // 경로 ID 가 UUID 가 아니면 이 redirect 전에 resolveRedirect 가 목록으로 보낸다.
       GoRoute(
         path: '/teacher/inquiries/:inquiryId/follow-ups/:followUpId',
         redirect: (_, s) => s.extra is FollowUpArgs
@@ -327,6 +332,57 @@ Role? _ownerOf(String location) {
   return null;
 }
 
+/// ID 를 경로에 담는 화면(문의·재문의·학급)의 ID 가 모두 UUID 인지.
+/// [location] 은 디코딩 전 경로라 `%2F`·`%2e%2e` 가 섞이면 한 칸이 UUID 모양이 아니게 된다.
+bool _hasValidIds(String location) {
+  final s = location.split('/'); // ['', 'teacher', 'inquiries', <id>, <화면>, ...]
+  if (s.length < 4) return true;
+  switch (s[1]) {
+    case 'parent' || 'teacher':
+      if (s[2] != 'inquiries' || s.length < 5) return true; // new·submitted 등
+      if (!isUuid(s[3])) return false;
+      return s.length < 6 || s[4] != 'follow-ups' || isUuid(s[5]);
+    case 'admin':
+      if (s[2] != 'classrooms' || s[3] == 'new') return true;
+      return isUuid(s[3]);
+  }
+  return true;
+}
+
+/// 없는 경로로 들어왔을 때의 고정 안내. 예외 내용은 보이지 않는다.
+class _NotFoundPage extends StatelessWidget {
+  const _NotFoundPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '페이지를 찾을 수 없습니다.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.body,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // /splash 는 redirect 가 역할 홈(로그아웃이면 시작 화면)으로 보낸다.
+                FilledButton(
+                  onPressed: () => context.go('/splash'),
+                  child: const Text('처음으로'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// contracts/routes.md "redirect 규칙". null 이면 그대로 둔다.
 @visibleForTesting
 String? resolveRedirect(SessionState state, String location) {
@@ -342,6 +398,14 @@ String? resolveRedirect(SessionState state, String location) {
       if (_isPublicOnly(location)) return home;
       final owner = _ownerOf(location);
       if (owner != null && owner != role) return home;
+      // 경로 ID 는 API 경로에 그대로 끼워 넣어지므로 UUID 가 아니면 화면을 열지 않는다.
+      if (!_hasValidIds(location)) {
+        return switch (role) {
+          Role.parent => '/parent/inquiries',
+          Role.teacher => '/teacher/inquiries',
+          Role.superAdmin => '/admin',
+        };
+      }
       // 옛 문의 경로 → 역할 문의 탭(specs/002 routes.md 규칙 4-b, FR-032).
       if (_under(location, '/inquiries')) {
         return switch (role) {

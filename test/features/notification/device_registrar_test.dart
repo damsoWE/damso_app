@@ -135,4 +135,36 @@ void main() {
     await container.read(deviceRegistrarProvider).onResume();
     expect(repo.registerCalls, 1);
   });
+
+  test('기기 토큰을 폐기하면 토큰 갱신을 더 보내지 않고, 다음 교사 로그인에서 다시 등록한다', () async {
+    session().signIn(Role.teacher);
+    await settle();
+    expect(repo.registerCalls, 1);
+
+    await container.read(deviceRegistrarProvider).deleteToken();
+    expect(push.deleteTokenCalls, 1);
+    push.tokenRefresh.add('token-2');
+    await settle();
+    expect(repo.registerCalls, 1);
+
+    await session().signOut();
+    push.token = 'token-3';
+    session().signIn(Role.teacher);
+    await settle();
+    expect(repo.registerCalls, 2);
+    expect(repo.registeredToken, 'token-3');
+  });
+
+  test('서버 해제가 실패해도 예외 없이 끝나고, 앱이 다시 앞으로 오면 다시 등록한다', () async {
+    create(notification: _FailingUnregister());
+    session().signIn(Role.teacher);
+    await settle();
+    expect(repo.registerCalls, 1);
+
+    final registrar = container.read(deviceRegistrarProvider);
+    await registrar.unregisterDevice();
+    expect(repo.unregisterCalls, 1);
+    await registrar.onResume();
+    expect(repo.registerCalls, 2);
+  });
 }

@@ -43,6 +43,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       children: [
         TextField(
           controller: _email,
+          autofillHints: const [AutofillHints.email],
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           decoration: const InputDecoration(labelText: '이메일'),
@@ -51,6 +52,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         const SizedBox(height: AppSpacing.sm),
         TextField(
           controller: _password,
+          autofillHints: const [AutofillHints.password],
           obscureText: true,
           autocorrect: false,
           enableSuggestions: false,

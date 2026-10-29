@@ -69,7 +69,8 @@ class _PushListenerState extends ConsumerState<PushListener> {
     final messenger = scaffoldMessengerKey.currentState;
     if (messenger == null) return;
     messenger
-      ..hideCurrentMaterialBanner()
+      // 대기열에 남은 이전 배너가 최신(긴급일 수 있는) 배너를 가리지 않도록 비운다.
+      ..clearMaterialBanners()
       ..showMaterialBanner(
         MaterialBanner(
           content: Text(
@@ -107,7 +108,13 @@ class _PushListenerState extends ConsumerState<PushListener> {
     ref.watch(deviceRegistrarProvider); // 세션 변화에 따라 기기 등록·해제
     // 알림으로 연 경로는 교사(가입 직후 제외)만 쓴다. 그 밖의 로그인이면 버린다.
     // 교사면 교사 탭 셸이 뜬 뒤 그 위에 띄운다(TeacherShell).
-    ref.listen(sessionControllerProvider, (_, next) {
+    ref.listen(sessionControllerProvider, (prev, next) {
+      // 로그아웃·만료로 세션이 끝나면 앞 사용자가 누른 알림 경로를 비운다.
+      // 로그인 전에 알림을 눌러 경로가 담기는 것은 정상이므로 로그인 → 로그아웃 전환에서만 비운다.
+      if (prev is SignedIn && next is SignedOut) {
+        ref.read(pendingNavigationProvider.notifier).clear();
+        return;
+      }
       if (next is! SignedIn) return;
       if (next.role != Role.teacher || next.justSignedUp) {
         ref.read(pendingNavigationProvider.notifier).clear();

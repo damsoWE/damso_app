@@ -42,6 +42,7 @@ class _ResetEmailPageState extends ConsumerState<ResetEmailPage> {
         const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _email,
+          autofillHints: const [AutofillHints.email],
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           decoration: const InputDecoration(labelText: '이메일'),

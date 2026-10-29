@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// 빌드 시점 환경값. --dart-define-from-file=env/<환경>.json 으로 주입한다.
 /// 시크릿(API 키 등)은 앱에 넣지 않는다. 서버 주소 같은 공개 가능한 값만 둔다.
 /// Firebase 연결 값은 저장소에 두지 않고 `secrets/firebase.json`으로 빌드 때만 주입한다
@@ -31,11 +33,25 @@ class Env {
       (firebaseAndroidAppId.isNotEmpty || firebaseIosAppId.isNotEmpty);
 
   /// 미설정 시 기동을 거부한다(원칙 8: 설정 누락 상태로 실행하지 않음).
+  /// 릴리스 빌드는 mock 과 평문(http) 서버 주소를 허용하지 않는다.
+  /// (mock 은 공용 비밀번호의 데모 계정을 쓰고, http 는 토큰·민원을 평문으로 보낸다.)
   static void ensureConfigured() {
+    if (kReleaseMode && useMock) {
+      throw StateError(
+        '릴리스 빌드에서는 USE_MOCK 을 켤 수 없습니다. '
+        '--dart-define-from-file=env/prod.json 으로 빌드하세요(scripts/build-release.sh).',
+      );
+    }
     if (!useMock && apiBaseUrl.isEmpty) {
       throw StateError(
         'API_BASE_URL 이 설정되지 않았습니다. '
         '--dart-define-from-file=env/prod.json(배포 서버) 또는 env/dev.json(로컬 서버)으로 실행하세요.',
+      );
+    }
+    if (kReleaseMode && !apiBaseUrl.startsWith('https://')) {
+      throw StateError(
+        'API_BASE_URL 은 릴리스 빌드에서 https:// 로 시작해야 합니다. '
+        '--dart-define-from-file=env/prod.json 으로 빌드하세요.',
       );
     }
   }
