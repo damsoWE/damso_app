@@ -44,6 +44,11 @@ final class IssueFailed extends IssueResult {
   final String message;
 }
 
+/// 이미 발행 요청이 진행 중이라 이번 요청은 보내지 않았다(중복 발행 방지).
+final class IssueBusy extends IssueResult {
+  const IssueBusy();
+}
+
 /// 발행 완료 화면(ADM-3/3t)에 extra 로만 넘기는 값. Provider·저장소에 보관하지 않는다.
 class IssuedInviteArgs {
   const IssuedInviteArgs({required this.code, required this.target});
@@ -59,6 +64,7 @@ class ClassroomDetail {
     required this.students,
     required this.teacherCodeUnused,
     required this.studentsWithUnusedCode,
+    this.issuing = false,
   });
 
   final AdminClassroom classroom;
@@ -67,6 +73,17 @@ class ClassroomDetail {
   /// 미사용 교사 코드가 있으면 발행 대신 재발행(확인 필요).
   final bool teacherCodeUnused;
   final Set<String> studentsWithUnusedCode;
+
+  /// 코드 발행 요청이 진행 중인지. 버튼을 막는 데만 쓴다.
+  final bool issuing;
+
+  ClassroomDetail copyWith({bool? issuing}) => ClassroomDetail(
+    classroom: classroom,
+    students: students,
+    teacherCodeUnused: teacherCodeUnused,
+    studentsWithUnusedCode: studentsWithUnusedCode,
+    issuing: issuing ?? this.issuing,
+  );
 }
 
 /// ADM-1 학급 상세 · ADM-2 교사 초대코드 발행.
@@ -74,6 +91,9 @@ class ClassroomDetailViewModel extends AsyncNotifier<ClassroomDetail> {
   ClassroomDetailViewModel(this.classroomId);
 
   final String classroomId;
+
+  /// 발행 요청 진행 중 여부. 새 코드가 이전 코드를 무효로 만들므로 동시에 두 번 보내지 않는다.
+  bool _issuing = false;
 
   @override
   Future<ClassroomDetail> build() async {
@@ -110,9 +130,14 @@ class ClassroomDetailViewModel extends AsyncNotifier<ClassroomDetail> {
 
   /// 발행·재발행. 결과 코드는 돌려주기만 하고 상태에 담지 않는다.
   /// 실패(예: 그사이 교사가 연결돼 409)해도 현황이 바뀌었을 수 있으므로 다시 불러온다.
+  /// 이미 요청 중이면 보내지 않고 [IssueBusy] 를 돌려준다.
   Future<IssueResult> issue(InviteTarget target) async {
+    if (_issuing) return const IssueBusy();
+    _issuing = true;
     final repo = ref.read(adminRepositoryProvider);
     final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
+    final current = state.value;
+    if (current != null) state = AsyncData(current.copyWith(issuing: true));
     try {
       final code = switch (target) {
         TeacherInviteTarget() => await repo.issueTeacherInvite(target.classroomId),
@@ -124,7 +149,8 @@ class ClassroomDetailViewModel extends AsyncNotifier<ClassroomDetail> {
     } on AppException catch (e) {
       return IssueFailed(e.message);
     } finally {
-      ref.invalidateSelf();
+      _issuing = false;
+      ref.invalidateSelf(); // 다시 불러오면서 issuing 도 false 로 돌아간다.
       ref.invalidate(adminHomeViewModelProvider);
       link.close();
     }

@@ -66,6 +66,7 @@ class _SignupVerifyPageState extends ConsumerState<SignupVerifyPage> {
         const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _code,
+          autofillHints: const [AutofillHints.oneTimeCode],
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,

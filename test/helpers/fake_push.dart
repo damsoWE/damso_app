@@ -15,6 +15,7 @@ class FakePush implements PushMessaging {
   /// getToken 이 던질 오류(APNs 토큰 없음 등).
   Object? tokenError;
   int requestCalls = 0;
+  int deleteTokenCalls = 0;
   PushData? initial;
 
   final foreground = StreamController<PushMessage>.broadcast();
@@ -42,6 +43,9 @@ class FakePush implements PushMessaging {
     if (e != null) throw e;
     return token;
   }
+
+  @override
+  Future<void> deleteToken() async => deleteTokenCalls++;
 
   @override
   Stream<String> get onTokenRefresh => tokenRefresh.stream;

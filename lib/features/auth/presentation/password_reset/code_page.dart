@@ -79,6 +79,7 @@ class _ResetCodePageState extends ConsumerState<ResetCodePage> {
         const SizedBox(height: AppSpacing.sm),
         TextField(
           controller: _code,
+          autofillHints: const [AutofillHints.oneTimeCode],
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,

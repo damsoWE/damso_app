@@ -121,7 +121,9 @@ class GeneralDetailPage extends ConsumerWidget {
       studentName: detail.summary.studentName,
       title: title,
       requests: requests == null || requests.isEmpty ? null : requests,
-      lastSeenFollowUpId: detail.followUps.lastOrNull?.inquiryId,
+      // 이 화면은 재문의를 보이지 않으므로 "루트만 봤다"(null)로 보낸다. 재문의가 있으면 서버가
+      // 409 NEW_FOLLOW_UP 으로 막고, 작성 화면이 재문의를 보여 준 뒤 다시 보내게 한다(api-v0.11).
+      lastSeenFollowUpId: null,
     );
     return [
       const SizedBox(height: AppSpacing.sm),

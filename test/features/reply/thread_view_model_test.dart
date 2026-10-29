@@ -173,9 +173,17 @@ void main() {
     expect(calls.where((c) => c == 'refinement:$_rootId'), hasLength(1));
     expect((s.entries.first as ParentCard).requests, '이번 주 안 회신');
 
+    // 다시 읽어도 이미 받은 번역본은 다시 부르지 않는다(열람 기록이 늘지 않게).
+    await container.read(provider.notifier).reload();
+    s = container.read(provider).requireValue;
+    expect(calls.where((c) => c == 'refinement:$_rootId'), hasLength(1));
+    expect((s.entries.first as ParentCard).requests, '이번 주 안 회신');
+  });
+
+  test('번역본 요청사항이 빈 문자열이면 null', () async {
+    repo.detailValue = detailOf(answers: [answerAt(t)]);
     repo.refinements[_rootId] = () => refinementOf(_rootId, '');
-    container.invalidate(provider);
-    s = await load();
+    final s = await load();
     expect((s.entries.first as ParentCard).requests, isNull);
   });
 

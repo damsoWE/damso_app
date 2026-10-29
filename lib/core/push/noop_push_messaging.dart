@@ -20,6 +20,9 @@ class NoopPushMessaging implements PushMessaging {
   Future<String?> getToken() async => null;
 
   @override
+  Future<void> deleteToken() async {}
+
+  @override
   Stream<String> get onTokenRefresh => const Stream.empty();
 
   @override

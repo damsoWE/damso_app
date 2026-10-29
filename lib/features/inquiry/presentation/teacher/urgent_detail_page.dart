@@ -22,12 +22,21 @@ class UrgentDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = urgentDetailViewModelProvider(inquiryId);
+    ref.listen(provider, (previous, next) {
+      // 긴급이 아니었다 — 일반 상세로 한 번만 바꾼다(그리는 중에 이동하지 않는다).
+      if (next.value?.redirectToGeneral == true &&
+          previous?.value?.redirectToGeneral != true) {
+        context.replace('/teacher/inquiries/$inquiryId/general');
+      }
+    });
     return Scaffold(
       appBar: AppBar(title: const Text(NoticeText.urgentLabel)),
       body: AsyncView(
         value: ref.watch(provider),
         onRetry: () => ref.invalidate(provider),
         data: (d) {
+          final content = d.content;
+          if (content == null) return const SizedBox.shrink(); // ref.listen 이 옮긴다
           final s = d.detail.summary;
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -59,7 +68,7 @@ class UrgentDetailPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       // 일반 Text 만 쓴다(길게 눌러 복사하지 않음, plan 렌더링 기준).
-                      Text(d.content, style: AppTextStyles.body),
+                      Text(content, style: AppTextStyles.body),
                     ],
                   ),
                 ),
@@ -81,7 +90,8 @@ class UrgentDetailPage extends ConsumerWidget {
                     inquiryId: inquiryId,
                     studentName: s.studentName,
                     title: s.title,
-                    lastSeenFollowUpId: d.detail.followUps.lastOrNull?.inquiryId,
+                    // 이 화면은 재문의를 보이지 않으므로 "루트만 봤다"(null)로 보낸다(api-v0.11).
+                    lastSeenFollowUpId: null,
                   ),
                 ),
                 child: const Text(AnswerText.writeAnswerButton),

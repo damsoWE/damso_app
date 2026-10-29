@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../../core/widgets/form_layout.dart';
 import 'classroom_detail_view_model.dart';
 import 'format.dart';
 
@@ -37,6 +38,8 @@ class ClassroomDetailPage extends ConsumerWidget {
           );
         case IssueFailed(:final message):
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        case IssueBusy():
+          break; // 이미 발행 중. 버튼이 막혀 있어 거의 오지 않는다.
       }
     }
 
@@ -93,14 +96,18 @@ class ClassroomDetailPage extends ConsumerWidget {
                 trailing: s.guardianLinked
                     ? null
                     : TextButton(
-                        onPressed: () => onIssue(
-                          ParentInviteTarget(
-                            classroomId,
-                            studentId: s.studentId,
-                            studentName: s.name,
-                          ),
-                          reissue: d.studentsWithUnusedCode.contains(s.studentId),
-                        ),
+                        onPressed: d.issuing
+                            ? null
+                            : () => onIssue(
+                                ParentInviteTarget(
+                                  classroomId,
+                                  studentId: s.studentId,
+                                  studentName: s.name,
+                                ),
+                                reissue: d.studentsWithUnusedCode.contains(
+                                  s.studentId,
+                                ),
+                              ),
                         child: Text(
                           d.studentsWithUnusedCode.contains(s.studentId)
                               ? '재발행'
@@ -136,9 +143,10 @@ class _HomeroomCard extends StatelessWidget {
             Text(assigned ? '담임 선생님이 연결되어 있습니다.' : '담임 선생님이 아직 연결되지 않았습니다.'),
             if (!assigned) ...[
               const SizedBox(height: AppSpacing.sm),
-              FilledButton(
+              SubmitButton(
+                label: detail.teacherCodeUnused ? '교사 코드 재발행' : '교사 초대코드 발행',
+                isLoading: detail.issuing,
                 onPressed: onIssue,
-                child: Text(detail.teacherCodeUnused ? '교사 코드 재발행' : '교사 초대코드 발행'),
               ),
             ],
           ],

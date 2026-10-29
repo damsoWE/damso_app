@@ -40,6 +40,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
         const SizedBox(height: AppSpacing.md),
         TextField(
           controller: _password,
+          autofillHints: const [AutofillHints.password],
           obscureText: true,
           autocorrect: false,
           enableSuggestions: false,

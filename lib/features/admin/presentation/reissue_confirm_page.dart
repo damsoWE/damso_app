@@ -41,6 +41,8 @@ class _ReissueConfirmPageState extends ConsumerState<ReissueConfirmPage> {
           _issuing = false;
           _error = message;
         });
+      case IssueBusy():
+        setState(() => _issuing = false);
     }
   }
 

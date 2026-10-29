@@ -222,12 +222,38 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
     }
   }
 
+  /// 보냈을 수 있는 전송(응답 없이 끊김)의 첫 시도 시각. 다시 보내기 전에 서버에 저장됐는지 볼 때 쓴다.
+  DateTime? _uncertainSendSince;
+
   /// "직접 전송" 류. 교사가 누를 때만 부른다(FR-010).
   Future<void> send() async {
     if (!state.canSend) return;
+    final before = state.step;
+    final retryAfterMaybeSent = before is SendFailed && before.maybeSent;
+    if (!retryAfterMaybeSent) _uncertainSendSince = DateTime.now();
     state = state.copyWith(step: const Sending(), inputError: () => null);
     final link = ref.keepAlive();
     try {
+      if (retryAfterMaybeSent) {
+        // 답변은 수정·삭제할 수 없고 전송마다 학부모에게 알림이 가므로, 이미 저장됐는지 먼저 본다.
+        final AnswerSent? saved;
+        try {
+          saved = await _findSavedAnswer(state.text.trim());
+        } on AppException catch (e) {
+          // 저장 여부를 확인하지 못했다 — 보냈을 수 있다는 상태로 되돌려 두고 다시 보내지 않는다.
+          if (!ref.mounted) return;
+          state = state.copyWith(
+            step: const SendFailed(canResend: true, maybeSent: true),
+            message: e.isNetworkError ? null : () => e.message,
+          );
+          return;
+        }
+        if (!ref.mounted) return;
+        if (saved != null) {
+          _markSent(saved);
+          return;
+        }
+      }
       final sent = await ref.read(answerRepositoryProvider).send(
         inquiryId,
         state.text.trim(),
@@ -235,9 +261,7 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
         lastSeenFollowUpId: _lastSeenFollowUpId,
       );
       if (!ref.mounted) return;
-      state = state.copyWith(sent: () => sent);
-      // 보낸 문의는 답변 완료로 옮겨 가므로 목록·홈을 새로 고친다(specs/004 FR-029).
-      ref.read(teacherInquiriesViewModelProvider.notifier).refresh();
+      _markSent(sent);
     } on AppException catch (e) {
       if (!ref.mounted) return;
       if (e.code == ErrorCodes.invalidInput) {
@@ -261,6 +285,26 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
     } finally {
       link.close();
     }
+  }
+
+  void _markSent(AnswerSent sent) {
+    state = state.copyWith(sent: () => sent);
+    // 보낸 문의는 답변 완료로 옮겨 가므로 목록·홈을 새로 고친다(specs/004 FR-029).
+    ref.read(teacherInquiriesViewModelProvider.notifier).refresh();
+  }
+
+  /// 응답을 못 받은 전송이 서버에 저장됐는지: 상세의 답변 중 같은 본문이 첫 시도 시각 이후에 만들어졌으면
+  /// 그 답변을 돌려준다. 상세를 못 받으면 [AppException] 을 던진다(보냈는지 모르니 다시 보내지 않는다).
+  Future<AnswerSent?> _findSavedAnswer(String body) async {
+    final since = _uncertainSendSince;
+    if (since == null) return null;
+    final detail = await ref.read(teacherInquiryRepositoryProvider).detail(inquiryId);
+    for (final a in detail.answers.reversed) {
+      if (a.content.trim() == body && !a.sentAt.isBefore(since)) {
+        return AnswerSent(answerId: a.answerId, inquiryId: inquiryId, sentAt: a.sentAt);
+      }
+    }
+    return null;
   }
 
   /// 409 `NEW_FOLLOW_UP` 뒤: 상세를 다시 받아 못 본 재문의를 보이고, 다음 전송은 그 마지막 재문의까지
