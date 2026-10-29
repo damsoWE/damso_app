@@ -29,6 +29,12 @@ class MockInquiryStore {
   /// "권한 확인(데모)" 카드 — 상세를 열면 403(남의 문의를 연 상황 재현).
   static const forbiddenDemoId = '00000000-0000-4000-8000-000000000403';
 
+  /// F4 데모(specs/004 research R11): 답변한 문의 · 재문의가 있는 문의(+ 그 재문의).
+  /// 종료된 문의는 없다 — 앱·운영 모두 종료를 쓰지 않는다(api-v0.8).
+  static const answeredDemoId = 'a1000000-0000-4000-8000-00000000000b';
+  static const followUpDemoId = 'a1000000-0000-4000-8000-00000000000c';
+  static const followUpDemoFollowUpId = 'a1000000-0000-4000-8000-00000000c001';
+
   static const _generalLimit = Duration(seconds: 60);
 
   final _inquiries = <_MockInquiry>[];
@@ -193,12 +199,24 @@ class MockInquiryStore {
       summary: i.teacherSummary,
       timeline: List.unmodifiable(i.timeline),
       retryAvailable: i.retryAvailable,
+      followUps: [for (final f in i.followUps) f.view],
+      answers: List.unmodifiable(i.answers),
     );
   }
 
   /// 원문 열람(원본 명세 viewInquiryContent). 긴급은 첫 열람에, "원문 확인 필요" 문의는
   /// 접수 단계에서 첫 열람할 때 "교사 확인"이 된다. 번역본이 있는 문의는 단계가 그대로다.
+  /// 재문의 ID 도 받는다(specs/004 research R13).
   String contentForTeacher(String inquiryId) {
+    final followUp = _findFollowUp(inquiryId);
+    if (followUp != null) {
+      followUp.contentViews++;
+      final confirms = followUp.urgent
+          ? followUp.stage == InquiryStage.delivered
+          : followUp.refinement == null && followUp.stage == InquiryStage.received;
+      if (confirms) followUp.stage = InquiryStage.teacherConfirmed;
+      return followUp.content;
+    }
     final i = _find(inquiryId, _inTeacherClass);
     i.contentViews++;
     final confirms = i.urgent
@@ -210,18 +228,101 @@ class MockInquiryStore {
   }
 
   /// 번역본 열람(원본 명세 viewInquiryRefinement). 정제 단계에서 첫 열람하면 "교사 확인".
+  /// 재문의 ID 도 받는다(specs/004 research R13).
   InquiryRefinement refinementForTeacher(String inquiryId) {
+    final followUp = _findFollowUp(inquiryId);
+    if (followUp != null) {
+      final refinement = followUp.refinement;
+      if (refinement == null) throw _refinementNotReady;
+      if (followUp.stage == InquiryStage.refined) {
+        followUp.stage = InquiryStage.teacherConfirmed;
+      }
+      return refinement;
+    }
     final i = _find(inquiryId, _inTeacherClass);
     final refinement = i.refinement;
     if (i.refinementStatus != RefinementStatus.refined || refinement == null) {
-      throw const AppException(
-        message: '아직 정리된 내용이 없습니다.',
-        code: ErrorCodes.refinementNotReady,
-        statusCode: 409,
-      );
+      throw _refinementNotReady;
     }
     if (i.stage == InquiryStage.refined) _confirm(i);
     return refinement;
+  }
+
+  static const _refinementNotReady = AppException(
+    message: '아직 정리된 내용이 없습니다.',
+    code: ErrorCodes.refinementNotReady,
+    statusCode: 409,
+  );
+
+  /// 답변 점검(원본 명세 requestAnswerReview, specs/004 research R11). 본문 단어로 결과를 고른다:
+  /// `점검실패` → 점검 불가, `큰 문제는 아니` → Figma F4-2c 의 제안 2개, 그 밖 → 제안 없음.
+  ({bool available, List<({String excerpt, String reason, String suggestion})> highlights})
+  reviewAnswerForTeacher(String inquiryId, String content) {
+    _find(inquiryId, _inTeacherClass);
+    _checkAnswerContent(content);
+    if (content.contains('점검실패')) return (available: false, highlights: const []);
+    if (!content.contains('큰 문제는 아니')) return (available: true, highlights: const []);
+    return (
+      available: true,
+      highlights: const [
+        (
+          excerpt: '어제 일은 확인해 보니 큰 문제는 아니었습니다.',
+          reason: '걱정을 가볍게 여기는 말로 읽힐 수 있어요.',
+          suggestion: '걱정 많으셨겠어요. 어제 상황을 아이들과 확인하고 있습니다.',
+        ),
+        (
+          excerpt: '확인되는 대로 연락드리겠습니다.',
+          reason: '“이번 주 안 회신” 요청에 대한 설명이 빠져 있어요.',
+          suggestion: '확인한 내용을 이번 주 금요일까지 안내드리겠습니다.',
+        ),
+      ],
+    );
+  }
+
+  /// 답변 전송(원본 명세 sendAnswer). 본문에 `전송실패`면 연결 오류를 흉내 낸다.
+  /// 답변을 보내도 문의는 종료되지 않는다(specs/004 FR-017).
+  SentAnswer sendAnswerForTeacher(
+    String inquiryId,
+    String content, {
+    required bool reviewed,
+  }) {
+    final i = _find(inquiryId, _inTeacherClass);
+    _checkAnswerContent(content);
+    if (content.contains('전송실패')) {
+      throw const AppException(
+        message: AppException.networkMessage,
+        isNetworkError: true,
+      );
+    }
+    final answer = SentAnswer(
+      answerId: uuidV4(),
+      content: content.trim(),
+      reviewed: reviewed,
+      sentAt: DateTime.now(),
+    );
+    i.answers.add(answer);
+    return answer;
+  }
+
+  static void _checkAnswerContent(String content) {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty || trimmed.runes.length > 2000) {
+      throw const AppException(
+        message: '답변을 1자 이상 2,000자 이하로 입력해 주세요.',
+        code: ErrorCodes.invalidInput,
+        statusCode: 400,
+        fieldErrors: {'content': '최대 2000자입니다'},
+      );
+    }
+  }
+
+  _MockFollowUp? _findFollowUp(String id) {
+    for (final i in _inquiries.where(_inTeacherClass)) {
+      for (final f in i.followUps) {
+        if (f.id == id) return f;
+      }
+    }
+    return null;
   }
 
   /// 다시 정리하기(원본 명세 retryInquiryRefinement). 1건당 1회, 결과는 다음 상세 조회에서.
@@ -503,6 +604,56 @@ class MockInquiryStore {
           title: '지난 문의 ${n + 1}',
           confirmed: true,
         ),
+      // ── F4 데모(specs/004 research R11) ──
+      // 답변 1건 — 목록에서 누르면 스레드(F4-3)
+      make(
+        id: answeredDemoId,
+        parentAccount: 'parent',
+        student: _hana,
+        age: const Duration(hours: 2),
+        status: RefinementStatus.refined,
+        title: '친구 관계 관련 문의',
+        confirmed: true,
+      )..answers.add(
+        SentAnswer(
+          answerId: 'c4000000-0000-4000-8000-00000000000b',
+          content: '걱정 많으셨겠어요. 어제 상황을 확인하고 이번 주 금요일까지 안내드리겠습니다.',
+          reviewed: true,
+          sentAt: ago(const Duration(hours: 1, minutes: 30)),
+        ),
+      ),
+      // 답변 1건 + 그 뒤 재문의 1건 — 재문의 카드 → 재문의 상세(Figma 323-1843·323-1863 문구)
+      make(
+        id: followUpDemoId,
+        parentAccount: _otherParents,
+        student: _seojun,
+        age: const Duration(hours: 3),
+        status: RefinementStatus.refined,
+        title: '친구 관계 관련 문의',
+        confirmed: true,
+      )
+        ..answers.add(
+          SentAnswer(
+            answerId: 'c4000000-0000-4000-8000-00000000000c',
+            content: '걱정 많으셨겠어요. 어제 상황을 확인하고 이번 주 금요일까지 안내드리겠습니다.',
+            reviewed: true,
+            sentAt: ago(const Duration(hours: 2)),
+          ),
+        )
+        ..followUps.add(
+          _MockFollowUp(
+            id: followUpDemoFollowUpId,
+            title: '중간 안내 요청',
+            submittedAt: ago(const Duration(minutes: 30)),
+            content: '금요일에 안내 주신다고 하셨는데, 그 전에 지금까지 확인된 내용만이라도 먼저 알려 주실 수 있을까요?',
+            refinement: _refinementOf(
+              followUpDemoFollowUpId,
+              title: '중간 안내 요청',
+              facts: '보호자가 금요일 안내 전에 지금까지 확인된 상황을 알고 싶어 해요.',
+              requests: '금요일 안내 전에 중간 상황도 알려 주실 수 있는지 문의',
+            ),
+          ),
+        ),
       make(
         id: forbiddenDemoId,
         parentAccount: 'parent',
@@ -558,10 +709,17 @@ class _MockInquiry {
   bool retryPending = false;
   InquiryRefinement? refinement;
 
-  /// 마지막 답변 시각. 답변 기능(F4) 전이라 mock 문의는 모두 답변 없음(null).
-  DateTime? lastAnsweredAt;
   int detailReads = 0;
   int contentViews = 0;
+
+  /// 보낸 답변(시간순, specs/004).
+  final answers = <SentAnswer>[];
+
+  /// 마지막 답변 시각(api-v0.7 `lastAnsweredAt`). 보낸 답변에서 만든다.
+  DateTime? get lastAnsweredAt => answers.isEmpty ? null : answers.last.sentAt;
+
+  /// 재문의(시간순, specs/004).
+  final followUps = <_MockFollowUp>[];
 
   InquiryStage get stage => timeline.last.stage;
 
@@ -587,5 +745,40 @@ class _MockInquiry {
     submittedAt: submittedAt,
     hasAnswer: lastAnsweredAt != null,
     lastAnsweredAt: lastAnsweredAt,
+    // 답변 대기 여부·마지막 재문의 시각은 실서버 목록에 아직 없어 mock 도 넘기지 않는다 —
+    // 재문의가 와도 답변 완료 칸에 남는다(specs/004 FR-031, 백엔드 요청 후 반영).
+  );
+}
+
+/// 재문의 하나(specs/004). 번역본·원문은 재문의 자신의 ID로 연다(research R13).
+class _MockFollowUp {
+  _MockFollowUp({
+    required this.id,
+    required this.title,
+    required this.submittedAt,
+    required this.content,
+    this.urgent = false,
+    this.refinement,
+  }) : stage = urgent
+           ? InquiryStage.delivered
+           : refinement != null
+           ? InquiryStage.refined
+           : InquiryStage.received;
+
+  final String id;
+  final bool urgent;
+  final String title;
+  final DateTime submittedAt;
+  final String content;
+  final InquiryRefinement? refinement;
+  InquiryStage stage;
+  int contentViews = 0;
+
+  TeacherFollowUp get view => TeacherFollowUp(
+    inquiryId: id,
+    urgent: urgent,
+    title: title,
+    stage: stage,
+    submittedAt: submittedAt,
   );
 }

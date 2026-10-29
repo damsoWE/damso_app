@@ -15,4 +15,5 @@ abstract final class ErrorCodes {
   static const noHomeroomTeacher = 'NO_HOMEROOM_TEACHER';
   static const refinementNotReady = 'REFINEMENT_NOT_READY';
   static const refinementRetryUnavailable = 'REFINEMENT_RETRY_UNAVAILABLE';
+  static const threadClosed = 'THREAD_CLOSED';
 }

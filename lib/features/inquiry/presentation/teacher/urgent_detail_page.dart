@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../reply/domain/answer_text.dart';
+import '../../../reply/domain/models.dart';
 import '../../../../core/widgets/async_view.dart';
 import '../../../../core/widgets/system_notice.dart';
 import '../../domain/notice_text.dart';
@@ -10,7 +13,7 @@ import '../stage_timeline.dart';
 import 'urgent_detail_view_model.dart';
 
 /// F3-5 긴급 문의 상세 (Figma 224-1245). 정리 없이 학부모가 쓴 원문 그대로를 보인다.
-/// 학부모 이름·연락처는 없다(FR-023). 답변 작성은 F4 범위.
+/// 학부모 이름·연락처는 없다(FR-023). 하단 "답변 작성"은 F4(specs/004 FR-002)가 더했다.
 class UrgentDetailPage extends ConsumerWidget {
   const UrgentDetailPage({super.key, required this.inquiryId});
 
@@ -68,6 +71,19 @@ class UrgentDetailPage extends ConsumerWidget {
                 urgent: true,
                 events: d.detail.timeline,
                 answeredAt: d.detail.summary.lastAnsweredAt,
+              ),
+              // "답변 작성"(specs/004 FR-002). 긴급은 정리본이 없어 요청사항 없이 간다.
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton(
+                onPressed: () => context.push(
+                  '/teacher/inquiries/$inquiryId/answer',
+                  extra: AnswerTarget(
+                    inquiryId: inquiryId,
+                    studentName: s.studentName,
+                    title: s.title,
+                  ),
+                ),
+                child: const Text(AnswerText.writeAnswerButton),
               ),
             ],
           );

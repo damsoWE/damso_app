@@ -322,4 +322,88 @@ void main() {
     expect(find.text('불러오지 못했습니다.'), findsNothing);
     expect(find.text('김하나 학생 문의'), findsWidgets);
   });
+  group('F4 mock 저장소 (specs/004 research R11)', () {
+    const answered = MockInquiryStore.answeredDemoId;
+    const withFollowUp = MockInquiryStore.followUpDemoId;
+    const followUp = MockInquiryStore.followUpDemoFollowUpId;
+    const fresh = 'a1000000-0000-4000-8000-000000000008';
+    late MockInquiryStore store;
+
+    setUp(() => store = MockInquiryStore());
+
+    test('답변 데모는 상세에 답변 1건', () {
+      final d = store.detailForTeacher(answered);
+      expect(d.answers, hasLength(1));
+      expect(d.hasAnswers, isTrue);
+      expect(d.summary.hasAnswer, isTrue); // 목록 hasAnswer 와 같은 값
+    });
+
+    test('재문의 데모는 마지막 답변보다 늦은 재문의 1건, 재문의 번역본·원문을 재문의 ID로 연다', () {
+      final d = store.detailForTeacher(withFollowUp);
+      expect(d.followUps.single.inquiryId, followUp);
+      expect(d.followUps.single.submittedAt.isAfter(d.answers.last.sentAt), isTrue);
+      expect(
+        store.refinementForTeacher(followUp).requests,
+        '금요일 안내 전에 중간 상황도 알려 주실 수 있는지 문의',
+      );
+      expect(store.contentForTeacher(followUp), contains('금요일에 안내 주신다고'));
+    });
+
+    test('전송하면 답변이 늘고 문의는 종료되지 않는다', () {
+      store.sendAnswerForTeacher(fresh, '확인하겠습니다.', reviewed: true);
+      final d = store.detailForTeacher(fresh);
+      expect(d.answers.single.content, '확인하겠습니다.');
+      expect(d.answers.single.reviewed, isTrue);
+      expect(d.summary.stage, isNot(InquiryStage.answered));
+      expect(d.summary.hasAnswer, isTrue);
+    });
+
+    test('답변 대기·답변 완료: 실서버처럼 답변이 있는지로만 나눈다, 재문의가 와도 답변 완료(FR-029·031)', () {
+      TeacherInquirySummary summary(String id) => store
+          .listForTeacher(page: 0, size: 100)
+          .items
+          .firstWhere((i) => i.inquiryId == id);
+
+      expect(summary(answered).needsAnswer, isFalse);
+      expect(summary(fresh).needsAnswer, isTrue);
+
+      final withNewFollowUp = summary(withFollowUp);
+      expect(withNewFollowUp.needsAnswer, isFalse);
+      expect(withNewFollowUp.hasNewFollowUp, isFalse);
+      expect(withNewFollowUp.lastFollowUpAt, isNull);
+
+      store.sendAnswerForTeacher(fresh, '확인하겠습니다.', reviewed: true);
+      expect(summary(fresh).needsAnswer, isFalse);
+    });
+
+    test('점검: 단어로 결과를 고른다', () {
+      final suggest = store.reviewAnswerForTeacher(
+        fresh,
+        '어제 일은 확인해 보니 큰 문제는 아니었습니다. 확인되는 대로 연락드리겠습니다.',
+      );
+      expect(suggest.available, isTrue);
+      expect(suggest.highlights, hasLength(2));
+      expect(suggest.highlights.first.reason, '걱정을 가볍게 여기는 말로 읽힐 수 있어요.');
+
+      expect(store.reviewAnswerForTeacher(fresh, '점검실패 데모').available, isFalse);
+      final none = store.reviewAnswerForTeacher(fresh, '확인하겠습니다.');
+      expect(none.available, isTrue);
+      expect(none.highlights, isEmpty);
+    });
+
+    test('본문에 "전송실패"면 연결 오류, 답변은 늘지 않는다', () {
+      expect(
+        () => store.sendAnswerForTeacher(fresh, '전송실패 데모', reviewed: false),
+        throwsA(isA<AppException>().having((e) => e.isNetworkError, 'network', isTrue)),
+      );
+      expect(store.detailForTeacher(fresh).answers, isEmpty);
+    });
+
+    test('공백만이면 400', () {
+      expect(
+        () => store.sendAnswerForTeacher(fresh, '   ', reviewed: false),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.invalidInput)),
+      );
+    });
+  });
 }

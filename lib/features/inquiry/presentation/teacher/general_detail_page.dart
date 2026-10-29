@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
 import '../../../../core/widgets/system_notice.dart';
+import '../../../reply/domain/answer_text.dart';
+import '../../../reply/domain/models.dart';
 import '../../domain/models.dart';
 import '../../domain/notice_text.dart';
 import '../format.dart';
@@ -13,7 +15,7 @@ import 'refinement_view.dart';
 
 /// 일반 문의 상세. 서버 정리 상태에 따라 F3-2 정리본(Figma 216-5607) · F3-3 원문 확인 필요
 /// (216-5627) · F3-3a 다시 정리하는 중(216-5640) · 정리 중(216-5640 배치) 중 하나를 그린다.
-/// 학부모 이름·연락처는 없다(FR-019). 답변 작성 버튼은 F4 가 하단 버튼 줄에 더한다(FR-023).
+/// 학부모 이름·연락처는 없다(FR-019). 답변 작성 버튼은 F4(specs/004 FR-002)가 F3-2·F3-3 하단에 더했다.
 class GeneralDetailPage extends ConsumerWidget {
   const GeneralDetailPage({super.key, required this.inquiryId});
 
@@ -101,7 +103,35 @@ class GeneralDetailPage extends ConsumerWidget {
     const _LogHint(),
     const SizedBox(height: AppSpacing.lg),
     _contentButton(view.detail.summary),
+    ..._answerButton(
+      view.detail,
+      title: view.refinement.title,
+      requests: view.refinement.requests,
+    ),
   ];
+
+  /// "답변 작성"(F4-2a, specs/004 FR-002).
+  List<Widget> _answerButton(
+    TeacherInquiryDetail detail, {
+    required String title,
+    String? requests,
+  }) {
+    final target = AnswerTarget(
+      inquiryId: inquiryId,
+      studentName: detail.summary.studentName,
+      title: title,
+      requests: requests == null || requests.isEmpty ? null : requests,
+    );
+    return [
+      const SizedBox(height: AppSpacing.sm),
+      Builder(
+        builder: (context) => FilledButton(
+          onPressed: () => context.push('/teacher/inquiries/$inquiryId/answer', extra: target),
+          child: const Text(AnswerText.writeAnswerButton),
+        ),
+      ),
+    ];
+  }
 
   List<Widget> _needsOriginal(
     NeedsOriginal view,
@@ -136,6 +166,7 @@ class GeneralDetailPage extends ConsumerWidget {
       const SystemNotice(NoticeText.retryLimitReached, icon: Icons.info_outline),
     const SizedBox(height: AppSpacing.md),
     const _LogHint(),
+    ..._answerButton(view.detail, title: view.detail.summary.title),
   ];
 
   /// 정리 중과 다시 정리하는 중(F3-3a)은 배지·제목·남은 재요청 카드만 다르다.

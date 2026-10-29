@@ -68,7 +68,7 @@ abstract final class InquiryJson {
     lastAnsweredAt: answered.lastAnsweredAt,
   );
 
-  /// 응답의 content·followUps 와 답변 본문은 읽지 않는다(F4 화면의 몫).
+  /// 학부모 상세. 응답의 content·followUps 와 답변 본문은 읽지 않는다(학부모 F4 화면의 몫).
   static ParentInquiryDetail parentDetail(Map<String, dynamic> j) =>
       ParentInquiryDetail(
         summary: _parentSummary(j, _detailAnswered(j)),
@@ -94,6 +94,8 @@ abstract final class InquiryJson {
     submittedAt: DateTime.parse(j['submittedAt'] as String),
     hasAnswer: answered.hasAnswer,
     lastAnsweredAt: answered.lastAnsweredAt,
+    // 답변 대기 여부·마지막 재문의 시각은 서버 목록에 아직 없다. needsAnswer 는 기본값
+    // `!hasAnswer`, lastFollowUpAt 은 null(specs/004 FR-031, 백엔드 요청 예정).
   );
 
   static TeacherInquiryPage teacherPage(Map<String, dynamic> j) =>
@@ -107,12 +109,37 @@ abstract final class InquiryJson {
         totalElements: j['totalElements'] as int,
       );
 
+  /// 교사 상세. `followUps`·`answers`(api-v0.6, specs/004)가 없으면 빈 목록으로 본다.
+  /// `threatFlagged`(specs 005)는 읽지 않는다.
   static TeacherInquiryDetail teacherDetail(Map<String, dynamic> j) =>
       TeacherInquiryDetail(
         summary: _teacherSummary(j, _detailAnswered(j)),
         timeline: timeline(j['timeline']),
         retryAvailable: j['retryAvailable'] as bool,
+        followUps: [
+          for (final f in (j['followUps'] as List? ?? const []).cast<Map<String, dynamic>>())
+            teacherFollowUp(f),
+        ],
+        answers: [
+          for (final a in (j['answers'] as List? ?? const []).cast<Map<String, dynamic>>())
+            sentAnswer(a),
+        ],
       );
+
+  static TeacherFollowUp teacherFollowUp(Map<String, dynamic> j) => TeacherFollowUp(
+    inquiryId: j['inquiryId'] as String,
+    urgent: j['urgent'] as bool,
+    title: j['title'] as String,
+    stage: InquiryStage.fromServer(j['stage'] as String),
+    submittedAt: DateTime.parse(j['submittedAt'] as String),
+  );
+
+  static SentAnswer sentAnswer(Map<String, dynamic> j) => SentAnswer(
+    answerId: j['answerId'] as String,
+    content: j['content'] as String,
+    reviewed: j['reviewed'] as bool,
+    sentAt: DateTime.parse(j['sentAt'] as String),
+  );
 
   /// 모르는 정서강도·라벨은 버린다(specs/003 research R8).
   static InquiryRefinement refinement(Map<String, dynamic> j) => InquiryRefinement(

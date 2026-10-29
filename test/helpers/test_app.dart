@@ -21,6 +21,9 @@ import 'package:damso_app/features/inquiry/data/mock_parent_inquiry_repository.d
 import 'package:damso_app/features/inquiry/data/mock_teacher_inquiry_repository.dart';
 import 'package:damso_app/features/inquiry/domain/parent_inquiry_repository.dart';
 import 'package:damso_app/features/inquiry/domain/teacher_inquiry_repository.dart';
+import 'package:damso_app/features/reply/data/answer_repository_provider.dart';
+import 'package:damso_app/features/reply/data/mock_answer_repository.dart';
+import 'package:damso_app/features/reply/domain/answer_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -34,6 +37,7 @@ List<Override> mockRepositoryOverrides({
   AdminRepository? admin,
   ParentInquiryRepository Function(Ref ref)? parentInquiry,
   TeacherInquiryRepository Function(Ref ref)? teacherInquiry,
+  AnswerRepository Function(Ref ref)? answer,
   NotificationRepository? notification,
 }) => [
   notificationRepositoryProvider.overrideWith(
@@ -52,6 +56,13 @@ List<Override> mockRepositoryOverrides({
   ),
   teacherInquiryRepositoryProvider.overrideWith(
     (ref) => teacherInquiry?.call(ref) ?? MockTeacherInquiryRepository(
+      ref.watch(tokenStoreProvider),
+      ref.watch(mockInquiryStoreProvider),
+    ),
+  ),
+  // 답변 mock 도 교사 문의 mock 과 같은 저장소를 쓴다(보낸 답변이 스레드에 보인다).
+  answerRepositoryProvider.overrideWith(
+    (ref) => answer?.call(ref) ?? MockAnswerRepository(
       ref.watch(tokenStoreProvider),
       ref.watch(mockInquiryStoreProvider),
     ),
@@ -76,6 +87,7 @@ Widget testApp({
   AdminRepository? admin,
   ParentInquiryRepository Function(Ref ref)? parentInquiry,
   TeacherInquiryRepository Function(Ref ref)? teacherInquiry,
+  AnswerRepository Function(Ref ref)? answer,
   NotificationRepository? notification,
   List<Override> extraOverrides = const [],
 }) {
@@ -87,6 +99,7 @@ Widget testApp({
         admin: admin,
         parentInquiry: parentInquiry,
         teacherInquiry: teacherInquiry,
+        answer: answer,
         notification: notification,
       ),
       ...extraOverrides,

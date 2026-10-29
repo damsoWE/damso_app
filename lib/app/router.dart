@@ -35,6 +35,10 @@ import '../features/inquiry/presentation/teacher/content_page.dart';
 import '../features/inquiry/presentation/teacher/general_detail_page.dart';
 import '../features/inquiry/presentation/teacher/teacher_inquiries_page.dart';
 import '../features/inquiry/presentation/teacher/urgent_detail_page.dart';
+import '../features/reply/domain/models.dart';
+import '../features/reply/presentation/answer_compose_page.dart';
+import '../features/reply/presentation/follow_up_detail_page.dart';
+import '../features/reply/presentation/thread_page.dart';
 import '../features/me/presentation/account_page.dart';
 import '../features/notification/presentation/settings_page.dart';
 import '../features/parent/domain/child.dart';
@@ -164,7 +168,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => ContentPage(
           inquiryId: s.pathParameters['inquiryId']!,
           summary: s.extra is TeacherInquirySummary ? s.extra as TeacherInquirySummary : null,
+          args: s.extra is ContentArgs ? s.extra as ContentArgs : null,
         ),
+      ),
+      // 답변 작성(F4-2a~F4-2h)·스레드(F4-3), specs/004 contracts/routes.md.
+      // :inquiryId 는 스레드 루트 ID. 머리 정보는 extra 로만 받는다(URL 에 이름·제목을 넣지 않음).
+      GoRoute(
+        path: '/teacher/inquiries/:inquiryId/answer',
+        redirect: (_, s) => s.extra is AnswerTarget ? null : '/teacher/inquiries',
+        builder: (_, s) => AnswerComposePage(target: s.extra! as AnswerTarget),
+      ),
+      GoRoute(
+        path: '/teacher/inquiries/:inquiryId/thread',
+        builder: (_, s) => ThreadPage(inquiryId: s.pathParameters['inquiryId']!),
+      ),
+      // 재문의 상세(F4-3b, research R13). 재문의 정보는 스레드가 extra 로 넘긴다. 없으면 스레드로.
+      GoRoute(
+        path: '/teacher/inquiries/:inquiryId/follow-ups/:followUpId',
+        redirect: (_, s) => s.extra is FollowUpArgs
+            ? null
+            : '/teacher/inquiries/${s.pathParameters['inquiryId']}/thread',
+        builder: (_, s) => FollowUpDetailPage(args: s.extra! as FollowUpArgs),
       ),
       GoRoute(
         path: '/teacher/settings/notifications',
