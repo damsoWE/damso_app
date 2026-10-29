@@ -35,6 +35,9 @@ class MockInquiryStore {
   static const followUpDemoId = 'a1000000-0000-4000-8000-00000000000c';
   static const followUpDemoFollowUpId = 'a1000000-0000-4000-8000-00000000c001';
 
+  /// F5 데모(specs/006 research R6): 첫 원문 열람이 기록 실패(500)로 거부되고, 다시 시도하면 원문.
+  static const contentLogFailDemoId = 'a1000000-0000-4000-8000-00000000000d';
+
   static const _generalLimit = Duration(seconds: 60);
 
   final _inquiries = <_MockInquiry>[];
@@ -218,6 +221,15 @@ class MockInquiryStore {
       return followUp.content;
     }
     final i = _find(inquiryId, _inTeacherClass);
+    if (i.contentFailsOnce) {
+      // 열람 기록을 저장하지 못하면 서버는 원문을 내보내지 않는다(api-v0.10, specs/006 R6).
+      i.contentFailsOnce = false;
+      throw const AppException(
+        message: '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        code: ErrorCodes.internalError,
+        statusCode: 500,
+      );
+    }
     i.contentViews++;
     final confirms = i.urgent
         ? i.stage == InquiryStage.delivered
@@ -654,6 +666,16 @@ class MockInquiryStore {
             ),
           ),
         ),
+      // ── F5 데모(specs/006 research R6) ──
+      // 원문 확인 필요 · 첫 원문 열람은 기록 실패로 거부
+      make(
+        id: contentLogFailDemoId,
+        parentAccount: _otherParents,
+        student: _doyun,
+        age: const Duration(days: 2, hours: 1),
+        status: RefinementStatus.needsOriginal,
+        title: '원문 확인 필요',
+      )..contentFailsOnce = true,
       make(
         id: forbiddenDemoId,
         parentAccount: 'parent',
@@ -711,6 +733,9 @@ class _MockInquiry {
 
   int detailReads = 0;
   int contentViews = 0;
+
+  /// 다음 원문 열람 한 번을 기록 실패(500)로 거부한다(F5 데모).
+  bool contentFailsOnce = false;
 
   /// 보낸 답변(시간순, specs/004).
   final answers = <SentAnswer>[];

@@ -16,4 +16,5 @@ abstract final class ErrorCodes {
   static const refinementNotReady = 'REFINEMENT_NOT_READY';
   static const refinementRetryUnavailable = 'REFINEMENT_RETRY_UNAVAILABLE';
   static const threadClosed = 'THREAD_CLOSED';
+  static const internalError = 'INTERNAL_ERROR';
 }

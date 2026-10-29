@@ -4,7 +4,7 @@ import '../../../core/error/app_exception.dart';
 import '../domain/admin_repository.dart';
 import '../domain/models.dart';
 
-/// 실서버 구현. 경로는 docs/api/openapi.yaml(api-v0.3) 그대로.
+/// 실서버 구현. 경로는 docs/api/openapi.yaml(api-v0.3, 문의 현황은 api-v0.10) 그대로.
 class AdminRepositoryImpl implements AdminRepository {
   AdminRepositoryImpl(this._dio);
 
@@ -82,6 +82,33 @@ class AdminRepositoryImpl implements AdminRepository {
       );
       return res.data!.cast<Map<String, dynamic>>().map(_status).toList();
     });
+  }
+
+  @override
+  Future<List<ClassroomInquiryStatus>> inquiryStatus() {
+    return mapDioErrors(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/api/v1/admin/inquiry-status');
+      return (res.data!['items'] as List)
+          .cast<Map<String, dynamic>>()
+          .map(_inquiryStatus)
+          .toList();
+    });
+  }
+
+  /// 네 필드 모두 필수, 건수는 0 이상 정수. 아니면 형식 오류(mapDioErrors 가 일반 안내로).
+  static ClassroomInquiryStatus _inquiryStatus(Map<String, dynamic> j) {
+    int count(String key) {
+      final v = j[key] as int;
+      if (v < 0) throw FormatException('음수 건수: $key');
+      return v;
+    }
+
+    return ClassroomInquiryStatus(
+      classroomId: j['classroomId'] as String,
+      waiting: count('waiting'),
+      confirmed: count('confirmed'),
+      answered: count('answered'),
+    );
   }
 
   static AdminClassroom _classroom(Map<String, dynamic> j) => AdminClassroom(

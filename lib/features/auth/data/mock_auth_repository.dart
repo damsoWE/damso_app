@@ -25,6 +25,7 @@ class MockAuthRepository implements AuthRepository {
     'noclass@damso.test': Role.teacher,
     'refresh-teacher@damso.test': Role.teacher, // 답변 전송 때 갱신을 흉내 낸다(specs/004 FR-027)
     'admin@damso.test': Role.superAdmin,
+    'refresh-admin@damso.test': Role.superAdmin, // 문의 현황 조회 때 갱신을 흉내 낸다(specs/006 R7)
   };
 
   static const _inviteCodes = {

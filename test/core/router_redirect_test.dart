@@ -1,7 +1,21 @@
 import 'package:damso_app/app/router.dart';
 import 'package:damso_app/core/session/role.dart';
 import 'package:damso_app/core/session/session_state.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+
+import '../helpers/test_app.dart';
+
+/// 등록된 모든 경로 문자열(셸 안 경로 포함, 하위 경로는 부모 경로를 붙여서).
+List<String> _allPaths(List<RouteBase> routes, [String parent = '']) => [
+  for (final r in routes)
+    if (r is GoRoute) ...[
+      r.path.startsWith('/') ? r.path : '$parent/${r.path}',
+      ..._allPaths(r.routes, r.path.startsWith('/') ? r.path : '$parent/${r.path}'),
+    ] else if (r is ShellRouteBase)
+      ..._allPaths(r.routes, parent),
+];
 
 const _publicPaths = [
   '/',
@@ -54,10 +68,23 @@ const _rolePaths = {
     '/admin/classrooms/3f2c9a1e-8b7d-4c5e-9f0a-1b2c3d4e5f60',
     '/admin/invite/issued',
     '/admin/me',
+    '/admin/inquiries', // ADM-4 문의 현황(specs/006)
   ],
 };
 
 void main() {
+  // 감사 기록 조회는 서버 운영자 전용, 내보내기는 MVP 제외(specs/006 FR-009, SC-004).
+  testWidgets('감사 기록을 보거나 내보내는 화면 경로가 없다', (tester) async {
+    await tester.pumpWidget(testApp());
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    final paths = _allPaths(router.configuration.routes);
+    expect(paths, contains('/admin/inquiries')); // 목록이 제대로 모였는지
+    final segments = {for (final p in paths) ...p.split('/')};
+    for (final word in ['audit', 'audit-logs', 'logs', 'history', 'export']) {
+      expect(segments, isNot(contains(word)), reason: word);
+    }
+  });
+
   group('확인 중·연결 불가', () {
     for (final state in const [SessionChecking(), SessionUnreachable()]) {
       test('$state 는 어디서든 /splash', () {

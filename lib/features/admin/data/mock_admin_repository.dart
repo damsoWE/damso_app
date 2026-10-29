@@ -2,13 +2,17 @@ import 'dart:math';
 
 import '../../../core/error/app_exception.dart';
 import '../../../core/error/error_codes.dart';
+import '../../../core/storage/token_store.dart';
 import '../domain/admin_repository.dart';
 import '../domain/models.dart';
 
 /// mock 구현(quickstart "관리자"). 상태는 메모리 전용이고 재시작하면 초기값으로 돌아간다.
 /// 초기 데이터: 3학년 2반(담임 있음, 김하나·박서준·이도윤), 1학년 1반(담임 없음, 학생 0명).
+/// 문의 현황(specs/006 research R7): 3학년 2반만 건수가 있고 다른 학급(새로 만든 학급 포함)은 0.
+/// [_tokens]가 있으면 `mock:<계정>`으로 슈퍼 관리자가 아닌 계정을 403 으로 막고,
+/// `refresh-admin` 계정은 첫 현황 조회만 갱신 지연을 흉내 낸다(토큰 갱신은 AuthInterceptor 몫).
 class MockAdminRepository implements AdminRepository {
-  MockAdminRepository() {
+  MockAdminRepository([this._tokens]) {
     final now = DateTime.now();
     final c32 = _MockClassroom(_uuid(), 3, 2, homeroomAssigned: true);
     final c11 = _MockClassroom(_uuid(), 1, 1);
@@ -43,9 +47,18 @@ class MockAdminRepository implements AdminRepository {
         issuedAt: now.subtract(const Duration(hours: 3)),
       ),
     ]);
+    _inquiryCounts[c32.id] = (waiting: 3, confirmed: 2, answered: 7);
   }
 
+  final TokenStore? _tokens;
+
   static const _delay = Duration(milliseconds: 300);
+  static const _refreshDelay = Duration(milliseconds: 600);
+  static const _adminAccounts = {'admin', 'refresh-admin'};
+  bool _refreshSimulated = false;
+
+  /// 학급별 문의 건수. 없는 학급은 0.
+  final _inquiryCounts = <String, ({int waiting, int confirmed, int answered})>{};
   static const _alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   static final _random = Random();
 
@@ -208,6 +221,39 @@ class MockAdminRepository implements AdminRepository {
           issuedAt: c.issuedAt,
           expiresAt: c.expiresAt,
           usedAt: c.usedAt,
+        ),
+    ];
+  }
+
+  @override
+  Future<List<ClassroomInquiryStatus>> inquiryStatus() async {
+    await Future<void>.delayed(_delay);
+    final tokens = _tokens;
+    if (tokens != null) {
+      final account = (tokens.accessToken ?? '').replaceFirst('mock:', '');
+      if (!_adminAccounts.contains(account)) {
+        throw const AppException(
+          message: '접근 권한이 없습니다.',
+          code: ErrorCodes.forbidden,
+          statusCode: 403,
+        );
+      }
+      if (account == 'refresh-admin' && !_refreshSimulated) {
+        await Future<void>.delayed(_refreshDelay);
+        _refreshSimulated = true;
+      }
+    }
+    final sorted = [..._classrooms]
+      ..sort((a, b) => a.grade != b.grade
+          ? a.grade.compareTo(b.grade)
+          : a.classNumber.compareTo(b.classNumber));
+    return [
+      for (final c in sorted)
+        ClassroomInquiryStatus(
+          classroomId: c.id,
+          waiting: _inquiryCounts[c.id]?.waiting ?? 0,
+          confirmed: _inquiryCounts[c.id]?.confirmed ?? 0,
+          answered: _inquiryCounts[c.id]?.answered ?? 0,
         ),
     ];
   }
