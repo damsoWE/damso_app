@@ -42,6 +42,7 @@ class FollowUpDetailPage extends ConsumerWidget {
             title: args.rootTitle,
             requests: requests == null || requests.isEmpty ? null : requests,
             fromThread: true,
+            lastSeenFollowUpId: args.lastSeenFollowUpId,
           );
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -81,17 +82,19 @@ class FollowUpDetailPage extends ConsumerWidget {
                   ContentArgs(
                     title: title,
                     header: '${args.studentName} 학부모 · $at',
-                    answerTarget: target,
+                    answerTarget: args.canAnswer ? target : null,
                   ),
                 ),
                 child: const Text(AnswerText.viewOriginalButton),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              FilledButton(
-                onPressed: () =>
-                    _open(context, '/teacher/inquiries/${args.rootId}/answer', target),
-                child: const Text(AnswerText.writeAnswerButton),
-              ),
+              if (args.canAnswer) ...[
+                const SizedBox(height: AppSpacing.sm),
+                FilledButton(
+                  onPressed: () =>
+                      _open(context, '/teacher/inquiries/${args.rootId}/answer', target),
+                  child: const Text(AnswerText.writeAnswerButton),
+                ),
+              ],
             ],
           );
         },

@@ -5,7 +5,12 @@ abstract class TeacherInquiryRepository {
   static const pageSize = 20;
 
   /// 담당 학급 문의, 긴급 먼저 그다음 최신순(서버가 정렬).
-  Future<TeacherInquiryPage> list({int page = 0, int size = pageSize});
+  /// [answerStatus]가 있으면 서버가 답변 여부로 거른다(api-v0.11).
+  Future<TeacherInquiryPage> list({
+    int page = 0,
+    int size = pageSize,
+    AnswerStatus? answerStatus,
+  });
 
   Future<TeacherInquiryDetail> detail(String inquiryId);
 

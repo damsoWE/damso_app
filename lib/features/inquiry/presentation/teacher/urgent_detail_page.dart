@@ -81,6 +81,7 @@ class UrgentDetailPage extends ConsumerWidget {
                     inquiryId: inquiryId,
                     studentName: s.studentName,
                     title: s.title,
+                    lastSeenFollowUpId: d.detail.followUps.lastOrNull?.inquiryId,
                   ),
                 ),
                 child: const Text(AnswerText.writeAnswerButton),

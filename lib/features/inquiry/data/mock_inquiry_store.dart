@@ -165,10 +165,24 @@ class MockInquiryStore {
 
   // ───────── 교사 ─────────
 
-  TeacherInquiryPage listForTeacher({required int page, required int size}) {
+  /// [answerStatus]가 있으면 답변 여부로 거르고 `totalElements`도 거른 결과 기준이다(api-v0.11).
+  TeacherInquiryPage listForTeacher({
+    required int page,
+    required int size,
+    AnswerStatus? answerStatus,
+  }) {
     _teacherListCalls++;
     if (_teacherListCalls == 2) _refinePending();
-    final visible = _inquiries.where(_inTeacherClass).toList()
+    final visible = _inquiries
+        .where(_inTeacherClass)
+        .where(
+          (i) => switch (answerStatus) {
+            null => true,
+            AnswerStatus.waiting => i.needsAnswer,
+            AnswerStatus.answered => !i.needsAnswer,
+          },
+        )
+        .toList()
       ..sort((a, b) {
         if (a.urgent != b.urgent) return a.urgent ? -1 : 1;
         return b.submittedAt.compareTo(a.submittedAt);
@@ -280,11 +294,14 @@ class MockInquiryStore {
   }
 
   /// 답변 전송(원본 명세 sendAnswer). 본문에 `전송실패`면 연결 오류를 흉내 낸다.
+  /// 본문에 `재문의도착`이 있으면 그 문의의 첫 전송 때만 학부모 재문의가 막 온 것처럼 하나 더한다
+  /// — [lastSeenFollowUpId]가 최신 재문의와 달라져 409 `NEW_FOLLOW_UP`(api-v0.11).
   /// 답변을 보내도 문의는 종료되지 않는다(specs/004 FR-017).
   SentAnswer sendAnswerForTeacher(
     String inquiryId,
     String content, {
     required bool reviewed,
+    required String? lastSeenFollowUpId,
   }) {
     final i = _find(inquiryId, _inTeacherClass);
     _checkAnswerContent(content);
@@ -292,6 +309,32 @@ class MockInquiryStore {
       throw const AppException(
         message: AppException.networkMessage,
         isNetworkError: true,
+      );
+    }
+    if (content.contains('재문의도착') && !i.followUpArrivedWhileComposing) {
+      i.followUpArrivedWhileComposing = true;
+      final id = uuidV4();
+      i.followUps.add(
+        _MockFollowUp(
+          id: id,
+          title: '추가 문의',
+          submittedAt: DateTime.now(),
+          content: '(mock) 답변을 쓰는 동안 온 재문의 원문입니다.',
+          refinement: _refinementOf(
+            id,
+            title: '추가 문의',
+            facts: '보호자가 오늘 하교 뒤 아이 상태를 덧붙여 전했어요.',
+            requests: '내일 아침 상황도 함께 확인해 달라는 요청',
+          ),
+        ),
+      );
+    }
+    final latest = i.followUps.isEmpty ? null : i.followUps.last.id;
+    if (lastSeenFollowUpId != latest) {
+      throw const AppException(
+        message: '확인하지 않은 재문의가 있습니다. 스레드를 다시 불러온 뒤 보내 주세요.',
+        code: ErrorCodes.newFollowUp,
+        statusCode: 409,
       );
     }
     final answer = SentAnswer(
@@ -721,6 +764,20 @@ class _MockInquiry {
   /// 재문의(시간순, specs/004).
   final followUps = <_MockFollowUp>[];
 
+  /// `재문의도착` 데모를 이미 썼는지(문의마다 한 번).
+  bool followUpArrivedWhileComposing = false;
+
+  /// 마지막 재문의 시각(api-v0.11 `lastFollowUpAt`).
+  DateTime? get lastFollowUpAt => followUps.isEmpty ? null : followUps.last.submittedAt;
+
+  /// 답변이 없거나 마지막 재문의가 마지막 답변보다 늦다(api-v0.11 `needsAnswer`, 같으면 false).
+  bool get needsAnswer {
+    final answeredAt = lastAnsweredAt;
+    if (answeredAt == null) return true;
+    final followUpAt = lastFollowUpAt;
+    return followUpAt != null && followUpAt.isAfter(answeredAt);
+  }
+
   InquiryStage get stage => timeline.last.stage;
 
   ParentInquirySummary get parentSummary => ParentInquirySummary(
@@ -745,8 +802,8 @@ class _MockInquiry {
     submittedAt: submittedAt,
     hasAnswer: lastAnsweredAt != null,
     lastAnsweredAt: lastAnsweredAt,
-    // 답변 대기 여부·마지막 재문의 시각은 실서버 목록에 아직 없어 mock 도 넘기지 않는다 —
-    // 재문의가 와도 답변 완료 칸에 남는다(specs/004 FR-031, 백엔드 요청 후 반영).
+    needsAnswer: needsAnswer,
+    lastFollowUpAt: lastFollowUpAt,
   );
 }
 

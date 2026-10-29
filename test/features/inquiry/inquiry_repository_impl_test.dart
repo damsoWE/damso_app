@@ -140,6 +140,8 @@ void main() {
           'submittedAt': '2026-10-26T09:30:00Z',
           'hasAnswer': false,
           'lastAnsweredAt': null,
+          'lastFollowUpAt': null,
+          'needsAnswer': true,
         },
       ],
       'page': 1,
@@ -150,14 +152,79 @@ void main() {
 
     final req = adapter.calls.single;
     expect(req.path, '/api/v1/teacher/inquiries');
-    expect(req.queryParameters, {'page': 1, 'size': 20});
+    expect(req.queryParameters, {'page': 1, 'size': 20}); // 거르지 않으면 answerStatus 없음
     expect(page.items.single.refinementStatus, RefinementStatus.pending);
     expect(page.items.single.hasAnswer, isFalse);
     expect(page.items.single.lastAnsweredAt, isNull);
-    // 답변 대기 여부는 서버 목록에 아직 없어 hasAnswer 로만 정한다(specs/004 FR-031).
     expect(page.items.single.needsAnswer, isTrue);
     expect(page.items.single.lastFollowUpAt, isNull);
     expect(page.hasMore, isTrue);
+  });
+
+  test('교사 목록: answerStatus 쿼리, 재문의 시각·needsAnswer 는 서버 값(api-v0.11)', () async {
+    adapter.respond = (_) => _json(200, {
+      'items': [
+        {
+          'inquiryId': _id,
+          'studentId': _student,
+          'studentName': '김하나',
+          'urgent': false,
+          'title': '친구 관계 관련 문의',
+          'stage': 'TEACHER_CONFIRMED',
+          'refinementStatus': 'REFINED',
+          'threatFlagged': false,
+          'threadThreatFlagged': false,
+          'submittedAt': '2026-10-26T09:30:00Z',
+          'hasAnswer': true,
+          'lastAnsweredAt': '2026-10-27T08:00:00Z',
+          'lastFollowUpAt': '2026-10-27T09:00:00Z',
+          'needsAnswer': true,
+        },
+      ],
+      'page': 0,
+      'size': 20,
+      'totalElements': 1,
+    });
+    final page = await TeacherInquiryRepositoryImpl(dio).list(answerStatus: AnswerStatus.waiting);
+
+    expect(adapter.calls.single.queryParameters, {
+      'page': 0,
+      'size': 20,
+      'answerStatus': 'WAITING',
+    });
+    final item = page.items.single;
+    expect(item.needsAnswer, isTrue);
+    expect(item.hasNewFollowUp, isTrue);
+    expect(item.lastFollowUpAt, DateTime.parse('2026-10-27T09:00:00Z'));
+  });
+
+  test('교사 목록: needsAnswer 가 없으면 형식 오류(일반 안내)', () async {
+    adapter.respond = (_) => _json(200, {
+      'items': [
+        {
+          'inquiryId': _id,
+          'studentId': _student,
+          'studentName': '김하나',
+          'urgent': false,
+          'title': '정리 중',
+          'stage': 'RECEIVED',
+          'refinementStatus': 'PENDING',
+          'submittedAt': '2026-10-26T09:30:00Z',
+          'hasAnswer': false,
+          'lastAnsweredAt': null,
+          'lastFollowUpAt': null,
+        },
+      ],
+      'page': 0,
+      'size': 20,
+      'totalElements': 1,
+    });
+    await expectLater(
+      TeacherInquiryRepositoryImpl(dio).list(),
+      throwsA(
+        isA<AppException>().having((e) => e.message, 'message', AppException.fallbackMessage),
+      ),
+    );
   });
 
   group('답변 여부(api-v0.7)', () {

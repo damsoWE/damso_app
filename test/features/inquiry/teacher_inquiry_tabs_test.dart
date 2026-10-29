@@ -33,25 +33,27 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('처음엔 답변 대기: 답한 문의는 재문의가 왔어도 이 칸에 없다', (tester) async {
+  testWidgets('처음엔 답변 대기: 답한 뒤 재문의가 온 문의는 "재문의 받음"으로 이 칸에 있다', (tester) async {
     await openInquiries(tester);
 
-    expect(segment('답변 대기'), findsOneWidget);
-    expect(segment('답변 완료'), findsOneWidget);
+    expect(find.text('답변 대기 36'), findsOneWidget); // 서버 totalElements(불러온 20건이 아니라 전체)
+    expect(find.text('답변 완료 1'), findsOneWidget);
     expect(tile('친구와 다툰 일 관련 문의', '이도윤 · '), findsOneWidget);
-    expect(find.textContaining('답변 완료 · '), findsNothing); // …000b·…000c 는 이 칸에 없다
-    expect(tile('친구 관계 관련 문의', '박서준 · '), findsNothing);
-    expect(find.text('재문의'), findsNothing);
+    expect(find.textContaining('답변 완료 · '), findsNothing); // …000b 는 이 칸에 없다
+    final followUp = tile('친구 관계 관련 문의', '박서준 · 재문의 받음 · ');
+    await tester.ensureVisible(followUp);
+    expect(followUp, findsOneWidget);
+    expect(find.text('재문의'), findsOneWidget);
   });
 
-  testWidgets('답변 완료로 바꾸면 답한 문의만(재문의가 온 문의 포함), 누르면 스레드', (tester) async {
+  testWidgets('답변 완료로 바꾸면 답한 뒤 재문의가 없는 문의만, 누르면 스레드', (tester) async {
     await openInquiries(tester);
     await tester.tap(segment('답변 완료'));
     await settle(tester);
 
     final answered = tile('친구 관계 관련 문의', '김하나 · 답변 완료 · ');
     expect(answered, findsOneWidget);
-    expect(tile('친구 관계 관련 문의', '박서준 · 답변 완료 · '), findsOneWidget);
+    expect(tile('친구 관계 관련 문의', '박서준 · '), findsNothing);
     expect(tile('친구와 다툰 일 관련 문의', '이도윤 · '), findsNothing);
 
     await tester.tap(answered);

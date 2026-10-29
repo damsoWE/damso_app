@@ -98,7 +98,11 @@ class _ScriptedRepo implements TeacherInquiryRepository {
   }
 
   @override
-  Future<TeacherInquiryPage> list({int page = 0, int size = 20}) async {
+  Future<TeacherInquiryPage> list({
+    int page = 0,
+    int size = 20,
+    AnswerStatus? answerStatus,
+  }) async {
     listCalls++;
     return TeacherInquiryPage(items: const [], page: page, size: size, totalElements: 0);
   }

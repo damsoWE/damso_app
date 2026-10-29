@@ -77,13 +77,20 @@ abstract final class InquiryJson {
         hotlines: hotlines(j['hotlines']),
       );
 
-  static TeacherInquirySummary teacherSummary(Map<String, dynamic> j) =>
-      _teacherSummary(j, _listAnswered(j));
+  /// 목록 항목. 답변 대기 여부·마지막 재문의 시각은 서버 값(api-v0.11 `needsAnswer`·`lastFollowUpAt`).
+  static TeacherInquirySummary teacherSummary(Map<String, dynamic> j) => _teacherSummary(
+    j,
+    _listAnswered(j),
+    needsAnswer: j['needsAnswer'] as bool,
+    lastFollowUpAt: _dateOrNull(j['lastFollowUpAt']),
+  );
 
   static TeacherInquirySummary _teacherSummary(
     Map<String, dynamic> j,
-    _Answered answered,
-  ) => TeacherInquirySummary(
+    _Answered answered, {
+    bool? needsAnswer,
+    DateTime? lastFollowUpAt,
+  }) => TeacherInquirySummary(
     inquiryId: j['inquiryId'] as String,
     studentId: j['studentId'] as String,
     studentName: j['studentName'] as String,
@@ -94,8 +101,8 @@ abstract final class InquiryJson {
     submittedAt: DateTime.parse(j['submittedAt'] as String),
     hasAnswer: answered.hasAnswer,
     lastAnsweredAt: answered.lastAnsweredAt,
-    // 답변 대기 여부·마지막 재문의 시각은 서버 목록에 아직 없다. needsAnswer 는 기본값
-    // `!hasAnswer`, lastFollowUpAt 은 null(specs/004 FR-031, 백엔드 요청 예정).
+    needsAnswer: needsAnswer,
+    lastFollowUpAt: lastFollowUpAt,
   );
 
   static TeacherInquiryPage teacherPage(Map<String, dynamic> j) =>

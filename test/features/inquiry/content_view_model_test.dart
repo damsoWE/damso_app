@@ -35,9 +35,13 @@ class _CountingRepo extends MockTeacherInquiryRepository {
   }
 
   @override
-  Future<TeacherInquiryPage> list({int page = 0, int size = 20}) {
+  Future<TeacherInquiryPage> list({
+    int page = 0,
+    int size = 20,
+    AnswerStatus? answerStatus,
+  }) {
     listCalls++;
-    return super.list(page: page, size: size);
+    return super.list(page: page, size: size, answerStatus: answerStatus);
   }
 }
 

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/system_notice.dart';
+import '../../inquiry/domain/models.dart';
+import '../../inquiry/presentation/format.dart';
 import '../domain/answer_text.dart';
 import '../domain/models.dart';
 import 'answer_compose_view_model.dart';
@@ -28,6 +30,14 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
   bool _leaving = false;
 
   AnswerTarget get _target => widget.target;
+
+  @override
+  void initState() {
+    super.initState();
+    ref
+        .read(answerComposeViewModelProvider(_target.inquiryId).notifier)
+        .seenFollowUp(_target.lastSeenFollowUpId);
+  }
 
   @override
   void dispose() {
@@ -109,7 +119,7 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
     Reviewing() || ReviewFailed() => AnswerText.reviewingTitle,
     Reviewed() => AnswerText.resultTitle,
     EditedAfterReview() => AnswerText.editTitle,
-    Sending() || SendFailed() => AnswerText.sendingTitle,
+    Sending() || SendFailed() || NewFollowUpArrived() => AnswerText.sendingTitle,
   };
 
   /// 전송 성공. 스레드에서 왔으면 [AnswerSent] 를 돌려주며 닫고, 거쳐 온 화면(재문의 상세·원문)도
@@ -250,6 +260,24 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
         const SystemNotice(AnswerText.maybeSentHint, icon: Icons.info_outline),
       ],
     ],
+    NewFollowUpArrived(:final followUps, :final notice) => [
+      const Text(AnswerText.newFollowUpHeading, style: AppTextStyles.display),
+      const SizedBox(height: AppSpacing.xs),
+      const _Hint(AnswerText.newFollowUpGuide),
+      const SizedBox(height: AppSpacing.md),
+      SystemNotice(notice, icon: Icons.mark_chat_unread_outlined),
+      if (followUps.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.lg),
+        const _Label(AnswerText.newFollowUpLabel),
+        for (final f in followUps) ...[
+          _NewFollowUpCard(target: _target, followUp: f),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+      ],
+      const SizedBox(height: AppSpacing.md),
+      const _Label(AnswerText.unsentLabel),
+      _ReadOnlyText(s.text),
+    ],
   };
 
   List<Widget> _requests() {
@@ -352,6 +380,13 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
           ? FilledButton(onPressed: vm.resend, child: const Text(AnswerText.resendButton))
           : null,
     ),
+    NewFollowUpArrived() => _pair(
+      OutlinedButton(onPressed: vm.startEdit, child: const Text(AnswerText.editButton)),
+      FilledButton(
+        onPressed: s.canSend ? vm.resend : null,
+        child: const Text(AnswerText.resendButton),
+      ),
+    ),
   };
 
   Widget _stacked(Widget top, Widget bottom) => Column(
@@ -394,6 +429,55 @@ class _RecipientCard extends StatelessWidget {
           style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
         ),
       ],
+    ),
+  );
+}
+
+/// 쓰는 동안 온 재문의. 누르면 재문의 상세(F4-3b)를 열고, 돌아오면 쓰던 답변을 그대로 보낸다
+/// — 그래서 재문의 상세에서는 "답변 작성"을 숨긴다.
+class _NewFollowUpCard extends StatelessWidget {
+  const _NewFollowUpCard({required this.target, required this.followUp});
+
+  final AnswerTarget target;
+  final TeacherFollowUp followUp;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.bgSurface,
+    shape: RoundedRectangleBorder(
+      side: const BorderSide(color: AppColors.borderDefault),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: () => context.push(
+        '/teacher/inquiries/${target.inquiryId}/follow-ups/${followUp.inquiryId}',
+        extra: FollowUpArgs(
+          rootId: target.inquiryId,
+          studentName: target.studentName,
+          rootTitle: target.title,
+          followUp: followUp,
+          lastSeenFollowUpId: null,
+          canAnswer: false,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AnswerText.parentCardTitle(target.studentName, followUp: true),
+              style: AppTextStyles.subtitle,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              AnswerText.newFollowUpHint(formatDateTime(followUp.submittedAt)),
+              style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
