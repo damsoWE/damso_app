@@ -1,3 +1,4 @@
+import '../../../core/error/app_exception.dart';
 import '../../../core/storage/token_store.dart';
 import '../domain/models.dart';
 import '../domain/parent_inquiry_repository.dart';
@@ -50,5 +51,15 @@ class MockParentInquiryRepository implements ParentInquiryRepository {
   Future<ParentInquiryDetail> detail(String inquiryId) async {
     await Future<void>.delayed(_delay);
     return _store.detailForParent(_account, inquiryId);
+  }
+
+  /// mock 시나리오 없음(specs/007 research R9) — 실서버로만 확인한다.
+  @override
+  Future<FollowUpSubmitted> submitFollowUp({
+    required String inquiryId,
+    required String content,
+    required String idempotencyKey,
+  }) async {
+    throw const AppException(message: '이 실행에서는 지원하지 않습니다.');
   }
 }

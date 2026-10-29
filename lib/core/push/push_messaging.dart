@@ -4,7 +4,10 @@ import '../util/uuid.dart';
 enum PushPermission { notDetermined, granted, denied }
 
 /// 알림 종류(서버 FcmPayload `data.kind`).
-enum PushKind { urgent, urgentReminder, general, generalDigest, unknown }
+enum PushKind { urgent, urgentReminder, general, generalDigest, answer, unknown }
+
+/// 알림을 받아 처리할 역할. 로그인한 역할과 같을 때만 배너·이동을 한다(specs/007 R7).
+enum PushTarget { teacher, parent }
 
 /// 알림의 화면 이동 데이터. 서버는 종류와 문의 UUID 만 보낸다(이름·본문 없음).
 /// 이 값은 이동에만 쓰고 저장·로그하지 않는다(FR-031c).
@@ -19,6 +22,7 @@ class PushData {
         'URGENT_REMINDER' => PushKind.urgentReminder,
         'GENERAL' => PushKind.general,
         'GENERAL_DIGEST' => PushKind.generalDigest,
+        'ANSWER' => PushKind.answer,
         _ => PushKind.unknown,
       },
       inquiryId: id is String && isUuid(id) ? id : null,
@@ -30,9 +34,22 @@ class PushData {
 
   bool get isUrgent => kind == PushKind.urgent || kind == PushKind.urgentReminder;
 
-  /// 이동할 교사 화면(specs/002 data-model §5).
+  /// 이 알림을 처리할 역할. 모르는 종류는 null(이동하지 않는다).
+  PushTarget? get target => switch (kind) {
+    PushKind.urgent ||
+    PushKind.urgentReminder ||
+    PushKind.general ||
+    PushKind.generalDigest => PushTarget.teacher,
+    PushKind.answer => PushTarget.parent,
+    PushKind.unknown => null,
+  };
+
+  /// 이동할 화면(specs/002 data-model §5, specs/007 data-model §8).
   String get route {
     final id = inquiryId;
+    if (kind == PushKind.answer) {
+      return id != null ? '/parent/inquiries/$id/thread' : '/parent/inquiries';
+    }
     if (isUrgent && id != null) return '/teacher/inquiries/$id/urgent';
     return '/teacher/inquiries';
   }

@@ -38,40 +38,28 @@ void main() {
     ),
   );
 
-  testWidgets('카드를 펼치면 단계가 보이고, 접었다 펼쳐도 상세는 한 번만 부른다', (tester) async {
+  testWidgets('일반 문의 카드를 누르면 스레드가 열리고 상세를 한 번 부른다', (tester) async {
     useTallScreen(tester);
     await tester.pumpWidget(app());
     await login(tester, 'parent@damso.test');
     await tapTab(tester, '문의');
 
-    final firstExpand = find.byTooltip('펼치기').first;
-    await tester.tap(firstExpand);
+    await tester.tap(find.text('김하나 학생 문의').first);
     await tester.pumpAndSettle();
-    expect(find.text('접수'), findsWidgets);
-    expect(find.text('교사 확인'), findsWidgets);
-    expect(repo.detailCalls, 1);
-
-    await tester.tap(find.byTooltip('접기').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('펼치기').first);
-    await tester.pumpAndSettle();
+    expect(find.text('이어서 묻기'), findsOneWidget);
+    expect(find.text('문의 목록으로'), findsOneWidget);
+    expect(find.text('학부모 · 처음 문의'), findsOneWidget);
     expect(repo.detailCalls, 1);
   });
 
-  testWidgets('F3: 학부모 카드에는 단계만, 번역본·정서강도·정리 상태 문구는 없다(specs/003 US5)', (tester) async {
+  testWidgets('F3: 학부모 스레드에는 번역본·정서강도·정리 상태 문구가 없다(specs/003 US5)', (tester) async {
     useTallScreen(tester);
     await tester.pumpWidget(app());
     await login(tester, 'parent@damso.test');
     await tapTab(tester, '문의');
 
-    // 최근 순: …0003(2시간 전) · …000a(3시간 전, 정리 중) · …0009(4시간 전, 정리 완료)
-    await tester.tap(find.byTooltip('펼치기').at(1));
+    await tester.tap(find.text('김하나 학생 문의').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('펼치기').at(1)); // 펼친 카드는 '접기'가 되어 다음 카드가 at(1)
-    await tester.pumpAndSettle();
-    expect(repo.detailCalls, 2);
-
-    expect(find.text('정제'), findsWidgets);
     for (final hidden in ['번역본', '정서강도', '자동 정리', '원문 확인 필요', '정리 중']) {
       expect(find.textContaining(hidden), findsNothing, reason: hidden);
     }
@@ -123,21 +111,5 @@ void main() {
       store.listForParent('parent').firstWhere((s) => s.inquiryId == pendingId).stage,
       InquiryStage.refined,
     );
-  });
-
-  testWidgets('다른 탭에 다녀오면 펼친 카드의 상세를 다시 불러온다', (tester) async {
-    useTallScreen(tester);
-    await tester.pumpWidget(app());
-    await login(tester, 'parent@damso.test');
-    await tapTab(tester, '문의');
-    await tester.tap(find.byTooltip('펼치기').first);
-    await tester.pumpAndSettle();
-    expect(repo.detailCalls, 1);
-
-    await tapTab(tester, '홈');
-    await tapTab(tester, '문의');
-    await tester.tap(find.byTooltip('펼치기').first);
-    await tester.pumpAndSettle();
-    expect(repo.detailCalls, 2);
   });
 }

@@ -164,13 +164,16 @@ class ParentInquirySummary {
   InquiryStage get displayStage => hasAnswer ? InquiryStage.answered : stage;
 }
 
-/// 카드 펼침·긴급 안내 다시 보기용. 원문·재문의·답변은 F4 화면의 몫이라 담지 않는다.
+/// 스레드(F4-1)·긴급 안내 다시 보기용 학부모 문의 상세(specs/007 data-model §1).
 class ParentInquiryDetail {
   const ParentInquiryDetail({
     required this.summary,
     required this.timeline,
     required this.notices,
     required this.hotlines,
+    required this.content,
+    required this.followUps,
+    required this.answers,
   });
 
   final ParentInquirySummary summary;
@@ -178,11 +181,168 @@ class ParentInquiryDetail {
   final List<Notice> notices;
   final List<Hotline> hotlines;
 
+  /// 처음 문의 원문(본인 글). 일반 Text 로만 그리고 로그에 남기지 않는다(원칙 VI).
+  final String content;
+
+  /// 재문의(시간순).
+  final List<ParentFollowUp> followUps;
+
+  /// 교사 답변(시간순).
+  final List<ParentAnswer> answers;
+
   SubmitOutcome get outcome => SubmitOutcome.from(
     urgent: summary.urgent,
     notices: notices,
     hotlines: hotlines,
   );
+
+  /// 처음 문의·답변·재문의를 시각 오름차순으로 섞은 스레드(data-model §3).
+  /// 시각이 같으면 처음 문의 → 재문의 → 답변 입력 순서를 유지한다(안정 정렬).
+  List<ThreadItem> get thread {
+    final items = <ThreadItem>[
+      RootItem(
+        content: content,
+        submittedAt: summary.submittedAt,
+        urgent: summary.urgent,
+        stage: summary.stage,
+        hotlines: hotlines,
+      ),
+      for (final f in followUps)
+        FollowUpItem(
+          content: f.content,
+          submittedAt: f.submittedAt,
+          urgent: f.urgent,
+          stage: f.stage,
+          hotlines: f.hotlines,
+        ),
+      for (final a in answers) AnswerItem(content: a.content, sentAt: a.sentAt),
+    ];
+    // List.sort 는 안정 정렬이 아니라서 입력 순서를 인덱스로 붙들어 둔다.
+    final indexed = [for (var i = 0; i < items.length; i++) (i, items[i])];
+    indexed.sort((a, b) {
+      final byTime = a.$2.at.compareTo(b.$2.at);
+      return byTime != 0 ? byTime : a.$1.compareTo(b.$1);
+    });
+    return [for (final e in indexed) e.$2];
+  }
+}
+
+/// 스레드의 재문의 하나(학부모 상세 `followUps[]`).
+class ParentFollowUp {
+  const ParentFollowUp({
+    required this.inquiryId,
+    required this.content,
+    required this.urgent,
+    required this.stage,
+    required this.submittedAt,
+    required this.notices,
+    required this.hotlines,
+  });
+
+  final String inquiryId;
+  final String content;
+  final bool urgent;
+  final InquiryStage stage;
+  final DateTime submittedAt;
+  final List<Notice> notices;
+  final List<Hotline> hotlines;
+
+  SubmitOutcome get outcome =>
+      SubmitOutcome.from(urgent: urgent, notices: notices, hotlines: hotlines);
+}
+
+/// 스레드의 교사 답변 하나(학부모 상세 `answers[]`). `reviewed`는 학부모에게 보이지 않아 읽지 않는다.
+class ParentAnswer {
+  const ParentAnswer({
+    required this.answerId,
+    required this.content,
+    required this.sentAt,
+  });
+
+  final String answerId;
+  final String content;
+  final DateTime sentAt;
+}
+
+/// 스레드 화면 항목.
+sealed class ThreadItem {
+  const ThreadItem();
+
+  /// 정렬 기준 시각.
+  DateTime get at;
+}
+
+/// 학부모 · 처음 문의.
+final class RootItem extends ThreadItem {
+  const RootItem({
+    required this.content,
+    required this.submittedAt,
+    required this.urgent,
+    required this.stage,
+    this.hotlines = const [],
+  });
+
+  final String content;
+  final DateTime submittedAt;
+  final bool urgent;
+  final InquiryStage stage;
+  final List<Hotline> hotlines;
+
+  @override
+  DateTime get at => submittedAt;
+}
+
+/// 담임 선생님 · 답변.
+final class AnswerItem extends ThreadItem {
+  const AnswerItem({required this.content, required this.sentAt});
+
+  final String content;
+  final DateTime sentAt;
+
+  @override
+  DateTime get at => sentAt;
+}
+
+/// 학부모 · 이어서 물음.
+final class FollowUpItem extends ThreadItem {
+  const FollowUpItem({
+    required this.content,
+    required this.submittedAt,
+    required this.urgent,
+    required this.stage,
+    required this.hotlines,
+  });
+
+  final String content;
+  final DateTime submittedAt;
+  final bool urgent;
+  final InquiryStage stage;
+  final List<Hotline> hotlines;
+
+  @override
+  DateTime get at => submittedAt;
+}
+
+/// 재문의 접수 결과(`POST …/follow-ups` 201). [threadRootId]는 스레드 루트 문의 ID.
+class FollowUpSubmitted {
+  const FollowUpSubmitted({
+    required this.inquiryId,
+    required this.threadRootId,
+    required this.urgent,
+    required this.submittedAt,
+    required this.notices,
+    required this.hotlines,
+  });
+
+  final String inquiryId;
+  final String threadRootId;
+  final bool urgent;
+  final DateTime submittedAt;
+  final List<Notice> notices;
+  final List<Hotline> hotlines;
+
+  SubmitOutcome get outcome =>
+      SubmitOutcome.from(urgent: urgent, notices: notices, hotlines: hotlines);
 }
 
 /// 일반 문의의 정리 상태. 긴급 문의는 null.

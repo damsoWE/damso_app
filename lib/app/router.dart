@@ -31,7 +31,9 @@ import '../features/auth/presentation/terms_page.dart';
 import '../features/auth/presentation/welcome_page.dart';
 import '../features/inquiry/domain/models.dart';
 import '../features/inquiry/presentation/parent/compose_page.dart';
+import '../features/inquiry/presentation/parent/follow_up_page.dart';
 import '../features/inquiry/presentation/parent/parent_inquiries_page.dart';
+import '../features/inquiry/presentation/parent/thread_page.dart' as parent_thread;
 import '../features/inquiry/presentation/parent/submitted_page.dart';
 import '../features/inquiry/presentation/parent/urgent_notice_page.dart';
 import '../features/inquiry/presentation/teacher/content_page.dart';
@@ -43,6 +45,7 @@ import '../features/reply/presentation/answer_compose_page.dart';
 import '../features/reply/presentation/follow_up_detail_page.dart';
 import '../features/reply/presentation/thread_page.dart';
 import '../features/me/presentation/account_page.dart';
+import '../features/notification/presentation/parent_settings_page.dart';
 import '../features/notification/presentation/settings_page.dart';
 import '../features/parent/domain/child.dart';
 import '../features/me/presentation/withdraw_page.dart';
@@ -121,6 +124,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/parent/inquiries/:inquiryId/urgent',
         builder: (_, s) =>
             UrgentNoticePage(inquiryId: s.pathParameters['inquiryId']!),
+      ),
+      // 스레드(F4-1)와 이어서 묻기(F4-1a). 이어서 묻기의 학생 이름은 extra 로만 받고, 없으면 스레드로.
+      GoRoute(
+        path: '/parent/inquiries/:inquiryId/thread',
+        builder: (_, s) => parent_thread.ParentThreadPage(
+          inquiryId: s.pathParameters['inquiryId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/parent/inquiries/:inquiryId/follow-up',
+        redirect: (_, s) => s.extra is ParentFollowUpArgs
+            ? null
+            : '/parent/inquiries/${s.pathParameters['inquiryId']}/thread',
+        builder: (_, s) => FollowUpPage(
+          inquiryId: s.pathParameters['inquiryId']!,
+          args: s.extra! as ParentFollowUpArgs,
+        ),
+      ),
+      GoRoute(
+        path: '/parent/settings/notifications',
+        builder: (_, _) => const ParentSettingsPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => ParentShell(shell: shell),

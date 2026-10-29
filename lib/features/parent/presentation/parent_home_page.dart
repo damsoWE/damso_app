@@ -6,16 +6,31 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../inquiry/presentation/parent/compose_view_model.dart';
 import '../../inquiry/presentation/parent/home_inquiry_section.dart';
+import '../../notification/presentation/device_registrar.dart';
 import '../domain/child.dart';
 import 'parent_home_view_model.dart';
 
 /// F2-1 학부모 홈 (Figma 216-5162) · F2-1b 빈 상태 (216-5199).
 /// 고른 자녀·담임 카드, 최근 문의(F2 FR-017), 문의 작성 버튼. 담임 이메일은 없다.
-class ParentHomePage extends ConsumerWidget {
+class ParentHomePage extends ConsumerStatefulWidget {
   const ParentHomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ParentHomePage> createState() => _ParentHomePageState();
+}
+
+class _ParentHomePageState extends ConsumerState<ParentHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // 답변 도착 알림 권한은 홈 첫 진입 때, 기기에서 아직 정하지 않았을 때만 묻는다(FR-016).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(deviceRegistrarProvider).requestPermissionIfNeeded();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final home = ref.watch(parentHomeViewModelProvider);
     return Scaffold(
       appBar: AppBar(

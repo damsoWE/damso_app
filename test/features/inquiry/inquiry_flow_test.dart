@@ -116,9 +116,10 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     await tapTab(tester, '문의');
-    await tester.tap(find.byTooltip('펼치기').first);
+    expectNoEditDelete(); // 목록
+    await tester.tap(find.text('김하나 학생 문의').first);
     await tester.pumpAndSettle();
-    expectNoEditDelete(); // 목록·펼친 카드
+    expectNoEditDelete(); // 스레드(F4-1)
   });
 
   testWidgets('문의 탭 첫 화면에서 기기 뒤로 가기 → 앱을 닫지 않고 홈 탭으로', (tester) async {

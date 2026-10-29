@@ -14,11 +14,15 @@ class SubmittedArgs {
     required this.outcome,
     required this.studentName,
     required this.submittedAt,
+    this.threadRootId,
   });
 
   final SubmitOutcome outcome;
   final String studentName;
   final DateTime submittedAt;
+
+  /// 재문의 접수일 때 스레드 루트 ID. 있으면 "보낸 문의 보기"가 그 스레드로 간다(specs/007 R5).
+  final String? threadRootId;
 }
 
 /// 보낸 뒤 안내: F2-5 접수(Figma 216-5227) · F2-5a 응답 가능 시간 안내(216-5258)
@@ -75,7 +79,7 @@ class SubmittedPage extends StatelessWidget {
                 width: double.infinity,
                 child: SubmitButton(
                   label: button,
-                  onPressed: () => context.go('/parent/inquiries'),
+                  onPressed: () => _toInquiries(context),
                 ),
               ),
             ),
@@ -83,6 +87,15 @@ class SubmittedPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+extension on SubmittedPage {
+  /// 재문의면 목록 위에 스레드를 올려(뒤로 → 목록), 처음 문의면 목록으로 간다.
+  void _toInquiries(BuildContext context) {
+    context.go('/parent/inquiries');
+    final rootId = args.threadRootId;
+    if (rootId != null) context.push('/parent/inquiries/$rootId/thread');
   }
 }
 

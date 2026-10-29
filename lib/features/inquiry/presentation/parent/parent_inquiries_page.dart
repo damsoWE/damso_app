@@ -7,16 +7,13 @@ import '../../../../core/widgets/async_view.dart';
 import 'inquiry_card.dart';
 import 'parent_inquiries_view_model.dart';
 
-/// F2-4 나의 문의 목록 (Figma 216-5272). 카드를 펼치면 처리 단계(FR-015).
-/// 상세 스레드(F4-1)는 F4 범위라 이번에는 펼치기까지만 한다.
+/// F2-4 나의 문의 목록 (Figma 216-5272). 카드를 누르면 스레드(F4-1, specs/007).
 class ParentInquiriesPage extends ConsumerWidget {
   const ParentInquiriesPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.read(parentInquiriesViewModelProvider.notifier);
-    // 펼친 카드 상세가 목록 화면이 살아 있는 동안 남도록 구독해 둔다.
-    ref.watch(parentInquiryDetailsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('문의')),
       body: RefreshIndicator(
@@ -31,12 +28,7 @@ class ParentInquiriesPage extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
               for (final s in list) ...[
-                InquiryCard(
-                  key: ValueKey(s.inquiryId),
-                  summary: s,
-                  onUrgentTap: () =>
-                      context.push('/parent/inquiries/${s.inquiryId}/urgent'),
-                ),
+                InquiryCard(key: ValueKey(s.inquiryId), summary: s),
                 const SizedBox(height: AppSpacing.sm),
               ],
               const SizedBox(height: AppSpacing.sm),

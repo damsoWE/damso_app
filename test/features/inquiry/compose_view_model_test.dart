@@ -50,6 +50,13 @@ class _FakeRepo implements ParentInquiryRepository {
 
   @override
   Future<ParentInquiryDetail> detail(String inquiryId) => throw UnimplementedError();
+
+  @override
+  Future<FollowUpSubmitted> submitFollowUp({
+    required String inquiryId,
+    required String content,
+    required String idempotencyKey,
+  }) => throw UnimplementedError();
 }
 
 void main() {

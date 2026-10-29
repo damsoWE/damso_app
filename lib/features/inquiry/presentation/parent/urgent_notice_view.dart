@@ -29,7 +29,7 @@ class UrgentNoticeView extends ConsumerWidget {
           const Text('도움이 필요하시다면', style: AppTextStyles.subtitle),
           for (final h in hotlines) ...[
             const SizedBox(height: AppSpacing.sm),
-            _HotlineCard(hotline: h, canDial: canDial),
+            HotlineCard(hotline: h, canDial: canDial),
           ],
         ],
       ],
@@ -37,8 +37,9 @@ class UrgentNoticeView extends ConsumerWidget {
   }
 }
 
-class _HotlineCard extends ConsumerWidget {
-  const _HotlineCard({required this.hotline, required this.canDial});
+/// 위기 번호 카드. 스레드의 긴급 문의 카드(F4-1)에서도 쓴다.
+class HotlineCard extends ConsumerWidget {
+  const HotlineCard({super.key, required this.hotline, required this.canDial});
 
   final Hotline hotline;
   final bool canDial;

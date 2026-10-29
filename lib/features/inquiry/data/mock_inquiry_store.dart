@@ -163,6 +163,10 @@ class MockInquiryStore {
       timeline: List.unmodifiable(i.timeline),
       notices: i.notices,
       hotlines: i.hotlines,
+      // 스레드 본문은 mock 시나리오 없음(specs/007 research R9) — 실서버로 확인한다.
+      content: '',
+      followUps: const [],
+      answers: const [],
     );
   }
 

@@ -47,4 +47,20 @@ class ParentInquiryRepositoryImpl implements ParentInquiryRepository {
       return InquiryJson.parentDetail(res.data!);
     });
   }
+
+  @override
+  Future<FollowUpSubmitted> submitFollowUp({
+    required String inquiryId,
+    required String content,
+    required String idempotencyKey,
+  }) {
+    return mapDioErrors(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/api/v1/parent/inquiries/$inquiryId/follow-ups',
+        data: {'content': content},
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
+      return InquiryJson.followUpSubmitted(res.data!);
+    });
+  }
 }
