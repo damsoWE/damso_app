@@ -50,6 +50,7 @@ class AnswerTarget {
     required this.title,
     this.requests,
     this.fromThread = false,
+    this.lastSeenFollowUpId,
   });
 
   /// 스레드 루트 ID. 점검·전송 경로에 쓴다(research R4).
@@ -62,6 +63,10 @@ class AnswerTarget {
 
   /// 스레드(재문의 상세 경유)에서 왔는지. 전송 뒤 스레드까지 pop 한다(research R14).
   final bool fromThread;
+
+  /// 들어오기 전 화면이 받은 상세의 마지막 재문의 ID. 재문의가 없으면 null.
+  /// 전송 때 그대로 보내 그 뒤에 온 재문의를 서버가 막게 한다(api-v0.11).
+  final String? lastSeenFollowUpId;
 }
 
 /// 스레드 → 재문의 상세로 넘기는 값(research R13).
@@ -71,10 +76,19 @@ class FollowUpArgs {
     required this.studentName,
     required this.rootTitle,
     required this.followUp,
+    required this.lastSeenFollowUpId,
+    this.canAnswer = true,
   });
 
   final String rootId;
   final String studentName;
   final String rootTitle;
   final TeacherFollowUp followUp;
+
+  /// 스레드의 마지막 재문의 ID([AnswerTarget.lastSeenFollowUpId]로 넘긴다).
+  final String? lastSeenFollowUpId;
+
+  /// "답변 작성"을 보일지. 답변 작성 화면에서 새 재문의를 확인하러 열었으면 false
+  /// — 돌아가서 쓰던 답변을 보낸다.
+  final bool canAnswer;
 }

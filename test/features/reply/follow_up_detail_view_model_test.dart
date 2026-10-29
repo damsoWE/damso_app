@@ -39,8 +39,11 @@ class _FakeRepo implements TeacherInquiryRepository {
   Future<TeacherInquiryDetail> detail(String inquiryId) => throw UnimplementedError();
 
   @override
-  Future<TeacherInquiryPage> list({int page = 0, int size = TeacherInquiryRepository.pageSize}) =>
-      throw UnimplementedError();
+  Future<TeacherInquiryPage> list({
+    int page = 0,
+    int size = TeacherInquiryRepository.pageSize,
+    AnswerStatus? answerStatus,
+  }) => throw UnimplementedError();
 
   @override
   Future<RefinementStatus> retryRefinement(String inquiryId) => throw UnimplementedError();

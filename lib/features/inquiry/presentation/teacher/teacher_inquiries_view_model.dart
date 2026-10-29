@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/app_exception.dart';
 import '../../data/inquiry_repository_providers.dart';
 import '../../domain/models.dart';
 
-/// 교사 문의 목록(data-model §3 TeacherInquiriesState). 교사 홈과 문의 탭이 함께 쓴다.
+/// 교사 문의 목록(data-model §3 TeacherInquiriesState). 교사 홈은 거르지 않은 목록,
+/// 문의 탭은 칸마다 서버가 거른 목록을 쓴다(api-v0.11 `answerStatus`).
 class TeacherInquiriesState {
   const TeacherInquiriesState({
     required this.items,
@@ -16,6 +19,8 @@ class TeacherInquiriesState {
   });
 
   final List<TeacherInquirySummary> items;
+
+  /// 서버 `totalElements`(칸 목록이면 거른 결과 기준).
   final int total;
 
   /// 다음에 부를 페이지. null 이면 끝.
@@ -30,12 +35,6 @@ class TeacherInquiriesState {
 
   Iterable<TeacherInquirySummary> get unconfirmedUrgent =>
       items.where((i) => i.isUnconfirmedUrgent);
-
-  /// 문의 탭의 한 칸에 보일 문의(specs/004 FR-029). 불러온 페이지 안에서 나눈다(FR-031).
-  List<TeacherInquirySummary> itemsOf(InquiryTab tab) => [
-    for (final i in items)
-      if (i.needsAnswer == (tab == InquiryTab.waiting)) i,
-  ];
 
   TeacherInquiriesState copyWith({
     bool? isLoadingMore,
@@ -67,19 +66,34 @@ class TeacherInquiriesState {
 
 /// 다시 불러오기 계기: 열 때 · 탭으로 돌아올 때 · 당겨서 새로 고칠 때 · 열린 상태 알림 수신 ·
 /// 앱이 다시 앞으로 올 때(research R7). 일정 간격 조회는 하지 않는다.
+/// [tab]이 없으면 거르지 않은 목록(교사 홈)이고, 이 목록을 새로 고치면 열려 있는 칸 목록도
+/// 함께 새로 고친다 — 답변 전송·알림 등 목록을 새로 고치는 곳은 이 한 곳만 부르면 된다.
 class TeacherInquiriesViewModel extends AsyncNotifier<TeacherInquiriesState> {
+  TeacherInquiriesViewModel([this.tab]);
+
+  final InquiryTab? tab;
+
   /// 목록이 바뀔 때마다 올린다. 시작할 때와 값이 다르면 늦게 끝난 응답을 버린다
   /// (새로 고침과 다음 페이지가 겹쳐도 새 목록이 옛 목록에 덮이지 않게).
   int _generation = 0;
   int _refreshSeq = 0;
 
+  Future<TeacherInquiryPage> _list({int page = 0}) => ref
+      .read(teacherInquiryRepositoryProvider)
+      .list(page: page, answerStatus: tab?.answerStatus);
+
   @override
-  Future<TeacherInquiriesState> build() async => TeacherInquiriesState.fromPage(
-    await ref.read(teacherInquiryRepositoryProvider).list(),
-  );
+  Future<TeacherInquiriesState> build() async =>
+      TeacherInquiriesState.fromPage(await _list());
 
   /// 0페이지부터 다시. 받는 동안 보던 목록은 그대로 둔다.
   Future<void> refresh() async {
+    if (tab == null) {
+      for (final t in InquiryTab.values) {
+        final provider = teacherInquiryTabViewModelProvider(t);
+        if (ref.exists(provider)) unawaited(ref.read(provider.notifier).refresh());
+      }
+    }
     if (!state.hasValue) {
       ref.invalidateSelf();
       return;
@@ -88,7 +102,7 @@ class TeacherInquiriesViewModel extends AsyncNotifier<TeacherInquiriesState> {
     _generation++; // 진행 중인 다음 페이지 응답은 버린다
     final link = ref.keepAlive(); // 요청 중에 화면을 떠나도 응답 처리를 마친다(해제된 ref 사용 방지).
     try {
-      final page = await ref.read(teacherInquiryRepositoryProvider).list();
+      final page = await _list();
       if (seq != _refreshSeq) return; // 더 나중에 시작한 새로 고침이 있다
       _generation++;
       state = AsyncData(TeacherInquiriesState.fromPage(page));
@@ -117,7 +131,7 @@ class TeacherInquiriesViewModel extends AsyncNotifier<TeacherInquiriesState> {
     );
     final link = ref.keepAlive();
     try {
-      final page = await ref.read(teacherInquiryRepositoryProvider).list(page: next);
+      final page = await _list(page: next);
       if (generation != _generation) return; // 그사이 새로 고침으로 목록이 바뀌었다
       state = AsyncData(
         TeacherInquiriesState.fromPage(page, before: current.items),
@@ -133,8 +147,15 @@ class TeacherInquiriesViewModel extends AsyncNotifier<TeacherInquiriesState> {
   }
 }
 
-/// 문의 탭 위 두 칸(Figma `SegmentTabs` 351-1866).
-enum InquiryTab { waiting, answered }
+/// 문의 탭 위 두 칸(Figma `SegmentTabs` 351-1866). 칸마다 서버가 거른다(api-v0.11).
+enum InquiryTab {
+  waiting(AnswerStatus.waiting),
+  answered(AnswerStatus.answered);
+
+  const InquiryTab(this.answerStatus);
+
+  final AnswerStatus answerStatus;
+}
 
 /// 지금 고른 칸. 처음에는 답변 대기(specs/004 FR-028).
 class InquiryTabController extends Notifier<InquiryTab> {
@@ -148,8 +169,15 @@ final inquiryTabProvider = NotifierProvider.autoDispose<InquiryTabController, In
   InquiryTabController.new,
 );
 
+/// 거르지 않은 목록(교사 홈).
 final teacherInquiriesViewModelProvider =
     AsyncNotifierProvider.autoDispose<
       TeacherInquiriesViewModel,
       TeacherInquiriesState
     >(TeacherInquiriesViewModel.new);
+
+/// 문의 탭의 칸별 목록. 칸 옆 개수는 각 목록의 [TeacherInquiriesState.total]이다.
+final teacherInquiryTabViewModelProvider = AsyncNotifierProvider.autoDispose
+    .family<TeacherInquiriesViewModel, TeacherInquiriesState, InquiryTab>(
+      TeacherInquiriesViewModel.new,
+    );

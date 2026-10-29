@@ -124,6 +124,7 @@ class _ParentCardView extends ConsumerWidget {
     }
 
     final followUp = card.followUp;
+    final lastSeenFollowUpId = state.detail.followUps.lastOrNull?.inquiryId;
     final box = _CardBox(
       title: AnswerText.parentCardTitle(state.studentName, followUp: card.isFollowUp),
       children: [
@@ -146,6 +147,7 @@ class _ParentCardView extends ConsumerWidget {
                     title: state.title,
                     requests: requests,
                     fromThread: true,
+                    lastSeenFollowUpId: lastSeenFollowUpId,
                   ),
                 ),
               ),
@@ -165,6 +167,7 @@ class _ParentCardView extends ConsumerWidget {
           studentName: state.studentName,
           rootTitle: state.title,
           followUp: followUp,
+          lastSeenFollowUpId: lastSeenFollowUpId,
         ),
       ),
       child: box,

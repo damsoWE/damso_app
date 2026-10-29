@@ -4,6 +4,8 @@ import '../../../core/error/app_exception.dart';
 import '../../../core/error/error_codes.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/session/session_state.dart';
+import '../../inquiry/data/inquiry_repository_providers.dart';
+import '../../inquiry/domain/models.dart';
 import '../../inquiry/presentation/teacher/teacher_inquiries_view_model.dart';
 import '../data/answer_repository_provider.dart';
 import '../domain/answer_text.dart';
@@ -46,6 +48,16 @@ final class EditedAfterReview extends ComposeStep {
 /// F4-2g.
 final class Sending extends ComposeStep {
   const Sending();
+}
+
+/// 쓰는 동안 새 재문의가 와서 서버가 전송을 막았다(409 `NEW_FOLLOW_UP`, api-v0.11).
+/// 답변은 저장되지 않았고 본문은 그대로다. [followUps]는 교사가 아직 못 본 재문의(시간순),
+/// [notice]는 서버 문구. 다시 보내면 새 재문의까지 본 것으로 보낸다.
+final class NewFollowUpArrived extends ComposeStep {
+  const NewFollowUpArrived(this.followUps, {required this.notice});
+
+  final List<TeacherFollowUp> followUps;
+  final String notice;
 }
 
 /// F4-2h. [canResend] 가 false 면 다시 보내기를 숨긴다(이미 종료된 문의 등).
@@ -95,7 +107,7 @@ class ComposeState {
 
   /// 입력 직후(Editing)에는 전송할 수 없다. 점검을 한 번 거친 뒤부터 전송할 수 있다(FR-004).
   bool get canSend => hasText && switch (step) {
-    Reviewed() || ReviewFailed() || EditedAfterReview() => true,
+    Reviewed() || ReviewFailed() || EditedAfterReview() || NewFollowUpArrived() => true,
     SendFailed(:final canResend) => canResend,
     _ => false,
   };
@@ -129,6 +141,18 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
 
   final String inquiryId;
 
+  /// 교사가 본 마지막 재문의 ID. 화면 상태가 아니라 전송에만 쓴다.
+  String? _lastSeenFollowUpId;
+  bool _seenSet = false;
+
+  /// 작성 화면이 처음 열릴 때 들어오기 전 화면의 값을 한 번만 넣는다(다시 그려도 바뀌지 않는다).
+  /// 상태를 바꾸지 않으므로 initState 에서 불러도 된다.
+  void seenFollowUp(String? followUpId) {
+    if (_seenSet) return;
+    _seenSet = true;
+    _lastSeenFollowUpId = followUpId;
+  }
+
   @override
   ComposeState build() {
     ref.listen(sessionControllerProvider, (_, next) {
@@ -156,7 +180,10 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
   /// "답변 수정" — 결과·실패 화면에서 입력칸으로.
   void startEdit() {
     final step = state.step;
-    if (step is Reviewed || step is ReviewFailed || step is SendFailed) {
+    if (step is Reviewed ||
+        step is ReviewFailed ||
+        step is SendFailed ||
+        step is NewFollowUpArrived) {
       state = state.copyWith(step: const EditedAfterReview());
     }
   }
@@ -205,6 +232,7 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
         inquiryId,
         state.text.trim(),
         reviewed: state.reviewRequested,
+        lastSeenFollowUpId: _lastSeenFollowUpId,
       );
       if (!ref.mounted) return;
       state = state.copyWith(sent: () => sent);
@@ -222,6 +250,8 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
           step: const SendFailed(canResend: false),
           message: () => e.message,
         );
+      } else if (e.code == ErrorCodes.newFollowUp) {
+        await _showNewFollowUps(e.message);
       } else {
         state = state.copyWith(
           step: SendFailed(canResend: true, maybeSent: e.isNetworkError),
@@ -230,6 +260,27 @@ class AnswerComposeViewModel extends Notifier<ComposeState> {
       }
     } finally {
       link.close();
+    }
+  }
+
+  /// 409 `NEW_FOLLOW_UP` 뒤: 상세를 다시 받아 못 본 재문의를 보이고, 다음 전송은 그 마지막 재문의까지
+  /// 본 것으로 보낸다. 자동으로 다시 보내지 않는다(원칙 V). 상세를 못 받으면 전송 실패로 두고,
+  /// 다시 보내면 서버가 또 막으므로 그때 다시 받는다.
+  Future<void> _showNewFollowUps(String notice) async {
+    try {
+      final detail = await ref.read(teacherInquiryRepositoryProvider).detail(inquiryId);
+      if (!ref.mounted) return;
+      final all = detail.followUps;
+      final seen = _lastSeenFollowUpId;
+      final start = seen == null ? 0 : all.indexWhere((f) => f.inquiryId == seen) + 1;
+      _lastSeenFollowUpId = all.lastOrNull?.inquiryId;
+      state = state.copyWith(step: NewFollowUpArrived(all.sublist(start), notice: notice));
+    } on AppException catch (e) {
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        step: SendFailed(canResend: true, maybeSent: false),
+        message: () => e.isNetworkError ? notice : e.message,
+      );
     }
   }
 

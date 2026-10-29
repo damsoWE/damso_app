@@ -71,6 +71,14 @@ abstract final class AnswerText {
   static String recipientLine(String studentName, String title) =>
       '$studentName 학부모 · $title';
 
+  // ───────── 쓰는 동안 온 재문의(409 NEW_FOLLOW_UP, api-v0.11) ─────────
+  static const newFollowUpHeading = '새 재문의가 왔어요';
+  static const newFollowUpGuide = '답변은 아직 보내지 않았어요. 재문의를 확인한 뒤 다시 보내 주세요.';
+  static const newFollowUpLabel = '새 재문의';
+
+  /// `M/d HH:mm 접수 · 눌러서 확인`. [at]은 화면 형식 문자열.
+  static String newFollowUpHint(String at) => '$at 접수 · 눌러서 확인';
+
   // ───────── 스레드(F4-3) ─────────
   static const sentNotice = '답변을 보냈어요. 문의와 답변은 기록으로 보관돼요.';
   static const answeredTag = '답변 완료';

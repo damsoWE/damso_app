@@ -7,8 +7,9 @@ import '../../../../core/widgets/form_layout.dart';
 import 'teacher_inquiries_view_model.dart';
 import 'teacher_inquiry_tile.dart';
 
-/// F3-1 문의 목록 (Figma 216-5587 답변 대기 · 352-1856 답변 완료). 위의 두 칸으로 나눠 보고
-/// (specs/004 FR-028), 긴급이 맨 위(서버 정렬), 끝까지 내리면 다음 페이지.
+/// F3-1 문의 목록 (Figma 216-5587 답변 대기 · 352-1856 답변 완료). 위의 두 칸은 서버가 거른
+/// 목록을 따로 불러오고(api-v0.11 `answerStatus`, specs/004 FR-028), 칸 옆 개수는 서버 전체 수다.
+/// 긴급이 맨 위(서버 정렬), 끝까지 내리면 그 칸의 다음 페이지.
 class TeacherInquiriesPage extends ConsumerWidget {
   const TeacherInquiriesPage({super.key});
 
@@ -16,29 +17,28 @@ class TeacherInquiriesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final vm = ref.read(teacherInquiriesViewModelProvider.notifier);
     final tab = ref.watch(inquiryTabProvider);
+    final provider = teacherInquiryTabViewModelProvider(tab);
+    final vm = ref.read(provider.notifier);
+    // 칸 옆 개수를 위해 두 칸을 함께 불러 둔다.
+    final waitingTotal =
+        ref.watch(teacherInquiryTabViewModelProvider(InquiryTab.waiting)).value?.total;
+    final answeredTotal =
+        ref.watch(teacherInquiryTabViewModelProvider(InquiryTab.answered)).value?.total;
+    Future<void> refreshBoth() => Future.wait([
+      for (final t in InquiryTab.values)
+        ref.read(teacherInquiryTabViewModelProvider(t).notifier).refresh(),
+    ]);
     return Scaffold(
       appBar: AppBar(title: const Text('문의')),
       body: RefreshIndicator(
-        onRefresh: vm.refresh,
+        onRefresh: refreshBoth,
         child: AsyncView(
-          value: ref.watch(teacherInquiriesViewModelProvider),
+          value: ref.watch(provider),
           onRetry: vm.refresh,
-          isEmpty: (s) => s.items.isEmpty,
-          empty: (_) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: const [
-              Text(
-                '담당 학급의 문의가 없습니다.',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.subtitle,
-              ),
-            ],
-          ),
           data: (s) {
-            final items = s.itemsOf(tab);
+            final items = s.items;
+            // 긴급이 먼저 오므로 불러온 항목의 긴급 수가 칸 전체의 긴급 수다.
             final urgent = items.where((i) => i.urgent).length;
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -53,14 +53,14 @@ class TeacherInquiriesPage extends ConsumerWidget {
                       children: [
                         _SegmentTabs(
                           selected: tab,
-                          waiting: s.itemsOf(InquiryTab.waiting).length,
-                          answered: s.itemsOf(InquiryTab.answered).length,
+                          waiting: waitingTotal,
+                          answered: answeredTotal,
                           onSelect: ref.read(inquiryTabProvider.notifier).select,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         // 두 칸 모두 Medium 14(답변 대기와 같게).
                         Text(
-                          '전체 ${items.length} · 긴급 $urgent · 일반 ${items.length - urgent}',
+                          '전체 ${s.total} · 긴급 $urgent · 일반 ${s.total - urgent}',
                           style: AppTextStyles.smallStrong,
                         ),
                         MessageText(s.refreshError),
@@ -79,7 +79,7 @@ class TeacherInquiriesPage extends ConsumerWidget {
                     ),
                   );
                 }
-                if (index == items.length + 1) return _Footer(state: s);
+                if (index == items.length + 1) return _Footer(tab: tab, state: s);
                 final i = index - 1;
                 if (i >= items.length - _loadMoreAhead) _loadMoreLater(s, vm);
                 return TeacherInquiryTile(item: items[i]);
@@ -98,7 +98,7 @@ class TeacherInquiriesPage extends ConsumerWidget {
   }
 }
 
-/// [답변 대기 N | 답변 완료 N] 두 칸(Figma `SegmentTabs` 351-1866).
+/// [답변 대기 N | 답변 완료 N] 두 칸(Figma `SegmentTabs` 351-1866). 아직 못 받은 칸은 이름만.
 class _SegmentTabs extends StatelessWidget {
   const _SegmentTabs({
     required this.selected,
@@ -108,9 +108,11 @@ class _SegmentTabs extends StatelessWidget {
   });
 
   final InquiryTab selected;
-  final int waiting;
-  final int answered;
+  final int? waiting;
+  final int? answered;
   final ValueChanged<InquiryTab> onSelect;
+
+  static String _label(String name, int? count) => count == null ? name : '$name $count';
 
   @override
   Widget build(BuildContext context) {
@@ -154,9 +156,9 @@ class _SegmentTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          item(InquiryTab.waiting, '답변 대기 $waiting'),
+          item(InquiryTab.waiting, _label('답변 대기', waiting)),
           const SizedBox(width: AppSpacing.xs),
-          item(InquiryTab.answered, '답변 완료 $answered'),
+          item(InquiryTab.answered, _label('답변 완료', answered)),
         ],
       ),
     );
@@ -164,12 +166,14 @@ class _SegmentTabs extends StatelessWidget {
 }
 
 class _Footer extends ConsumerWidget {
-  const _Footer({required this.state});
+  const _Footer({required this.tab, required this.state});
 
+  final InquiryTab tab;
   final TeacherInquiriesState state;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final vm = ref.read(teacherInquiryTabViewModelProvider(tab).notifier);
     if (state.isLoadingMore) {
       return const Padding(
         padding: EdgeInsets.all(AppSpacing.md),
@@ -182,19 +186,14 @@ class _Footer extends ConsumerWidget {
         children: [
           MessageText(error),
           TextButton(
-            onPressed: () => ref
-                .read(teacherInquiriesViewModelProvider.notifier)
-                .loadMore(retry: true),
+            onPressed: () => vm.loadMore(retry: true),
             child: const Text('다시 시도'),
           ),
         ],
       );
     }
-    // 고른 칸의 문의가 적어 끝이 바로 보여도 다음 페이지를 부른다(칸은 불러온 문의 안에서 나눔).
-    TeacherInquiriesPage._loadMoreLater(
-      state,
-      ref.read(teacherInquiriesViewModelProvider.notifier),
-    );
+    // 목록이 짧아 끝이 바로 보여도 다음 페이지가 있으면 부른다.
+    TeacherInquiriesPage._loadMoreLater(state, vm);
     return const SizedBox(height: AppSpacing.lg);
   }
 }

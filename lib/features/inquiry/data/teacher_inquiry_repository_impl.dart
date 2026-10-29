@@ -15,11 +15,16 @@ class TeacherInquiryRepositoryImpl implements TeacherInquiryRepository {
   Future<TeacherInquiryPage> list({
     int page = 0,
     int size = TeacherInquiryRepository.pageSize,
+    AnswerStatus? answerStatus,
   }) {
     return mapDioErrors(() async {
       final res = await _dio.get<Map<String, dynamic>>(
         '/api/v1/teacher/inquiries',
-        queryParameters: {'page': page, 'size': size},
+        queryParameters: {
+          'page': page,
+          'size': size,
+          'answerStatus': ?answerStatus?.serverValue,
+        },
       );
       return InquiryJson.teacherPage(res.data!);
     });
