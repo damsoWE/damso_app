@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/widgets/app_tag.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/models.dart';
 import '../../domain/notice_text.dart';
@@ -32,9 +33,9 @@ class TeacherInquiryTile extends StatelessWidget {
         title: Text(item.title, style: AppTextStyles.subtitle),
         subtitle: Text('${item.studentName} · ${_status(item)}'),
         trailing: item.urgent
-            ? const _Badge('긴급', background: AppColors.statusUrgent, foreground: AppColors.textInverse)
+            ? const AppTag('긴급', tone: TagTone.urgent)
             : item.hasNewFollowUp
-            ? const _Badge('재문의', background: AppColors.statusInfoSoft, foreground: AppColors.statusInfo)
+            ? const AppTag('재문의', tone: TagTone.info)
             : null,
         onTap: () => context.push(pathOf(item)),
       ),
@@ -51,25 +52,5 @@ class TeacherInquiryTile extends StatelessWidget {
       return '답변 완료 · ${formatDateTime(answeredAt)} 답변';
     }
     return '${formatDateTime(item.submittedAt)} · ${NoticeText.stage(item.displayStage)}';
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge(this.text, {required this.background, required this.foreground});
-
-  final String text;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(text, style: AppTextStyles.label.copyWith(color: foreground)),
-    );
   }
 }

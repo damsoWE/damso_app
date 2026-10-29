@@ -29,6 +29,8 @@ class StageTimeline extends StatelessWidget {
       for (final e in events) e.stage: e.occurredAt,
       InquiryStage.answered: ?answeredAt,
     };
+    // 도달한 단계 중 가장 뒤의 것이 현재 단계다(주황 링, Figma Steps).
+    final current = flow.lastWhere(reached.containsKey, orElse: () => flow.first);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,6 +39,7 @@ class StageTimeline extends StatelessWidget {
             child: _Step(
               label: NoticeText.stage(stage),
               at: reached[stage],
+              current: stage == current,
             ),
           ),
       ],
@@ -45,18 +48,22 @@ class StageTimeline extends StatelessWidget {
 }
 
 class _Step extends StatelessWidget {
-  const _Step({required this.label, required this.at});
+  const _Step({required this.label, required this.at, required this.current});
 
   final String label;
   final DateTime? at;
+  final bool current;
 
   @override
   Widget build(BuildContext context) {
     final done = at != null;
-    final color = done ? AppColors.brandPrimary : AppColors.borderDefault;
+    // 지나온 단계는 브랜드 색 채움, 현재 단계는 주황 링, 아직 오지 않은 단계는 회색 링.
+    final color = current
+        ? AppColors.brandAccent
+        : (done ? AppColors.brandPrimary : AppColors.borderDefault);
     return Column(
       children: [
-        Icon(done ? Icons.circle : Icons.circle_outlined, size: 14, color: color),
+        Icon(done && !current ? Icons.circle : Icons.circle_outlined, size: 14, color: color),
         const SizedBox(height: AppSpacing.xs),
         Text(
           label,

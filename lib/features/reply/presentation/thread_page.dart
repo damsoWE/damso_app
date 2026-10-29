@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/app_tag.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/system_notice.dart';
@@ -88,22 +89,10 @@ class _AnsweredTag extends StatelessWidget {
   const _AnsweredTag();
 
   @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-        decoration: BoxDecoration(
-          color: AppColors.statusSuccessSoft,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-        child: Text(
-          AnswerText.answeredTag,
-          style: AppTextStyles.label.copyWith(color: AppColors.statusSuccess),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Align(
+    alignment: Alignment.centerLeft,
+    child: AppTag(AnswerText.answeredTag, tone: TagTone.success),
+  );
 }
 
 /// 최초 문의 카드는 카드 안 "원문 보기", 재문의 카드는 카드 전체를 눌러 재문의 상세로 간다.

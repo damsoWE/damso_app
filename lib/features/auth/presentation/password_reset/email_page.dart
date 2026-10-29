@@ -37,6 +37,13 @@ class _ResetEmailPageState extends ConsumerState<ResetEmailPage> {
     final state = ref.watch(passwordResetViewModelProvider);
     return FormPage(
       title: '비밀번호 재설정',
+      bottom: [
+        SubmitButton(
+          label: '재설정 코드 받기',
+          isLoading: state.isSubmitting,
+          onPressed: state.cooldown.isActive ? null : _submit,
+        ),
+      ],
       children: [
         const Text('가입한 이메일을 입력하면 재설정 코드를 보내 드립니다.', style: AppTextStyles.body),
         const SizedBox(height: AppSpacing.md),
@@ -52,11 +59,6 @@ class _ResetEmailPageState extends ConsumerState<ResetEmailPage> {
         MessageText(state.errorMessage),
         CooldownNotice(state.cooldown),
         const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '재설정 코드 받기',
-          isLoading: state.isSubmitting,
-          onPressed: state.cooldown.isActive ? null : _submit,
-        ),
       ],
     );
   }

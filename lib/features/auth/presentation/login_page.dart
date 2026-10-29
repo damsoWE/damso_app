@@ -40,6 +40,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return FormPage(
       title: '로그인',
+      bottom: [
+        SubmitButton(
+          label: '로그인',
+          isLoading: state.isSubmitting,
+          onPressed: state.cooldown.isActive ? null : _submit,
+        ),
+        TextButton(
+          onPressed: () => context.push('/signup'),
+          child: const Text('가입하기'),
+        ),
+      ],
       children: [
         TextField(
           controller: _email,
@@ -62,25 +73,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         FieldErrorText(state.fieldErrors['password']),
         MessageText(state.errorMessage),
         CooldownNotice(state.cooldown),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '로그인',
-          isLoading: state.isSubmitting,
-          onPressed: state.cooldown.isActive ? null : _submit,
-        ),
         const SizedBox(height: AppSpacing.sm),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: () => context.push('/password-reset'),
-              child: const Text('비밀번호 재설정'),
-            ),
-            TextButton(
-              onPressed: () => context.push('/signup'),
-              child: const Text('가입하기'),
-            ),
-          ],
+        Center(
+          child: TextButton(
+            onPressed: () => context.push('/password-reset'),
+            child: const Text('비밀번호 재설정'),
+          ),
         ),
       ],
     );

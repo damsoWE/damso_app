@@ -141,8 +141,9 @@ class _ChildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: AppColors.bgSurface,
+      color: AppColors.brandPrimary,
       child: ListTile(
+        textColor: AppColors.textInverse,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm,

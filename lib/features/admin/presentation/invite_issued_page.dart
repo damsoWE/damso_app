@@ -62,6 +62,33 @@ class InviteIssuedPage extends StatelessWidget {
     };
     return FormPage(
       title: title,
+      bottom: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => context.go('/admin/classrooms/${a.target.classroomId}'),
+                child: const Text('목록으로'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await _copyCode(a.code.code);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('복사했습니다.')));
+                  }
+                },
+                icon: const Icon(Icons.copy),
+                label: const Text('복사'),
+              ),
+            ),
+          ],
+        ),
+      ],
       children: [
         Text(who, style: AppTextStyles.subtitle),
         const SizedBox(height: AppSpacing.md),
@@ -84,25 +111,8 @@ class InviteIssuedPage extends StatelessWidget {
           '이 화면을 떠나면 코드를 다시 볼 수 없습니다.',
           style: AppTextStyles.bodyStrong.copyWith(color: AppColors.statusUrgentText),
         ),
-        const SizedBox(height: AppSpacing.lg),
-        OutlinedButton.icon(
-          onPressed: () async {
-            await _copyCode(a.code.code);
-            if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('복사했습니다.')));
-            }
-          },
-          icon: const Icon(Icons.copy),
-          label: const Text('복사'),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        FilledButton(
-          onPressed: () => context.go('/admin/classrooms/${a.target.classroomId}'),
-          child: const Text('목록으로'),
-        ),
       ],
+      // Figma ADM-3: 목록으로(보조) | 복사(주) 를 가로로 나란히.
     );
   }
 }

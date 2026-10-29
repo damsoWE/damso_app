@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/widgets/app_tag.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/models.dart';
 import '../../domain/notice_text.dart';
@@ -41,29 +42,8 @@ class InquiryCard extends StatelessWidget {
           '${s.urgent ? '${s.studentName} · ' : ''}'
           '${formatDateTime(s.submittedAt)} · ${NoticeText.stage(s.displayStage)}',
         ),
-        trailing: s.urgent ? const _Badge('긴급') : null,
+        trailing: s.urgent ? const AppTag('긴급', tone: TagTone.urgent) : null,
         onTap: () => context.push(routeOf(s)),
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.statusUrgent,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        text,
-        style: AppTextStyles.label.copyWith(color: AppColors.textInverse),
       ),
     );
   }

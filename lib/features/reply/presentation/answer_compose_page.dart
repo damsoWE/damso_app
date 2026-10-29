@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/app_tag.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/system_notice.dart';
 import '../../inquiry/domain/models.dart';
@@ -174,11 +175,7 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
     ],
     Reviewed(:final review, :final applied) => review.highlights.isEmpty
         ? [
-            const _Badge(
-              AnswerText.noSuggestionBadge,
-              background: AppColors.statusSuccessSoft,
-              foreground: AppColors.statusSuccess,
-            ),
+            const _Badge(AnswerText.noSuggestionBadge, tone: TagTone.success),
             const SizedBox(height: AppSpacing.ms),
             const _Label(AnswerText.writtenLabel),
             _ReadOnlyText(s.text),
@@ -190,12 +187,7 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
               applied.isEmpty
                   ? AnswerText.suggestionCount(review.highlights.length)
                   : AnswerText.appliedCount(applied.length),
-              background: applied.isEmpty
-                  ? AppColors.statusWarningSoft
-                  : AppColors.statusSuccessSoft,
-              foreground: applied.isEmpty
-                  ? AppColors.statusWarning
-                  : AppColors.statusSuccess,
+              tone: applied.isEmpty ? TagTone.warning : TagTone.success,
             ),
             const SizedBox(height: AppSpacing.ms),
             const _Label(AnswerText.writtenLabel),
@@ -526,22 +518,12 @@ class _ReadOnlyText extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge(this.text, {required this.background, required this.foreground});
+  const _Badge(this.text, {required this.tone});
 
   final String text;
-  final Color background;
-  final Color foreground;
+  final TagTone tone;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerLeft,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(text, style: AppTextStyles.label.copyWith(color: foreground)),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      Align(alignment: Alignment.centerLeft, child: AppTag(text, tone: tone));
 }

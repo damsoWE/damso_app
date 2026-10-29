@@ -64,6 +64,17 @@ class _ReissueConfirmPageState extends ConsumerState<ReissueConfirmPage> {
     };
     return FormPage(
       title: '코드 재발행',
+      bottom: [
+        OutlinedButton(
+          onPressed: _issuing ? null : () => context.pop(),
+          child: const Text('취소'),
+        ),
+        SubmitButton(
+          label: '새 코드 발행',
+          isLoading: _issuing,
+          onPressed: () => _issue(target),
+        ),
+      ],
       children: [
         Text('$who를 새로 발행할까요?', style: AppTextStyles.subtitle),
         const SizedBox(height: AppSpacing.sm),
@@ -72,17 +83,6 @@ class _ReissueConfirmPageState extends ConsumerState<ReissueConfirmPage> {
           style: AppTextStyles.bodyStrong.copyWith(color: AppColors.statusUrgentText),
         ),
         MessageText(_error),
-        const SizedBox(height: AppSpacing.lg),
-        SubmitButton(
-          label: '새 코드 발행',
-          isLoading: _issuing,
-          onPressed: () => _issue(target),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        OutlinedButton(
-          onPressed: _issuing ? null : () => context.pop(),
-          child: const Text('취소'),
-        ),
       ],
     );
   }

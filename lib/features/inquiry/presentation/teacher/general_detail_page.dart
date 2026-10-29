@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/widgets/app_tag.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
+import '../../../../core/widgets/bottom_actions.dart';
 import '../../../../core/widgets/system_notice.dart';
 import '../../../reply/domain/answer_text.dart';
 import '../../../reply/domain/models.dart';
@@ -39,10 +41,32 @@ class GeneralDetailPage extends ConsumerWidget {
       ref.read(provider.notifier).clearMessage();
     });
 
+    final value = ref.watch(provider);
     return Scaffold(
       appBar: AppBar(title: const Text('문의 상세')),
+      // 하단 고정 버튼(Figma F3-2 216-5607 · F3-3 216-5627 · F3-3a 216-5640).
+      bottomNavigationBar: switch (value.value?.view) {
+        Refined(:final detail, :final refinement) => BottomActions(
+          children: [
+            _contentButton(detail.summary),
+            _answerButton(detail, title: refinement.title, requests: refinement.requests),
+          ],
+        ),
+        NeedsOriginal(:final detail) => BottomActions(
+          children: [_answerButton(detail, title: detail.summary.title)],
+        ),
+        Refining() => BottomActions(
+          children: [
+            FilledButton(
+              onPressed: () => context.go('/teacher/inquiries'),
+              child: const Text('문의 목록으로'),
+            ),
+          ],
+        ),
+        _ => null,
+      },
       body: AsyncView(
-        value: ref.watch(provider),
+        value: value,
         onRetry: () => ref.invalidate(provider),
         data: (s) {
           final view = s.view;
@@ -84,8 +108,7 @@ class GeneralDetailPage extends ConsumerWidget {
       children: [
         const _Badge(
           NoticeText.refinedBadge,
-          background: AppColors.statusInfoSoft,
-          foreground: AppColors.statusInfo,
+          tone: TagTone.info,
         ),
         const SizedBox(width: AppSpacing.sm),
         Text(
@@ -101,17 +124,10 @@ class GeneralDetailPage extends ConsumerWidget {
     RefinementView(refinement: view.refinement),
     const SizedBox(height: AppSpacing.md),
     const _LogHint(),
-    const SizedBox(height: AppSpacing.lg),
-    _contentButton(view.detail.summary),
-    ..._answerButton(
-      view.detail,
-      title: view.refinement.title,
-      requests: view.refinement.requests,
-    ),
   ];
 
   /// "답변 작성"(F4-2a, specs/004 FR-002).
-  List<Widget> _answerButton(
+  Widget _answerButton(
     TeacherInquiryDetail detail, {
     required String title,
     String? requests,
@@ -125,15 +141,12 @@ class GeneralDetailPage extends ConsumerWidget {
       // 409 NEW_FOLLOW_UP 으로 막고, 작성 화면이 재문의를 보여 준 뒤 다시 보내게 한다(api-v0.11).
       lastSeenFollowUpId: null,
     );
-    return [
-      const SizedBox(height: AppSpacing.sm),
-      Builder(
-        builder: (context) => FilledButton(
-          onPressed: () => context.push('/teacher/inquiries/$inquiryId/answer', extra: target),
-          child: const Text(AnswerText.writeAnswerButton),
-        ),
+    return Builder(
+      builder: (context) => FilledButton(
+        onPressed: () => context.push('/teacher/inquiries/$inquiryId/answer', extra: target),
+        child: const Text(AnswerText.writeAnswerButton),
       ),
-    ];
+    );
   }
 
   List<Widget> _needsOriginal(
@@ -143,15 +156,18 @@ class GeneralDetailPage extends ConsumerWidget {
   ) => [
     const _Badge(
       NoticeText.needsOriginalBadge,
-      background: AppColors.statusWarningSoft,
-      foreground: AppColors.statusWarning,
+      tone: TagTone.warning,
     ),
     const SizedBox(height: AppSpacing.ms),
     const Text(NoticeText.needsOriginalHeading, style: AppTextStyles.display),
     _HeaderLine(view.detail.summary),
     const SizedBox(height: AppSpacing.md),
     // 정리 결과는 어떤 형태로도 두지 않는다(FR-010, 원칙 IV).
-    const SystemNotice(NoticeText.refinementFailed, icon: Icons.warning_amber_outlined),
+    const SystemNotice(
+      NoticeText.refinementFailed,
+      icon: Icons.warning_amber_outlined,
+      tone: NoticeTone.warning,
+    ),
     const SizedBox(height: AppSpacing.md),
     _contentButton(view.detail.summary),
     const SizedBox(height: AppSpacing.ms),
@@ -169,7 +185,6 @@ class GeneralDetailPage extends ConsumerWidget {
       const SystemNotice(NoticeText.retryLimitReached, icon: Icons.info_outline),
     const SizedBox(height: AppSpacing.md),
     const _LogHint(),
-    ..._answerButton(view.detail, title: view.detail.summary.title),
   ];
 
   /// 정리 중과 다시 정리하는 중(F3-3a)은 배지·제목·남은 재요청 카드만 다르다.
@@ -182,8 +197,7 @@ class GeneralDetailPage extends ConsumerWidget {
   ) => [
     _Badge(
       view.afterRetry ? NoticeText.retryingBadge : NoticeText.refiningBadge,
-      background: AppColors.statusInfoSoft,
-      foreground: AppColors.statusInfo,
+      tone: TagTone.info,
     ),
     const SizedBox(height: AppSpacing.ms),
     Text(
@@ -192,7 +206,7 @@ class GeneralDetailPage extends ConsumerWidget {
     ),
     _HeaderLine(view.detail.summary),
     const SizedBox(height: AppSpacing.md),
-    const SystemNotice(NoticeText.refiningGuide, icon: Icons.info_outline),
+    const SystemNotice(NoticeText.refiningGuide, icon: Icons.info_outline, tone: NoticeTone.info),
     const SizedBox(height: AppSpacing.md),
     _contentButton(view.detail.summary),
     const SizedBox(height: AppSpacing.ms),
@@ -223,11 +237,6 @@ class GeneralDetailPage extends ConsumerWidget {
         ),
       ),
     ],
-    const SizedBox(height: AppSpacing.lg),
-    FilledButton(
-      onPressed: () => context.go('/teacher/inquiries'),
-      child: const Text('문의 목록으로'),
-    ),
   ];
 }
 
@@ -266,24 +275,13 @@ class _LogHint extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge(this.text, {required this.background, required this.foreground});
+  const _Badge(this.text, {required this.tone});
 
   final String text;
-  final Color background;
-  final Color foreground;
+  final TagTone tone;
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-        child: Text(text, style: AppTextStyles.label.copyWith(color: foreground)),
-      ),
-    );
+    return Align(alignment: Alignment.centerLeft, child: AppTag(text, tone: tone));
   }
 }

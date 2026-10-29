@@ -1,3 +1,4 @@
+import 'package:damso_app/core/theme/app_theme.dart';
 import 'package:damso_app/features/inquiry/data/mock_inquiry_store.dart';
 import 'package:damso_app/features/inquiry/domain/models.dart';
 import 'package:damso_app/features/inquiry/presentation/stage_timeline.dart';
@@ -5,7 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 서버는 "답변 완료" 단계를 기록하지 않는다(api-v0.7). 그 칸은 답변 시각으로 채운다.
+/// 지나온 단계는 브랜드 색 채움, 현재 단계(도달한 마지막 단계)는 주황 링이다(Figma Steps).
 void main() {
+  /// 주황 링(현재 단계) 아이콘 수.
+  int currentRings(WidgetTester tester) => tester
+      .widgetList<Icon>(find.byIcon(Icons.circle_outlined))
+      .where((i) => i.color == AppColors.brandAccent)
+      .length;
+
   final events = [
     StageEvent(
       stage: InquiryStage.received,
@@ -34,18 +42,20 @@ void main() {
         ),
       );
 
-  testWidgets('답변이 없으면 "답변 완료"는 빈 점', (tester) async {
+  testWidgets('답변이 없으면 "교사 확인"이 현재 단계, "답변 완료"는 빈 점', (tester) async {
     await pump(tester);
+
+    expect(find.byIcon(Icons.circle), findsNWidgets(2)); // 접수·정제
+    expect(find.byIcon(Icons.circle_outlined), findsNWidgets(2)); // 교사 확인(현재)·답변 완료
+    expect(currentRings(tester), 1);
+  });
+
+  testWidgets('답변 시각이 있으면 "답변 완료"가 현재 단계가 되고 앞 단계는 모두 채운다', (tester) async {
+    await pump(tester, answeredAt: DateTime(2026, 10, 28, 11));
 
     expect(find.byIcon(Icons.circle), findsNWidgets(3));
     expect(find.byIcon(Icons.circle_outlined), findsOneWidget);
-  });
-
-  testWidgets('답변 시각이 있으면 "답변 완료"를 채운다', (tester) async {
-    await pump(tester, answeredAt: DateTime(2026, 10, 28, 11));
-
-    expect(find.byIcon(Icons.circle), findsNWidgets(4));
-    expect(find.byIcon(Icons.circle_outlined), findsNothing);
+    expect(currentRings(tester), 1);
   });
 
   testWidgets('처리 단계 이름과 시각만 그린다 — 열람·재시도·점검 같은 감사 항목은 없다(F5 FR-008)', (
@@ -60,7 +70,9 @@ void main() {
     for (final word in ['열람', '재시도', '점검', '다시 정리', '종료']) {
       expect(texts.where((t) => t.contains(word)), isEmpty, reason: word);
     }
-    expect(find.byIcon(Icons.circle), findsNWidgets(4)); // 단계 4칸뿐
+    // 단계 4칸뿐(채움 3 + 현재 1)
+    expect(find.byIcon(Icons.circle), findsNWidgets(3));
+    expect(find.byIcon(Icons.circle_outlined), findsOneWidget);
   });
 
   test('원문 열람·점검 요청을 거친 문의도 학부모·교사 타임라인이 같은 처리 단계 목록이다(F5 US2-1·2)', () {

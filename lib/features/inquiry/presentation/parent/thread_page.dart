@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/widgets/app_tag.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
 import '../../domain/models.dart';
@@ -109,7 +110,7 @@ class _ItemCard extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text(title, style: AppTextStyles.subtitle)),
-              if (urgent) const _UrgentBadge(),
+              if (urgent) const AppTag(NoticeText.urgentLabel, tone: TagTone.urgent),
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -169,25 +170,6 @@ class _Waiting extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
       ],
-    );
-  }
-}
-
-class _UrgentBadge extends StatelessWidget {
-  const _UrgentBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.statusUrgent,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        NoticeText.urgentLabel,
-        style: AppTextStyles.label.copyWith(color: AppColors.textInverse),
-      ),
     );
   }
 }
