@@ -16,9 +16,20 @@ class _CountingTeacherRepo extends MockTeacherInquiryRepository {
   final contentCalls = <String>[];
   int failDetail = 0;
 
+  /// 남은 횟수만큼 원문 열람을 기록 실패(500)로 거부한다(api-v0.10).
+  int failContent = 0;
+
   @override
-  Future<String> content(String inquiryId) {
+  Future<String> content(String inquiryId) async {
     contentCalls.add(inquiryId);
+    if (failContent > 0) {
+      failContent--;
+      throw const AppException(
+        message: '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        code: 'INTERNAL_ERROR',
+        statusCode: 500,
+      );
+    }
     return super.content(inquiryId);
   }
 
@@ -90,6 +101,26 @@ void main() {
     await tapText(tester, '원문 확인 필요');
     expect(find.text(NoticeText.refinementFailed), findsOneWidget);
     expect(repo.contentCalls, isEmpty); // 원문은 "원문 보기"를 누를 때만(specs/003 research R6)
+  });
+
+  testWidgets('원문 열람 기록이 실패하면 화면 전체가 서버 문구 + 다시 시도, 다시 시도하면 긴급 상세(F5 US3-2·3)', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(app());
+    await login(tester, 'teacher@damso.test');
+    repo.failContent = 1;
+    await tapText(tester, '긴급 문의 1건');
+
+    expect(find.text('요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+    expect(find.text('다시 시도'), findsOneWidget);
+    expect(find.text('(mock) 데모 문의 원문입니다.'), findsNothing);
+    expect(find.text('원문을 열람한 기록이 남습니다.'), findsNothing);
+    expectNoEmail(tester);
+
+    await tapText(tester, '다시 시도');
+    expect(find.text('(mock) 데모 문의 원문입니다.'), findsOneWidget);
+    expect(repo.contentCalls, hasLength(2));
   });
 
   testWidgets('상세만 실패해 다시 시도해도 원문 열람은 한 번, 홈 긴급 카드는 사라진다', (tester) async {

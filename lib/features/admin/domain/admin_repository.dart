@@ -19,4 +19,7 @@ abstract class AdminRepository {
   Future<IssuedInviteCode> issueParentInvite(String studentId);
 
   Future<List<InviteCodeStatus>> listInviteCodes(String classroomId);
+
+  /// 학급별 문의 처리 현황(api-v0.10). 서버 순서(학년·반 순) 그대로, 문의 없는 학급도 0으로 온다.
+  Future<List<ClassroomInquiryStatus>> inquiryStatus();
 }

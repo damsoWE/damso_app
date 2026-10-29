@@ -21,6 +21,30 @@ class AdminClassroom {
   final int studentCount;
 }
 
+/// 학급 하나의 문의 처리 현황(api-v0.10 `ClassroomInquiryStatus`, specs/006 data-model §1).
+/// 스레드 수만 있고 사람 정보·제목·본문·긴급 여부는 없다(원칙 VII). 세 값은 겹치지 않는다.
+class ClassroomInquiryStatus {
+  const ClassroomInquiryStatus({
+    required this.classroomId,
+    required this.waiting,
+    required this.confirmed,
+    required this.answered,
+  });
+
+  final String classroomId;
+
+  /// 답변 대기(교사 확인 전).
+  final int waiting;
+
+  /// 교사 확인(답변 전).
+  final int confirmed;
+
+  /// 답변 완료(답변 1건 이상).
+  final int answered;
+
+  int get total => waiting + confirmed + answered;
+}
+
 class AdminStudent {
   const AdminStudent({
     required this.studentId,

@@ -36,7 +36,8 @@ void main() {
   testWidgets('처음엔 답변 대기: 답한 뒤 재문의가 온 문의는 "재문의 받음"으로 이 칸에 있다', (tester) async {
     await openInquiries(tester);
 
-    expect(find.text('답변 대기 36'), findsOneWidget); // 서버 totalElements(불러온 20건이 아니라 전체)
+    // 서버 totalElements(불러온 20건이 아니라 전체). F5 원문 기록 실패 데모 문의 포함.
+    expect(find.text('답변 대기 37'), findsOneWidget);
     expect(find.text('답변 완료 1'), findsOneWidget);
     expect(tile('친구와 다툰 일 관련 문의', '이도윤 · '), findsOneWidget);
     expect(find.textContaining('답변 완료 · '), findsNothing); // …000b 는 이 칸에 없다

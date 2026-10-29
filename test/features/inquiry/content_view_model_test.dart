@@ -83,6 +83,24 @@ void main() {
     expect(repo.contentCalls, 2);
   });
 
+  test('열람 기록 실패(500)면 원문 없이 서버 문구, 다시 시도하면 원문(F5 US3-1·3, mock 데모)', () async {
+    const demo = MockInquiryStore.contentLogFailDemoId;
+    final demoProvider = contentViewModelProvider(demo);
+    c.listen(demoProvider, (_, _) {});
+    await expectLater(
+      c.read(demoProvider.future),
+      throwsA(
+        isA<AppException>()
+            .having((e) => e.statusCode, 'status', 500)
+            .having((e) => e.message, 'message', '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'),
+      ),
+    );
+    expect(c.read(demoProvider).hasValue, isFalse); // 원문은 일부도 없다
+
+    c.invalidate(demoProvider); // 다시 시도
+    expect(await c.read(demoProvider.future), '(mock) 데모 문의 원문입니다.');
+  });
+
   test('원문을 받은 뒤 목록을 새로 고친다', () async {
     c.listen(teacherInquiriesViewModelProvider, (_, _) {});
     await c.read(teacherInquiriesViewModelProvider.future);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:damso_app/core/error/app_exception.dart';
 import 'package:damso_app/core/error/error_codes.dart';
 import 'package:damso_app/core/session/role.dart';
@@ -590,6 +592,72 @@ void main() {
         store.detailForTeacher(MockInquiryStore.followUpDemoId).followUps,
         isNotEmpty,
       );
+    });
+  });
+
+  /// specs/006 quickstart 1~9 — 관리자 문의 현황 · 원문 열람 기록 실패 시연.
+  group('F5 시연', () {
+    Future<void> openStatus(WidgetTester tester, String email) async {
+      useTallScreen(tester);
+      await tester.pumpWidget(testApp());
+      await login(tester, email);
+      await tapTab(tester, '문의');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('admin@: 탭 셋 · 학급별 현황(0건 학급 포함) · 학급을 추가하면 새 학급이 0으로', (tester) async {
+      await openStatus(tester, 'admin@damso.test');
+      expect(find.text('문의 현황'), findsOneWidget);
+      expect(find.text('3학년 2반 · 담임 연결됨'), findsOneWidget);
+      expect(find.text('1학년 1반 · 담임 미연결'), findsOneWidget);
+      expect(find.text('문의 0 · 답변 대기 0 · 교사 확인 0 · 답변 완료 0'), findsOneWidget);
+
+      // 홈 탭 → 학급 추가(2학년 5반) → 문의 탭
+      await tapTab(tester, '홈');
+      await tapText(tester, '학급 추가');
+      await tester.tap(find.byType(DropdownButtonFormField<int>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2학년').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<int>).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('5반').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '학급 추가')); // 제목이 아니라 제출 버튼
+      await tester.pumpAndSettle();
+      expect(find.text('2학년 5반'), findsOneWidget); // 관리자 홈 목록
+
+      await tapTab(tester, '문의');
+      await tester.pumpAndSettle();
+      expect(find.text('2학년 5반 · 담임 미연결'), findsOneWidget);
+      expect(find.text('문의 0 · 답변 대기 0 · 교사 확인 0 · 답변 완료 0'), findsNWidgets(2));
+    });
+
+    testWidgets('teacher@: 원문 기록 실패 데모 → 원문 없이 서버 문구 + 다시 시도 → 원문(quickstart 9)', (
+      tester,
+    ) async {
+      useTallScreen(tester);
+      await tester.pumpWidget(testApp());
+      await login(tester, 'teacher@damso.test');
+      final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+      unawaited(router.push('/teacher/inquiries/${MockInquiryStore.contentLogFailDemoId}/general'));
+      await tester.pumpAndSettle();
+
+      await tapText(tester, '원문 보기');
+      expect(find.text('요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+      expect(find.text('(mock) 데모 문의 원문입니다.'), findsNothing);
+
+      await tapText(tester, '다시 시도');
+      expect(find.text('(mock) 데모 문의 원문입니다.'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1)); // 원문 뒤 목록 새로 고침이 끝나게
+    });
+
+    testWidgets('refresh-admin@: 접근 권한 갱신 뒤 오류 없이 현황(quickstart 8)', (tester) async {
+      await openStatus(tester, 'refresh-admin@damso.test');
+      expect(sessionOf(tester), const SignedIn(Role.superAdmin));
+      expect(find.text('학급별'), findsOneWidget);
+      expect(find.text('다시 시도'), findsNothing);
     });
   });
 }

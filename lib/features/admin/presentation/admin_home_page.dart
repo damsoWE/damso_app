@@ -8,7 +8,7 @@ import 'admin_home_view_model.dart';
 import 'format.dart';
 
 /// ADM-1a 관리자 홈 (Figma 216-5699) · ADM-1b 학급별 등록 현황 (216-5716).
-/// 문의 관련 정보는 보이지 않는다(FR-037).
+/// 문의 관련 정보는 보이지 않는다(FR-037, 문의 건수는 문의 탭 ADM-4). 마이페이지는 하단 탭으로 간다.
 class AdminHomePage extends ConsumerWidget {
   const AdminHomePage({super.key});
 
@@ -16,16 +16,7 @@ class AdminHomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final classrooms = ref.watch(adminHomeViewModelProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('관리자 홈'),
-        actions: [
-          IconButton(
-            tooltip: '마이페이지',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/admin/me'),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('관리자 홈')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/admin/classrooms/new'),
         icon: const Icon(Icons.add),

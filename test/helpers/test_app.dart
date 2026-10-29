@@ -67,7 +67,9 @@ List<Override> mockRepositoryOverrides({
       ref.watch(mockInquiryStoreProvider),
     ),
   ),
-  adminRepositoryProvider.overrideWith((ref) => admin ?? MockAdminRepository()),
+  adminRepositoryProvider.overrideWith(
+    (ref) => admin ?? MockAdminRepository(ref.watch(tokenStoreProvider)),
+  ),
   parentRepositoryProvider.overrideWith(
     (ref) => MockParentRepository(
       ref.watch(tokenStoreProvider),

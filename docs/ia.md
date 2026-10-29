@@ -129,7 +129,7 @@ Figma 프로토타입 탭에서 아래 흐름을 골라 재생하면 화면 이�
 | [ADM-3](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5828) | 학부모 코드 발행 완료 (1회 표시) | 목록으로 → ADM-8 |
 | [ADM-8](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5779) | 코드 발행 요청 목록 | 요청 확인 → ADM-6 |
 | [ADM-6](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5761) | 코드 재발행 확인 | 새 코드 발행 → ADM-3 · 취소 → 뒤로 |
-| [ADM-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1387) | 문의 현황 (건수·상태만) | 학급 → ADM-1 · 담임 미연결 학급 → ADM-2 |
+| [ADM-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1387) | 문의 현황 (건수·상태만 — 전체 요약 4칸 "전체 문의 · 답변 대기 · 교사 확인 · 답변 완료", 학급 카드 "N학년 N반 · 담임 연결됨/미연결" + 건수. 긴급 건수·기간·교사 이름 없음, F5 백엔드 결정) | 학급 → ADM-1 (담임 미연결 학급의 교사 코드 발행도 ADM-1에서) |
 | [ADM-2](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1374) | 교사 초대코드 발행 | 교사 코드 발행 → ADM-3t |
 | [ADM-3t](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=227-1743) | 교사 코드 발행 완료 (1회 표시) | 문의 현황으로 → ADM-4 |
 | [ADM-9](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5803) | 교직원 명단 | 교직원 등록 → ADM-9a |

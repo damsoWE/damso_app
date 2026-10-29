@@ -10,6 +10,7 @@ import '../features/admin/presentation/admin_my_page.dart';
 import '../features/admin/presentation/classroom_detail_page.dart';
 import '../features/admin/presentation/classroom_detail_view_model.dart';
 import '../features/admin/presentation/classroom_new_page.dart';
+import '../features/admin/presentation/inquiry_status_page.dart';
 import '../features/admin/presentation/invite_codes_page.dart';
 import '../features/admin/presentation/invite_issued_page.dart';
 import '../features/admin/presentation/reissue_confirm_page.dart';
@@ -52,6 +53,7 @@ import '../features/teacher/presentation/links_page.dart';
 import '../features/teacher/presentation/profile_edit_page.dart';
 import '../features/teacher/presentation/teacher_home_page.dart';
 import '../features/teacher/presentation/teacher_my_page.dart';
+import 'shells/admin_shell.dart';
 import 'shells/parent_shell.dart';
 import 'shells/teacher_shell.dart';
 
@@ -222,46 +224,62 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // 관리자: 탭 위에 띄우는 화면(경로 문자열은 그대로, specs/006 contracts/routes.md).
+      // 'new' 가 :classroomId 로 잡히지 않도록 먼저 둔다.
       GoRoute(
-        path: '/admin',
-        builder: (_, _) => const AdminHomePage(),
+        path: '/admin/classrooms/new',
+        builder: (_, _) => const ClassroomNewPage(),
+      ),
+      GoRoute(
+        path: '/admin/classrooms/:classroomId',
+        builder: (_, s) =>
+            ClassroomDetailPage(classroomId: s.pathParameters['classroomId']!),
         routes: [
-          // 'new' 가 :classroomId 로 잡히지 않도록 먼저 둔다.
           GoRoute(
-            path: 'classrooms/new',
-            builder: (_, _) => const ClassroomNewPage(),
+            path: 'students/new',
+            builder: (_, s) => StudentsNewPage(
+              classroomId: s.pathParameters['classroomId']!,
+            ),
           ),
           GoRoute(
-            path: 'classrooms/:classroomId',
-            builder: (_, s) =>
-                ClassroomDetailPage(classroomId: s.pathParameters['classroomId']!),
+            path: 'invite-codes',
+            builder: (_, s) => InviteCodesPage(
+              classroomId: s.pathParameters['classroomId']!,
+            ),
+          ),
+        ],
+      ),
+      // 대상·코드는 extra 로만 전달한다(URL 에 이름·코드 원문을 넣지 않음).
+      GoRoute(
+        path: '/admin/invite/confirm',
+        builder: (_, s) => ReissueConfirmPage(target: s.extra as InviteTarget?),
+      ),
+      GoRoute(
+        path: '/admin/invite/issued',
+        builder: (_, s) => InviteIssuedPage(args: s.extra as IssuedInviteArgs?),
+      ),
+      // 관리자 탭: 홈 · 문의(ADM-4 문의 현황) · 마이페이지(specs/006 research R3).
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, shell) => AdminShell(shell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/admin', builder: (_, _) => const AdminHomePage()),
+            ],
+          ),
+          StatefulShellBranch(
             routes: [
               GoRoute(
-                path: 'students/new',
-                builder: (_, s) => StudentsNewPage(
-                  classroomId: s.pathParameters['classroomId']!,
-                ),
-              ),
-              GoRoute(
-                path: 'invite-codes',
-                builder: (_, s) => InviteCodesPage(
-                  classroomId: s.pathParameters['classroomId']!,
-                ),
+                path: '/admin/inquiries',
+                builder: (_, _) => const InquiryStatusPage(),
               ),
             ],
           ),
-          // 대상·코드는 extra 로만 전달한다(URL 에 이름·코드 원문을 넣지 않음).
-          GoRoute(
-            path: 'invite/confirm',
-            builder: (_, s) =>
-                ReissueConfirmPage(target: s.extra as InviteTarget?),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/admin/me', builder: (_, _) => const AdminMyPage()),
+            ],
           ),
-          GoRoute(
-            path: 'invite/issued',
-            builder: (_, s) =>
-                InviteIssuedPage(args: s.extra as IssuedInviteArgs?),
-          ),
-          GoRoute(path: 'me', builder: (_, _) => const AdminMyPage()),
         ],
       ),
       GoRoute(path: '/me/account', builder: (_, _) => const AccountPage()),
