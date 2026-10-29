@@ -4,7 +4,7 @@
     <!-- 토큰 저장소·알림 설치 정보가 기기 백업에 실리지 않게 한다. -->
     <application
         android:allowBackup="false"
-        android:label="damso_app"
+        android:label="담소"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
