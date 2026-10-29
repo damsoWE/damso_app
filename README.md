@@ -68,7 +68,6 @@ lib/
 ## 개발 방식
 
 - [spec-kit](https://github.com/github/spec-kit) 기반 명세 주도 개발(SDD): 화면 단위 명세는 [`specs/`](specs/)에 있으며, 각 명세에 대응하는 백엔드 명세 경로를 적습니다.
-- Claude Code 등 AI 코딩 도구를 활용하며, 사용 사실을 공개합니다.
 - 보안 원칙은 constitution에서 관리하고, AI 생성 코드는 PR 리뷰와 CI 보안 검증(Gitleaks 등)을 거쳐 머지합니다.
 
 ## License
