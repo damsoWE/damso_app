@@ -46,6 +46,13 @@ class _AddChildPageState extends ConsumerState<AddChildPage> {
 
     return FormPage(
       title: '자녀 추가',
+      bottom: [
+        SubmitButton(
+          label: '코드 확인',
+          isLoading: state.isSubmitting,
+          onPressed: canSubmit ? _submit : null,
+        ),
+      ],
       children: [
         const Text('자녀의 학부모 초대 코드 10자리를 입력해 주세요.', style: AppTextStyles.body),
         const SizedBox(height: AppSpacing.md),
@@ -59,12 +66,6 @@ class _AddChildPageState extends ConsumerState<AddChildPage> {
         ),
         MessageText(state.errorMessage),
         CooldownNotice(state.cooldown),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '코드 확인',
-          isLoading: state.isSubmitting,
-          onPressed: canSubmit ? _submit : null,
-        ),
       ],
     );
   }

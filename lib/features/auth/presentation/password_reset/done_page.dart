@@ -12,6 +12,9 @@ class ResetDonePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return FormPage(
       title: '비밀번호 변경 완료',
+      bottom: [
+        FilledButton(onPressed: () => context.go('/'), child: const Text('로그인하기')),
+      ],
       children: [
         const Text('비밀번호를 바꿨습니다.', style: AppTextStyles.subtitle),
         const SizedBox(height: AppSpacing.sm),
@@ -19,8 +22,6 @@ class ResetDonePage extends StatelessWidget {
           '모든 기기에서 로그아웃되었습니다. 새 비밀번호로 다시 로그인해 주세요.',
           style: AppTextStyles.body,
         ),
-        const SizedBox(height: AppSpacing.lg),
-        FilledButton(onPressed: () => context.go('/'), child: const Text('로그인하기')),
       ],
     );
   }

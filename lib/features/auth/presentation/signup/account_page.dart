@@ -77,6 +77,13 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
 
     return FormPage(
       title: title,
+      bottom: [
+        SubmitButton(
+          label: '동의하고 계정 만들기',
+          isLoading: state.isSubmitting,
+          onPressed: valid && !state.attemptCooldown.isActive ? _submit : null,
+        ),
+      ],
       children: [
         Text(intro, style: AppTextStyles.body),
         const SizedBox(height: AppSpacing.md),
@@ -128,12 +135,6 @@ class _SignupAccountPageState extends ConsumerState<SignupAccountPage> {
         ),
         MessageText(state.errorMessage),
         CooldownNotice(state.attemptCooldown),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '동의하고 계정 만들기',
-          isLoading: state.isSubmitting,
-          onPressed: valid && !state.attemptCooldown.isActive ? _submit : null,
-        ),
       ],
     );
   }

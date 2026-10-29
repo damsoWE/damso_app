@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../reply/domain/answer_text.dart';
 import '../../../reply/domain/models.dart';
 import '../../../../core/widgets/async_view.dart';
+import '../../../../core/widgets/bottom_actions.dart';
 import '../../../../core/widgets/system_notice.dart';
 import '../../domain/notice_text.dart';
 import '../format.dart';
@@ -29,10 +30,32 @@ class UrgentDetailPage extends ConsumerWidget {
         context.replace('/teacher/inquiries/$inquiryId/general');
       }
     });
+    final value = ref.watch(provider);
+    final loaded = value.value;
     return Scaffold(
       appBar: AppBar(title: const Text(NoticeText.urgentLabel)),
+      // "답변 작성"(specs/004 FR-002)은 하단 고정(Figma 224-1245). 긴급은 정리본이 없어 요청사항 없이 간다.
+      bottomNavigationBar: loaded == null || loaded.content == null
+          ? null
+          : BottomActions(
+              children: [
+                FilledButton(
+                  onPressed: () => context.push(
+                    '/teacher/inquiries/$inquiryId/answer',
+                    extra: AnswerTarget(
+                      inquiryId: inquiryId,
+                      studentName: loaded.detail.summary.studentName,
+                      title: loaded.detail.summary.title,
+                      // 이 화면은 재문의를 보이지 않으므로 "루트만 봤다"(null)로 보낸다(api-v0.11).
+                      lastSeenFollowUpId: null,
+                    ),
+                  ),
+                  child: const Text(AnswerText.writeAnswerButton),
+                ),
+              ],
+            ),
       body: AsyncView(
-        value: ref.watch(provider),
+        value: value,
         onRetry: () => ref.invalidate(provider),
         data: (d) {
           final content = d.content;
@@ -51,6 +74,7 @@ class UrgentDetailPage extends ConsumerWidget {
               const SystemNotice(
                 NoticeText.urgentDetailGuide,
                 icon: Icons.warning_amber_outlined,
+                tone: NoticeTone.urgent,
               ),
               const SizedBox(height: AppSpacing.md),
               Card(
@@ -74,27 +98,16 @@ class UrgentDetailPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const SystemNotice(NoticeText.contentViewLogged, icon: Icons.info_outline),
+              const SystemNotice(
+                NoticeText.contentViewLogged,
+                icon: Icons.info_outline,
+                tone: NoticeTone.info,
+              ),
               const SizedBox(height: AppSpacing.lg),
               StageTimeline(
                 urgent: true,
                 events: d.detail.timeline,
                 answeredAt: d.detail.summary.lastAnsweredAt,
-              ),
-              // "답변 작성"(specs/004 FR-002). 긴급은 정리본이 없어 요청사항 없이 간다.
-              const SizedBox(height: AppSpacing.lg),
-              FilledButton(
-                onPressed: () => context.push(
-                  '/teacher/inquiries/$inquiryId/answer',
-                  extra: AnswerTarget(
-                    inquiryId: inquiryId,
-                    studentName: s.studentName,
-                    title: s.title,
-                    // 이 화면은 재문의를 보이지 않으므로 "루트만 봤다"(null)로 보낸다(api-v0.11).
-                    lastSeenFollowUpId: null,
-                  ),
-                ),
-                child: const Text(AnswerText.writeAnswerButton),
               ),
             ],
           );

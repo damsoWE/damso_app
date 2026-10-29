@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/app_tag.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/system_notice.dart';
@@ -115,18 +116,6 @@ class _Badge extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerLeft,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.statusInfoSoft,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        text,
-        style: AppTextStyles.label.copyWith(color: AppColors.statusInfo),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      Align(alignment: Alignment.centerLeft, child: AppTag(text, tone: TagTone.info));
 }

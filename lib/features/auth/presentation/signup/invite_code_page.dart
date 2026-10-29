@@ -55,6 +55,13 @@ class _InviteCodePageState extends ConsumerState<InviteCodePage> {
 
     return FormPage(
       title: '초대코드 입력',
+      bottom: [
+        SubmitButton(
+          label: '코드 확인',
+          isLoading: state.isSubmitting,
+          onPressed: canSubmit ? _submit : null,
+        ),
+      ],
       children: [
         const Text(
           '학교에서 받은 초대 코드 10자리와 가입할 이메일을 입력해 주세요.',
@@ -88,11 +95,6 @@ class _InviteCodePageState extends ConsumerState<InviteCodePage> {
         MessageText(state.errorMessage),
         CooldownNotice(state.attemptCooldown),
         const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '코드 확인',
-          isLoading: state.isSubmitting,
-          onPressed: canSubmit ? _submit : null,
-        ),
       ],
     );
   }

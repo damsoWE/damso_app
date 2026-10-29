@@ -30,6 +30,20 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
     final submitting = state?.isSubmitting ?? false;
     return FormPage(
       title: '회원 탈퇴',
+      bottom: [
+        OutlinedButton(
+          onPressed: submitting ? null : () => context.pop(),
+          child: const Text('취소'),
+        ),
+        SubmitButton(
+          label: '탈퇴하기',
+          danger: true,
+          isLoading: submitting,
+          onPressed: state == null
+              ? null
+              : () => ref.read(meViewModelProvider.notifier).withdraw(_password.text),
+        ),
+      ],
       children: [
         const Text('탈퇴하면 이 계정으로 다시 로그인할 수 없습니다.', style: AppTextStyles.subtitle),
         const SizedBox(height: AppSpacing.xs),
@@ -48,19 +62,6 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
         ),
         FieldErrorText(state?.fieldErrors['password']),
         MessageText(state?.errorMessage),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '탈퇴하기',
-          isLoading: submitting,
-          onPressed: state == null
-              ? null
-              : () => ref.read(meViewModelProvider.notifier).withdraw(_password.text),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        OutlinedButton(
-          onPressed: submitting ? null : () => context.pop(),
-          child: const Text('취소'),
-        ),
       ],
     );
   }

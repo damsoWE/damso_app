@@ -53,6 +53,13 @@ class _SignupVerifyPageState extends ConsumerState<SignupVerifyPage> {
 
     return FormPage(
       title: '이메일 인증',
+      bottom: [
+        SubmitButton(
+          label: '인증하고 가입 완료',
+          isLoading: state.isSubmitting,
+          onPressed: canVerify ? _verify : null,
+        ),
+      ],
       children: [
         Text(
           '${state.email}(으)로 보낸 6자리 인증 코드를 입력해 주세요.',
@@ -77,12 +84,6 @@ class _SignupVerifyPageState extends ConsumerState<SignupVerifyPage> {
         MessageText(state.errorMessage),
         MessageText(state.notice, isError: false),
         CooldownNotice(state.attemptCooldown),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '인증하고 가입 완료',
-          isLoading: state.isSubmitting,
-          onPressed: canVerify ? _verify : null,
-        ),
         const SizedBox(height: AppSpacing.sm),
         TextButton(
           onPressed: state.resendCooldown.isActive || state.isSubmitting

@@ -70,8 +70,9 @@ void main() {
 
     expect(find.text('(mock) 데모 문의 원문입니다.'), findsOneWidget);
     expect(find.text('원문을 열람한 기록이 남습니다.'), findsOneWidget);
-    // 첫 열람으로 바뀐 "교사 확인"까지 채워진 단계 3개(접수·전달됨·교사 확인)
-    expect(find.byIcon(Icons.circle), findsNWidgets(3));
+    // 첫 열람으로 "교사 확인"까지 도달: 지나온 단계 2개(접수·전달됨)는 채움, 교사 확인은 현재 단계(링)
+    expect(find.byIcon(Icons.circle), findsNWidgets(2));
+    expect(find.byIcon(Icons.circle_outlined), findsNWidgets(2));
     expectNoEmail(tester);
     expect(repo.contentCalls, hasLength(1));
 

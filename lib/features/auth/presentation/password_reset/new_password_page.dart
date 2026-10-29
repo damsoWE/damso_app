@@ -49,6 +49,13 @@ class _ResetNewPasswordPageState extends ConsumerState<ResetNewPasswordPage> {
     final state = ref.watch(passwordResetViewModelProvider);
     return FormPage(
       title: '새 비밀번호',
+      bottom: [
+        SubmitButton(
+          label: '비밀번호 변경',
+          isLoading: state.isSubmitting,
+          onPressed: validateNewPassword(_password.text) == null ? _submit : null,
+        ),
+      ],
       children: [
         const Text('새로 사용할 비밀번호를 입력해 주세요.', style: AppTextStyles.body),
         const SizedBox(height: AppSpacing.md),
@@ -69,11 +76,6 @@ class _ResetNewPasswordPageState extends ConsumerState<ResetNewPasswordPage> {
         ),
         MessageText(state.errorMessage),
         const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '비밀번호 변경',
-          isLoading: state.isSubmitting,
-          onPressed: validateNewPassword(_password.text) == null ? _submit : null,
-        ),
       ],
     );
   }

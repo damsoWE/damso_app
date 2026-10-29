@@ -21,6 +21,13 @@ class ClassroomNewPage extends ConsumerWidget {
 
     return FormPage(
       title: '학급 추가',
+      bottom: [
+        SubmitButton(
+          label: '학급 추가',
+          isLoading: state.isSubmitting,
+          onPressed: state.isValid ? submit : null,
+        ),
+      ],
       children: [
         DropdownButtonFormField<int>(
           initialValue: state.grade,
@@ -42,12 +49,6 @@ class ClassroomNewPage extends ConsumerWidget {
           onChanged: vm.setClassNumber,
         ),
         MessageText(state.errorMessage),
-        const SizedBox(height: AppSpacing.md),
-        SubmitButton(
-          label: '학급 추가',
-          isLoading: state.isSubmitting,
-          onPressed: state.isValid ? submit : null,
-        ),
       ],
     );
   }
