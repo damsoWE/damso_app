@@ -8,14 +8,19 @@ import 'bottom_actions.dart';
 class FormPage extends StatelessWidget {
   const FormPage({
     super.key,
-    required this.title,
+    this.title,
     required this.children,
+    this.leading,
     this.actions,
     this.bottom = const [],
   });
 
-  final String title;
+  /// 앱바 제목. null 이면 앱바에 뒤로 아이콘만 둔다(Figma 로그인처럼 본문에 큰 제목이 있는 화면).
+  final String? title;
   final List<Widget> children;
+
+  /// 앱바 왼쪽. null 이면 뒤로 갈 화면이 있을 때 기본 뒤로 아이콘.
+  final Widget? leading;
   final List<Widget>? actions;
 
   /// 화면 하단에 고정할 버튼. 위에서 아래로 쌓고 주 버튼을 맨 아래에 둔다.
@@ -24,7 +29,14 @@ class FormPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title), actions: actions),
+      appBar: AppBar(
+        leading: leading,
+        title: switch (title) {
+          final t? => Text(t),
+          null => null,
+        },
+        actions: actions,
+      ),
       body: SafeArea(
         child: Column(
           children: [

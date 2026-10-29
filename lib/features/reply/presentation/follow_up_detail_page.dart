@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/widgets/app_tag.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/async_view.dart';
+import '../../../core/widgets/bottom_actions.dart';
 import '../../../core/widgets/system_notice.dart';
 import '../../inquiry/domain/notice_text.dart';
 import '../../inquiry/presentation/format.dart';
@@ -24,27 +25,48 @@ class FollowUpDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final followUp = args.followUp;
-    final provider = followUpDetailViewModelProvider(
-      (followUpId: followUp.inquiryId, urgent: followUp.urgent),
-    );
+    final provider = followUpDetailViewModelProvider((
+      followUpId: followUp.inquiryId,
+      urgent: followUp.urgent,
+    ));
     final title = AnswerText.followUpTitle(args.rootTitle);
     final at = formatDateTime(followUp.submittedAt);
+    final value = ref.watch(provider);
+    final loaded = value.value;
     return Scaffold(
       appBar: AppBar(title: const Text('문의 상세')),
+      // Figma F4-3b: "원문 보기"·"답변 작성"은 하단 고정. 상세를 받은 뒤에만 보인다.
+      bottomNavigationBar: loaded == null
+          ? null
+          : BottomActions(
+              children: [
+                OutlinedButton(
+                  onPressed: () => _open(
+                    context,
+                    '/teacher/inquiries/${followUp.inquiryId}/content',
+                    ContentArgs(
+                      title: title,
+                      header: '${args.studentName} 학부모 · $at',
+                      answerTarget: args.canAnswer ? _target(loaded) : null,
+                    ),
+                  ),
+                  child: const Text(AnswerText.viewOriginalButton),
+                ),
+                if (args.canAnswer)
+                  FilledButton(
+                    onPressed: () => _open(
+                      context,
+                      '/teacher/inquiries/${args.rootId}/answer',
+                      _target(loaded),
+                    ),
+                    child: const Text(AnswerText.writeAnswerButton),
+                  ),
+              ],
+            ),
       body: AsyncView(
-        value: ref.watch(provider),
+        value: value,
         onRetry: () => ref.invalidate(provider),
         data: (detail) {
-          final refinement = detail is Refined ? detail.refinement : null;
-          final requests = refinement?.requests;
-          final target = AnswerTarget(
-            inquiryId: args.rootId,
-            studentName: args.studentName,
-            title: args.rootTitle,
-            requests: requests == null || requests.isEmpty ? null : requests,
-            fromThread: true,
-            lastSeenFollowUpId: args.lastSeenFollowUpId,
-          );
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
@@ -56,11 +78,15 @@ class FollowUpDetailPage extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 AnswerText.followUpHeader(args.studentName, at),
-                style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.small.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               switch (detail) {
-                Refined(:final refinement) => RefinementView(refinement: refinement),
+                Refined(:final refinement) => RefinementView(
+                  refinement: refinement,
+                ),
                 NotRefined() => const SystemNotice(
                   AnswerText.followUpNotRefined,
                   icon: Icons.info_outline,
@@ -73,33 +99,27 @@ class FollowUpDetailPage extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               Text(
                 NoticeText.contentViewWillLog,
-                style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              OutlinedButton(
-                onPressed: () => _open(
-                  context,
-                  '/teacher/inquiries/${followUp.inquiryId}/content',
-                  ContentArgs(
-                    title: title,
-                    header: '${args.studentName} 학부모 · $at',
-                    answerTarget: args.canAnswer ? target : null,
-                  ),
+                style: AppTextStyles.small.copyWith(
+                  color: AppColors.textSecondary,
                 ),
-                child: const Text(AnswerText.viewOriginalButton),
               ),
-              if (args.canAnswer) ...[
-                const SizedBox(height: AppSpacing.sm),
-                FilledButton(
-                  onPressed: () =>
-                      _open(context, '/teacher/inquiries/${args.rootId}/answer', target),
-                  child: const Text(AnswerText.writeAnswerButton),
-                ),
-              ],
             ],
           );
         },
       ),
+    );
+  }
+
+  /// "답변 작성"으로 넘길 값. 재문의 번역본이 있으면 그 요청사항을 함께 넘긴다.
+  AnswerTarget _target(FollowUpDetail detail) {
+    final requests = detail is Refined ? detail.refinement.requests : null;
+    return AnswerTarget(
+      inquiryId: args.rootId,
+      studentName: args.studentName,
+      title: args.rootTitle,
+      requests: requests == null || requests.isEmpty ? null : requests,
+      fromThread: true,
+      lastSeenFollowUpId: args.lastSeenFollowUpId,
     );
   }
 
@@ -116,6 +136,8 @@ class _Badge extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) =>
-      Align(alignment: Alignment.centerLeft, child: AppTag(text, tone: TagTone.info));
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: AppTag(text, tone: TagTone.info),
+  );
 }
