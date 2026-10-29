@@ -77,21 +77,62 @@ void main() {
     expect(r.highlights, isEmpty);
   });
 
-  test('전송: /answers 에 content·reviewed 를 보내고 결과를 해석한다', () async {
+  test('전송: /answers 에 content·reviewed·lastSeenFollowUpId 를 보내고 결과를 해석한다', () async {
     adapter.respond = (_) => _json(201, {
       'answerId': 'e0000000-0000-4000-8000-000000000001',
       'inquiryId': _id,
       'sentAt': '2026-10-28T10:00:00Z',
     });
-    final sent = await repo.send(_id, '본문', reviewed: true);
+    final sent = await repo.send(
+      _id,
+      '본문',
+      reviewed: true,
+      lastSeenFollowUpId: 'f0000000-0000-4000-8000-000000000001',
+    );
 
     final req = adapter.calls.single;
     expect(req.method, 'POST');
     expect(req.path, '/api/v1/teacher/inquiries/$_id/answers');
-    expect(req.data, {'content': '본문', 'reviewed': true});
+    expect(req.data, {
+      'content': '본문',
+      'reviewed': true,
+      'lastSeenFollowUpId': 'f0000000-0000-4000-8000-000000000001',
+    });
     expect(sent.answerId, 'e0000000-0000-4000-8000-000000000001');
     expect(sent.inquiryId, _id);
     expect(sent.sentAt, DateTime.parse('2026-10-28T10:00:00Z'));
+  });
+
+  test('재문의가 없으면 lastSeenFollowUpId 키를 null 로 보낸다(빠지면 400)', () async {
+    adapter.respond = (_) => _json(201, {
+      'answerId': 'e0000000-0000-4000-8000-000000000001',
+      'inquiryId': _id,
+      'sentAt': '2026-10-28T10:00:00Z',
+    });
+    await repo.send(_id, '본문', reviewed: true, lastSeenFollowUpId: null);
+
+    final data = adapter.calls.single.data as Map;
+    expect(data.containsKey('lastSeenFollowUpId'), isTrue);
+    expect(data['lastSeenFollowUpId'], isNull);
+  });
+
+  test('409 NEW_FOLLOW_UP 은 코드와 서버 문구 그대로', () async {
+    adapter.respond = (_) => _json(409, {
+      'code': 'NEW_FOLLOW_UP',
+      'message': '확인하지 않은 재문의가 있습니다. 스레드를 다시 불러온 뒤 보내 주세요.',
+    });
+    await expectLater(
+      repo.send(_id, '본문', reviewed: true, lastSeenFollowUpId: null),
+      throwsA(
+        isA<AppException>()
+            .having((e) => e.code, 'code', ErrorCodes.newFollowUp)
+            .having(
+              (e) => e.message,
+              'message',
+              '확인하지 않은 재문의가 있습니다. 스레드를 다시 불러온 뒤 보내 주세요.',
+            ),
+      ),
+    );
   });
 
   test('409 THREAD_CLOSED 는 코드와 서버 문구 그대로', () async {
@@ -100,7 +141,7 @@ void main() {
       'message': '이미 종료된 문의입니다.',
     });
     await expectLater(
-      repo.send(_id, '본문', reviewed: false),
+      repo.send(_id, '본문', reviewed: false, lastSeenFollowUpId: null),
       throwsA(
         isA<AppException>()
             .having((e) => e.code, 'code', ErrorCodes.threadClosed)
@@ -132,7 +173,7 @@ void main() {
   test('응답 형식이 틀리면 일반 안내', () async {
     adapter.respond = (_) => _json(201, {'answerId': 'x'});
     await expectLater(
-      repo.send(_id, '본문', reviewed: false),
+      repo.send(_id, '본문', reviewed: false, lastSeenFollowUpId: null),
       throwsA(
         isA<AppException>().having(
           (e) => e.message,

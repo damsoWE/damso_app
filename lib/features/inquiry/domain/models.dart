@@ -219,7 +219,7 @@ class TeacherInquirySummary {
     required this.lastAnsweredAt,
     bool? needsAnswer,
     this.lastFollowUpAt,
-  }) : needsAnswer = needsAnswer ?? !hasAnswer;
+  }) : needsAnswer = needsAnswer ?? !hasAnswer; // 상세 응답에는 없어 답변 여부로 채운다
 
   final String inquiryId;
   final String studentId;
@@ -238,11 +238,11 @@ class TeacherInquirySummary {
   /// 스레드의 마지막 답변 시각(이전 담임의 답변 포함). 답변이 없으면 null.
   final DateTime? lastAnsweredAt;
 
-  /// "답변 대기" 칸에 둘지(specs/004 FR-029): 답변이 없거나 마지막 답변 뒤 재문의가 있다.
-  /// 서버 목록에 아직 이 값이 없어 실서버는 `!hasAnswer`로 채운다(FR-031).
+  /// "답변 대기"인지(specs/004 FR-029): 답변이 없거나 마지막 답변 뒤 재문의가 있다.
+  /// 목록은 서버 값(api-v0.11 `needsAnswer`), 상세는 `!hasAnswer`.
   final bool needsAnswer;
 
-  /// 마지막 재문의 시각("재문의 받음" 표시). 서버 목록에 아직 없어 실서버는 null.
+  /// 마지막 재문의 시각("재문의 받음" 표시, api-v0.11). 재문의가 없거나 상세면 null.
   final DateTime? lastFollowUpAt;
 
   /// 답변한 뒤 재문의가 와서 다시 답변 대기로 돌아온 문의.
@@ -253,6 +253,20 @@ class TeacherInquirySummary {
 
   /// 교사가 아직 원문을 열지 않은 긴급 문의(교사 홈 긴급 카드).
   bool get isUnconfirmedUrgent => urgent && stage == InquiryStage.delivered;
+}
+
+/// 교사 목록을 답변 여부로 거르는 값(api-v0.11 `answerStatus`). 서버가 거르고 `totalElements`도
+/// 거른 결과 기준이다.
+enum AnswerStatus {
+  /// 답변이 없거나 마지막 답변 뒤에 재문의가 있다.
+  waiting('WAITING'),
+
+  /// 답변이 있고 그 뒤에 재문의가 없다.
+  answered('ANSWERED');
+
+  const AnswerStatus(this.serverValue);
+
+  final String serverValue;
 }
 
 class TeacherInquiryPage {

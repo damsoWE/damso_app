@@ -37,9 +37,17 @@ class _PagedRepo implements TeacherInquiryRepository {
   /// 맨 앞에 끼워 넣을 새 문의 수(새 긴급 문의가 들어온 상황).
   int prepended = 0;
 
+  /// 받은 거르기 값(요청 순서대로).
+  final statuses = <AnswerStatus?>[];
+
   @override
-  Future<TeacherInquiryPage> list({int page = 0, int size = 20}) async {
+  Future<TeacherInquiryPage> list({
+    int page = 0,
+    int size = 20,
+    AnswerStatus? answerStatus,
+  }) async {
     pages.add(page);
+    statuses.add(answerStatus);
     await gate?.future;
     await gates[page]?.future;
     if (failNext) {
@@ -148,6 +156,27 @@ void main() {
     expect(state().items.first.inquiryId, 'id-1000'); // 새 문의가 사라지지 않는다
     expect(state().items, hasLength(20));
     expect(state().isLoadingMore, isFalse);
+  });
+
+  test('칸 목록은 서버에 거르기 값을 보내고 다음 페이지도 같은 값으로 부른다(api-v0.11)', () async {
+    final provider = teacherInquiryTabViewModelProvider(InquiryTab.answered);
+    container.listen(provider, (_, _) {});
+    await loaded(); // 홈 목록
+    await container.read(provider.future);
+    await container.read(provider.notifier).loadMore();
+    expect(repo.statuses, [null, AnswerStatus.answered, AnswerStatus.answered]);
+    expect(container.read(provider).requireValue.total, 45); // 서버 totalElements
+  });
+
+  test('홈 목록을 새로 고치면 열려 있는 칸 목록도 새로 고친다', () async {
+    final provider = teacherInquiryTabViewModelProvider(InquiryTab.waiting);
+    container.listen(provider, (_, _) {});
+    await loaded();
+    await container.read(provider.future);
+    repo.statuses.clear();
+    await vm().refresh();
+    await pumpEventQueue();
+    expect(repo.statuses, unorderedEquals([null, AnswerStatus.waiting]));
   });
 
   test('페이지 경계가 밀려 같은 문의가 다시 와도 한 번만 보인다', () async {

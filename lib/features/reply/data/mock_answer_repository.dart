@@ -44,14 +44,24 @@ class MockAnswerRepository implements AnswerRepository {
   }
 
   @override
-  Future<AnswerSent> send(String inquiryId, String content, {required bool reviewed}) async {
+  Future<AnswerSent> send(
+    String inquiryId,
+    String content, {
+    required bool reviewed,
+    required String? lastSeenFollowUpId,
+  }) async {
     await Future<void>.delayed(_delay);
     _checkClassroom();
     if (_tokens.accessToken == 'mock:refresh-teacher' && !_refreshSimulated) {
       await Future<void>.delayed(_refreshDelay);
       _refreshSimulated = true;
     }
-    final a = _store.sendAnswerForTeacher(inquiryId, content, reviewed: reviewed);
+    final a = _store.sendAnswerForTeacher(
+      inquiryId,
+      content,
+      reviewed: reviewed,
+      lastSeenFollowUpId: lastSeenFollowUpId,
+    );
     return AnswerSent(answerId: a.answerId, inquiryId: inquiryId, sentAt: a.sentAt);
   }
 }

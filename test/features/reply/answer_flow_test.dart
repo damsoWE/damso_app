@@ -218,9 +218,7 @@ void main() {
 
     await teacherInquiries(tester);
     await settle(tester);
-    // 재문의가 와도 답변 완료 칸에 있다(FR-031).
-    await tester.tap(find.textContaining(RegExp(r'^답변 완료 \d+$')));
-    await settle(tester);
+    // 답변 뒤 재문의가 오면 답변 대기 칸에 있다(api-v0.11 needsAnswer).
     await openInquiry(tester, rootTitle, '박서준');
 
     final followUpCard = find.text(AnswerText.parentCardTitle('박서준', followUp: true));
@@ -262,6 +260,41 @@ void main() {
     await tester.pageBack();
     await settle(tester);
     expect(find.textContaining(RegExp(r'^답변 대기 \d+$')), findsOneWidget);
+    expectNoEmail(tester);
+  });
+
+  testWidgets('쓰는 동안 재문의가 오면(409 NEW_FOLLOW_UP) 작성 화면에 남아 새 재문의를 보이고, 확인 뒤 다시 보낸다', (
+    tester,
+  ) async {
+    const draft = '재문의도착 확인하겠습니다.';
+    await teacherInquiries(tester);
+    await settle(tester);
+    await openInquiry(tester, '친구와 다툰 일 관련 문의', '이도윤');
+    await tapSettle(tester, AnswerText.writeAnswerButton);
+    await typeAnswer(tester, draft);
+    await tapSettle(tester, AnswerText.reviewButton);
+    await tapSettle(tester, AnswerText.sendButton);
+
+    // 보내지 않았고 본문은 그대로, 서버 문구와 새 재문의 카드
+    expect(find.text(AnswerText.newFollowUpHeading), findsOneWidget);
+    expect(find.text('확인하지 않은 재문의가 있습니다. 스레드를 다시 불러온 뒤 보내 주세요.'), findsOneWidget);
+    expect(find.text(draft), findsOneWidget);
+    final card = find.text(AnswerText.parentCardTitle('이도윤', followUp: true));
+    expect(card, findsOneWidget);
+
+    // 재문의 상세: "답변 작성" 없음(돌아가서 쓰던 답변을 보낸다)
+    await tester.ensureVisible(card);
+    await tester.tap(card);
+    await settle(tester);
+    expect(find.text('내일 아침 상황도 함께 확인해 달라는 요청'), findsOneWidget);
+    expect(find.text(AnswerText.writeAnswerButton), findsNothing);
+    await tester.pageBack();
+    await settle(tester);
+
+    await tapSettle(tester, AnswerText.resendButton);
+    expect(find.text(AnswerText.toListButton), findsOneWidget); // 스레드
+    expect(find.text(draft), findsOneWidget);
+    expect(find.text(AnswerText.newFollowUpHeading), findsNothing);
     expectNoEmail(tester);
   });
 

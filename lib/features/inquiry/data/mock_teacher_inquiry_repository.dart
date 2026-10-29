@@ -29,10 +29,11 @@ class MockTeacherInquiryRepository implements TeacherInquiryRepository {
   Future<TeacherInquiryPage> list({
     int page = 0,
     int size = TeacherInquiryRepository.pageSize,
+    AnswerStatus? answerStatus,
   }) async {
     await Future<void>.delayed(_delay);
     _checkClassroom();
-    return _store.listForTeacher(page: page, size: size);
+    return _store.listForTeacher(page: page, size: size, answerStatus: answerStatus);
   }
 
   @override

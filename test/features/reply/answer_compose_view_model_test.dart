@@ -5,6 +5,9 @@ import 'package:damso_app/core/error/error_codes.dart';
 import 'package:damso_app/core/session/role.dart';
 import 'package:damso_app/core/session/session_controller.dart';
 import 'package:damso_app/core/storage/token_store.dart';
+import 'package:damso_app/features/inquiry/data/inquiry_repository_providers.dart';
+import 'package:damso_app/features/inquiry/domain/models.dart';
+import 'package:damso_app/features/inquiry/domain/teacher_inquiry_repository.dart';
 import 'package:damso_app/features/reply/data/answer_repository_provider.dart';
 import 'package:damso_app/features/reply/domain/answer_repository.dart';
 import 'package:damso_app/features/reply/domain/answer_text.dart';
@@ -45,6 +48,9 @@ class _FakeAnswerRepo implements AnswerRepository {
   final reviews = <String>[];
   final sends = <({String content, bool reviewed})>[];
 
+  /// 전송마다 보낸 lastSeenFollowUpId.
+  final lastSeen = <String?>[];
+
   @override
   Future<AnswerReview> review(String inquiryId, String content) async {
     reviews.add(content);
@@ -52,22 +58,92 @@ class _FakeAnswerRepo implements AnswerRepository {
   }
 
   @override
-  Future<AnswerSent> send(String inquiryId, String content, {required bool reviewed}) async {
+  Future<AnswerSent> send(
+    String inquiryId,
+    String content, {
+    required bool reviewed,
+    required String? lastSeenFollowUpId,
+  }) async {
     sends.add((content: content, reviewed: reviewed));
+    lastSeen.add(lastSeenFollowUpId);
     return sendResult();
   }
 }
 
+TeacherFollowUp _followUp(String id, int minute) => TeacherFollowUp(
+  inquiryId: id,
+  urgent: false,
+  title: '재문의 $id',
+  stage: InquiryStage.refined,
+  submittedAt: DateTime(2026, 10, 29, 10, minute),
+);
+
+/// 409 NEW_FOLLOW_UP 뒤 상세를 다시 받는 가짜 Repository. 상세만 쓴다.
+class _FakeInquiryRepo implements TeacherInquiryRepository {
+  List<TeacherFollowUp> followUps = const [];
+  AppException? detailError;
+  int detailCalls = 0;
+
+  @override
+  Future<TeacherInquiryDetail> detail(String inquiryId) async {
+    detailCalls++;
+    final error = detailError;
+    if (error != null) throw error;
+    return TeacherInquiryDetail(
+      summary: TeacherInquirySummary(
+        inquiryId: inquiryId,
+        studentId: 's',
+        studentName: '박서준',
+        urgent: false,
+        title: '친구 관계 관련 문의',
+        stage: InquiryStage.teacherConfirmed,
+        refinementStatus: RefinementStatus.refined,
+        submittedAt: DateTime(2026, 10, 29, 9),
+        hasAnswer: true,
+        lastAnsweredAt: DateTime(2026, 10, 29, 9, 30),
+      ),
+      timeline: const [],
+      retryAvailable: false,
+      followUps: followUps,
+    );
+  }
+
+  @override
+  Future<TeacherInquiryPage> list({
+    int page = 0,
+    int size = TeacherInquiryRepository.pageSize,
+    AnswerStatus? answerStatus,
+  }) async => TeacherInquiryPage(items: const [], page: page, size: size, totalElements: 0);
+
+  @override
+  Future<String> content(String inquiryId) => throw UnimplementedError();
+
+  @override
+  Future<InquiryRefinement> refinement(String inquiryId) => throw UnimplementedError();
+
+  @override
+  Future<RefinementStatus> retryRefinement(String inquiryId) => throw UnimplementedError();
+}
+
+const _newFollowUpError = AppException(
+  message: '확인하지 않은 재문의가 있습니다. 스레드를 다시 불러온 뒤 보내 주세요.',
+  code: ErrorCodes.newFollowUp,
+  statusCode: 409,
+);
+
 void main() {
   late _FakeAnswerRepo repo;
+  late _FakeInquiryRepo inquiryRepo;
   late ProviderContainer container;
 
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
     repo = _FakeAnswerRepo();
+    inquiryRepo = _FakeInquiryRepo();
     container = ProviderContainer(
       overrides: [
         answerRepositoryProvider.overrideWithValue(repo),
+        teacherInquiryRepositoryProvider.overrideWithValue(inquiryRepo),
         tokenStoreProvider.overrideWithValue(TokenStore()),
       ],
     );
@@ -196,6 +272,92 @@ void main() {
       gate.complete(AnswerSent(answerId: 'a', inquiryId: _id, sentAt: DateTime(2026)));
       await sending;
       expect(repo.sends, hasLength(1));
+    });
+
+    test('들어오기 전 화면의 마지막 재문의 ID 를 보낸다. 다시 넣어도 처음 값 그대로', () async {
+      vm().seenFollowUp('f1');
+      vm().seenFollowUp('f9'); // 다시 그려져도 바뀌지 않는다
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      expect(repo.lastSeen, ['f1']);
+    });
+
+    test('재문의가 없었으면 null 을 보낸다', () async {
+      vm().seenFollowUp(null);
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      expect(repo.lastSeen, [null]);
+    });
+
+    test('409 NEW_FOLLOW_UP → 상세를 다시 받아 못 본 재문의만 보이고, 본문 유지·자동 전송 없음', () async {
+      vm().seenFollowUp('f1');
+      inquiryRepo.followUps = [_followUp('f1', 0), _followUp('f2', 5), _followUp('f3', 9)];
+      repo.sendResult = () => throw _newFollowUpError;
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+
+      final step = s().step as NewFollowUpArrived;
+      expect(step.followUps.map((f) => f.inquiryId), ['f2', 'f3']);
+      expect(step.notice, _newFollowUpError.message);
+      expect(s().text, '확인하겠습니다.');
+      expect(s().sent, isNull);
+      expect(s().canSend, isTrue);
+      expect(repo.sends, hasLength(1));
+    });
+
+    test('NEW_FOLLOW_UP 뒤 다시 보내면 새 마지막 재문의 ID 로 보낸다', () async {
+      var first = true;
+      repo.sendResult = () {
+        if (first) {
+          first = false;
+          throw _newFollowUpError;
+        }
+        return AnswerSent(answerId: 'a', inquiryId: _id, sentAt: DateTime(2026));
+      };
+      vm().seenFollowUp(null);
+      inquiryRepo.followUps = [_followUp('f1', 0)];
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      expect((s().step as NewFollowUpArrived).followUps.single.inquiryId, 'f1');
+
+      await vm().resend();
+      expect(repo.lastSeen, [null, 'f1']);
+      expect(s().sent, isNotNull);
+    });
+
+    test('NEW_FOLLOW_UP 뒤 "답변 수정" → EditedAfterReview, 그대로 전송할 수 있다', () async {
+      inquiryRepo.followUps = [_followUp('f1', 0)];
+      repo.sendResult = () => throw _newFollowUpError;
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      vm().startEdit();
+      expect(s().step, isA<EditedAfterReview>());
+      expect(s().canSend, isTrue);
+    });
+
+    test('NEW_FOLLOW_UP 뒤 상세를 못 받으면 전송 실패(다시 보내기 가능)·서버 문구', () async {
+      inquiryRepo.detailError = const AppException(message: '요청을 처리하지 못했습니다.');
+      repo.sendResult = () => throw _newFollowUpError;
+      vm().seenFollowUp('f1');
+      vm().updateText('확인하겠습니다.');
+      await vm().review();
+      await vm().send();
+      final step = s().step as SendFailed;
+      expect(step.canResend, isTrue);
+      expect(step.maybeSent, isFalse);
+      expect(s().message, '요청을 처리하지 못했습니다.');
+
+      // 다시 보내면 아직 본 재문의가 그대로라 서버가 또 막고, 그때 다시 받는다.
+      inquiryRepo.detailError = null;
+      inquiryRepo.followUps = [_followUp('f1', 0), _followUp('f2', 5)];
+      await vm().resend();
+      expect(repo.lastSeen, ['f1', 'f1']);
+      expect((s().step as NewFollowUpArrived).followUps.single.inquiryId, 'f2');
     });
 
     test('같은 inquiryId 면 같은 ViewModel·본문(analyze U1)', () {

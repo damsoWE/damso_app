@@ -6,6 +6,13 @@ abstract class AnswerRepository {
   Future<AnswerReview> review(String inquiryId, String content);
 
   /// 답변 전송. 이미 종료된 문의면 409 `THREAD_CLOSED`.
+  /// [lastSeenFollowUpId]: 교사가 화면에서 본 마지막 재문의 ID(없으면 null, api-v0.11).
+  /// 스레드의 최신 재문의와 다르면 409 `NEW_FOLLOW_UP`이고 답변은 저장되지 않는다.
   /// 멱등키가 없으므로 호출하는 쪽에서 자동으로 다시 보내지 않는다(research R8).
-  Future<AnswerSent> send(String inquiryId, String content, {required bool reviewed});
+  Future<AnswerSent> send(
+    String inquiryId,
+    String content, {
+    required bool reviewed,
+    required String? lastSeenFollowUpId,
+  });
 }

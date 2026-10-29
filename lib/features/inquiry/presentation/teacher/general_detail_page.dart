@@ -121,6 +121,7 @@ class GeneralDetailPage extends ConsumerWidget {
       studentName: detail.summary.studentName,
       title: title,
       requests: requests == null || requests.isEmpty ? null : requests,
+      lastSeenFollowUpId: detail.followUps.lastOrNull?.inquiryId,
     );
     return [
       const SizedBox(height: AppSpacing.sm),

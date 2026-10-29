@@ -353,7 +353,7 @@ void main() {
     });
 
     test('전송하면 답변이 늘고 문의는 종료되지 않는다', () {
-      store.sendAnswerForTeacher(fresh, '확인하겠습니다.', reviewed: true);
+      store.sendAnswerForTeacher(fresh, '확인하겠습니다.', reviewed: true, lastSeenFollowUpId: null);
       final d = store.detailForTeacher(fresh);
       expect(d.answers.single.content, '확인하겠습니다.');
       expect(d.answers.single.reviewed, isTrue);
@@ -361,7 +361,7 @@ void main() {
       expect(d.summary.hasAnswer, isTrue);
     });
 
-    test('답변 대기·답변 완료: 실서버처럼 답변이 있는지로만 나눈다, 재문의가 와도 답변 완료(FR-029·031)', () {
+    test('답변 대기·답변 완료: 답변 뒤 재문의가 오면 다시 답변 대기(api-v0.11 needsAnswer)', () {
       TeacherInquirySummary summary(String id) => store
           .listForTeacher(page: 0, size: 100)
           .items
@@ -371,12 +371,77 @@ void main() {
       expect(summary(fresh).needsAnswer, isTrue);
 
       final withNewFollowUp = summary(withFollowUp);
-      expect(withNewFollowUp.needsAnswer, isFalse);
-      expect(withNewFollowUp.hasNewFollowUp, isFalse);
-      expect(withNewFollowUp.lastFollowUpAt, isNull);
+      expect(withNewFollowUp.needsAnswer, isTrue);
+      expect(withNewFollowUp.hasNewFollowUp, isTrue);
+      expect(
+        withNewFollowUp.lastFollowUpAt,
+        store.detailForTeacher(withFollowUp).followUps.last.submittedAt,
+      );
 
-      store.sendAnswerForTeacher(fresh, '확인하겠습니다.', reviewed: true);
+      store.sendAnswerForTeacher(fresh, '확인하겠습니다.', reviewed: true, lastSeenFollowUpId: null);
       expect(summary(fresh).needsAnswer, isFalse);
+      store.sendAnswerForTeacher(
+        withFollowUp,
+        '확인하겠습니다.',
+        reviewed: true,
+        lastSeenFollowUpId: followUp,
+      );
+      expect(summary(withFollowUp).needsAnswer, isFalse);
+    });
+
+    test('answerStatus 로 서버처럼 거르고 totalElements 도 거른 결과 기준', () {
+      final all = store.listForTeacher(page: 0, size: 100);
+      final waiting = store.listForTeacher(
+        page: 0,
+        size: 100,
+        answerStatus: AnswerStatus.waiting,
+      );
+      final done = store.listForTeacher(
+        page: 0,
+        size: 100,
+        answerStatus: AnswerStatus.answered,
+      );
+      expect(waiting.items.every((i) => i.needsAnswer), isTrue);
+      expect(done.items.every((i) => !i.needsAnswer), isTrue);
+      expect(waiting.totalElements + done.totalElements, all.totalElements);
+      expect(waiting.items.map((i) => i.inquiryId), contains(withFollowUp));
+      expect(done.items.map((i) => i.inquiryId), [answered]);
+    });
+
+    test('본 재문의가 최신이 아니면 409 NEW_FOLLOW_UP, 답변은 저장되지 않는다', () {
+      expect(
+        () => store.sendAnswerForTeacher(
+          withFollowUp,
+          '확인하겠습니다.',
+          reviewed: true,
+          lastSeenFollowUpId: null,
+        ),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.newFollowUp)),
+      );
+      expect(store.detailForTeacher(withFollowUp).answers, hasLength(1)); // 데모 답변 그대로
+    });
+
+    test('본문에 "재문의도착"이면 첫 전송 때 재문의가 와서 409, 새 재문의 ID 로 다시 보내면 성공', () {
+      expect(
+        () => store.sendAnswerForTeacher(
+          fresh,
+          '재문의도착 데모',
+          reviewed: true,
+          lastSeenFollowUpId: null,
+        ),
+        throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.newFollowUp)),
+      );
+      final arrived = store.detailForTeacher(fresh).followUps.single;
+      expect(store.refinementForTeacher(arrived.inquiryId).requests, isNotEmpty);
+      store.sendAnswerForTeacher(
+        fresh,
+        '재문의도착 데모',
+        reviewed: true,
+        lastSeenFollowUpId: arrived.inquiryId,
+      );
+      final d = store.detailForTeacher(fresh);
+      expect(d.answers, hasLength(1));
+      expect(d.followUps, hasLength(1)); // 두 번째 전송에서는 더 오지 않는다
     });
 
     test('점검: 단어로 결과를 고른다', () {
@@ -396,7 +461,12 @@ void main() {
 
     test('본문에 "전송실패"면 연결 오류, 답변은 늘지 않는다', () {
       expect(
-        () => store.sendAnswerForTeacher(fresh, '전송실패 데모', reviewed: false),
+        () => store.sendAnswerForTeacher(
+          fresh,
+          '전송실패 데모',
+          reviewed: false,
+          lastSeenFollowUpId: null,
+        ),
         throwsA(isA<AppException>().having((e) => e.isNetworkError, 'network', isTrue)),
       );
       expect(store.detailForTeacher(fresh).answers, isEmpty);
@@ -404,7 +474,12 @@ void main() {
 
     test('공백만이면 400', () {
       expect(
-        () => store.sendAnswerForTeacher(fresh, '   ', reviewed: false),
+        () => store.sendAnswerForTeacher(
+          fresh,
+          '   ',
+          reviewed: false,
+          lastSeenFollowUpId: null,
+        ),
         throwsA(isA<AppException>().having((e) => e.code, 'code', ErrorCodes.invalidInput)),
       );
     });
@@ -457,7 +532,7 @@ void main() {
       const id = MockInquiryStore.answeredDemoId;
       for (final call in [
         () => repo.review(id, '확인하겠습니다.'),
-        () => repo.send(id, '확인하겠습니다.', reviewed: true),
+        () => repo.send(id, '확인하겠습니다.', reviewed: true, lastSeenFollowUpId: null),
       ]) {
         await expectLater(
           call(),
@@ -476,7 +551,7 @@ void main() {
       const other = MockInquiryStore.forbiddenDemoId;
       for (final call in <Future<Object?> Function()>[
         () => repo.review(other, '확인하겠습니다.'),
-        () => repo.send(other, '확인하겠습니다.', reviewed: true),
+        () => repo.send(other, '확인하겠습니다.', reviewed: true, lastSeenFollowUpId: null),
         () async => store.detailForTeacher(other),
       ]) {
         await expectLater(call(), throwsA(isA<AppException>()));
@@ -495,10 +570,15 @@ void main() {
       expect(none.highlights, isEmpty);
       expect((await repo.review(id, '점검실패')).available, isFalse);
       await expectLater(
-        repo.send(id, '전송실패', reviewed: true),
+        repo.send(id, '전송실패', reviewed: true, lastSeenFollowUpId: null),
         throwsA(isA<AppException>().having((e) => e.isNetworkError, 'network', isTrue)),
       );
-      final sent = await repo.send(id, '확인하겠습니다.', reviewed: true);
+      final sent = await repo.send(
+        id,
+        '확인하겠습니다.',
+        reviewed: true,
+        lastSeenFollowUpId: null,
+      );
       expect(sent.inquiryId, id);
     });
 
