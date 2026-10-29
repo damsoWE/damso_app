@@ -38,8 +38,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(loginViewModelProvider);
 
+    final secondaryLink = TextButton.styleFrom(foregroundColor: AppColors.textSecondary);
+
     return FormPage(
-      title: '로그인',
+      // 세션 만료로 바로 열리면 뒤로 갈 화면이 없다. 그래도 Figma 처럼 뒤로 아이콘을 두고 시작 화면으로 보낸다.
+      leading: context.canPop() ? null : BackButton(onPressed: () => context.go('/')),
       bottom: [
         SubmitButton(
           label: '로그인',
@@ -48,27 +51,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         TextButton(
           onPressed: () => context.push('/signup'),
-          child: const Text('가입하기'),
+          style: secondaryLink.copyWith(
+            textStyle: const WidgetStatePropertyAll(AppTextStyles.small),
+          ),
+          child: const Text('계정이 없나요? 초대코드로 가입하기'),
         ),
       ],
       children: [
-        TextField(
-          controller: _email,
-          autofillHints: const [AutofillHints.email],
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: const InputDecoration(labelText: '이메일'),
+        Text('다시 오신 걸 환영해요', style: AppTextStyles.display.copyWith(color: AppColors.textPrimary)),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '가입한 이메일과 비밀번호로 로그인해 주세요.',
+          style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _LabeledField(
+          label: '이메일',
+          child: TextField(
+            controller: _email,
+            autofillHints: const [AutofillHints.email],
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+          ),
         ),
         FieldErrorText(state.fieldErrors['email']),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
-          controller: _password,
-          autofillHints: const [AutofillHints.password],
-          obscureText: true,
-          autocorrect: false,
-          enableSuggestions: false,
-          decoration: const InputDecoration(labelText: '비밀번호'),
-          onSubmitted: (_) => _submit(),
+        const SizedBox(height: AppSpacing.ms),
+        _LabeledField(
+          label: '비밀번호',
+          child: TextField(
+            controller: _password,
+            autofillHints: const [AutofillHints.password],
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            onSubmitted: (_) => _submit(),
+          ),
         ),
         FieldErrorText(state.fieldErrors['password']),
         MessageText(state.errorMessage),
@@ -77,9 +94,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Center(
           child: TextButton(
             onPressed: () => context.push('/password-reset'),
+            style: secondaryLink.copyWith(
+              textStyle: const WidgetStatePropertyAll(AppTextStyles.smallStrong),
+            ),
             child: const Text('비밀번호 재설정'),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Figma Input: 입력칸 위에 따로 붙는 라벨(`담소/Label`). 화면 낭독기는 입력칸 이름으로 읽는다.
+class _LabeledField extends StatelessWidget {
+  const _LabeledField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExcludeSemantics(
+          child: Text(label, style: AppTextStyles.label.copyWith(color: AppColors.textSecondary)),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Semantics(label: label, child: child),
       ],
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/bottom_actions.dart';
 
 /// C-7 이용약관 · 개인정보 처리방침 (Figma 225-1591). 임시 문안, 일반 텍스트로만 표시한다.
 class TermsPage extends StatelessWidget {
@@ -29,9 +30,13 @@ class TermsPage extends StatelessWidget {
               Text(body, style: AppTextStyles.body),
               const SizedBox(height: AppSpacing.lg),
             ],
-            FilledButton(onPressed: () => context.pop(), child: const Text('확인')),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomActions(
+        children: [
+          FilledButton(onPressed: () => context.pop(), child: const Text('확인')),
+        ],
       ),
     );
   }

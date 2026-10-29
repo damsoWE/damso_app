@@ -47,25 +47,30 @@ class HotlineCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final number = hotline.phoneNumber;
-    return Card(
-      color: AppColors.bgSurface,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(NoticeText.hotline(hotline), style: AppTextStyles.subtitle),
-            const SizedBox(height: AppSpacing.sm),
-            // 전화 걸기 화면만 연다. 통화는 학부모가 직접 누른다(FR-010a).
-            OutlinedButton(
-              onPressed: canDial
-                  ? () => ref.read(dialLauncherProvider).dial(number)
-                  : null,
-              child: Text('$number로 전화하기'),
+    // Figma F2-3b~d: 번호 카드 아래에 전화 버튼을 따로 둔다.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          color: AppColors.bgSurface,
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Text(
+              NoticeText.hotline(hotline),
+              style: AppTextStyles.subtitle,
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: AppSpacing.md),
+        // 전화 걸기 화면만 연다. 통화는 학부모가 직접 누른다(FR-010a).
+        OutlinedButton(
+          onPressed: canDial
+              ? () => ref.read(dialLauncherProvider).dial(number)
+              : null,
+          child: Text('$number로 전화하기'),
+        ),
+      ],
     );
   }
 }

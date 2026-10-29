@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/async_view.dart';
+import '../../../../core/widgets/bottom_actions.dart';
 import 'teacher_inquiries_view_model.dart';
 import 'teacher_inquiry_tile.dart';
 
@@ -21,37 +22,54 @@ class TeacherHomeInquirySection extends ConsumerWidget {
       onRetry: vm.refresh,
       data: (s) {
         final urgent = s.unconfirmedUrgent.toList();
-        final recent = s.items.where((i) => !i.isUnconfirmedUrgent).take(_recent);
-        return RefreshIndicator(
-          onRefresh: vm.refresh,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            children: [
-              if (urgent.isNotEmpty) ...[
-                _UrgentCard(
-                  count: urgent.length,
-                  // 가장 최근 확인 전 긴급 문의를 연다(서버가 긴급을 최신순으로 먼저 준다).
-                  onTap: () => context.push(TeacherInquiryTile.pathOf(urgent.first)),
+        final recent = s.items
+            .where((i) => !i.isUnconfirmedUrgent)
+            .take(_recent);
+        return Column(
+          children: [
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: vm.refresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  children: [
+                    if (urgent.isNotEmpty) ...[
+                      _UrgentCard(
+                        count: urgent.length,
+                        // 가장 최근 확인 전 긴급 문의를 연다(서버가 긴급을 최신순으로 먼저 준다).
+                        onTap: () => context.push(
+                          TeacherInquiryTile.pathOf(urgent.first),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                    const Text('최근 문의', style: AppTextStyles.subtitle),
+                    const SizedBox(height: AppSpacing.sm),
+                    if (recent.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        child: Text(
+                          '담당 학급의 문의가 없습니다.',
+                          style: AppTextStyles.body,
+                        ),
+                      )
+                    else
+                      for (final item in recent) TeacherInquiryTile(item: item),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              const Text('최근 문의', style: AppTextStyles.subtitle),
-              const SizedBox(height: AppSpacing.sm),
-              if (recent.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Text('담당 학급의 문의가 없습니다.', style: AppTextStyles.body),
-                )
-              else
-                for (final item in recent) TeacherInquiryTile(item: item),
-              const SizedBox(height: AppSpacing.md),
-              FilledButton(
-                onPressed: () => context.go('/teacher/inquiries'),
-                child: const Text('문의 목록 보기'),
               ),
-            ],
-          ),
+            ),
+            // Figma F3-4: 하단 탭 바로 위에 고정.
+            BottomActions(
+              children: [
+                FilledButton(
+                  onPressed: () => context.go('/teacher/inquiries'),
+                  child: const Text('문의 목록 보기'),
+                ),
+              ],
+            ),
+          ],
         );
       },
     );

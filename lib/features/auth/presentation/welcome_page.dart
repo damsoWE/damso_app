@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/session/session_state.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/bottom_actions.dart';
 
 /// C-6 담소 이용 안내 (Figma 216-5082). 고정 문구만 쓴다(원칙 V).
 class WelcomePage extends ConsumerWidget {
@@ -40,12 +41,16 @@ class WelcomePage extends ConsumerWidget {
               Text(body, style: AppTextStyles.body),
               const SizedBox(height: AppSpacing.lg),
             ],
-            FilledButton(
-              onPressed: () => _confirm(context, ref),
-              child: const Text('확인했어요'),
-            ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomActions(
+        children: [
+          FilledButton(
+            onPressed: () => _confirm(context, ref),
+            child: const Text('확인했어요'),
+          ),
+        ],
       ),
     );
   }
