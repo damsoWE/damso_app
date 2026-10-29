@@ -42,7 +42,7 @@ class AppColors {
   static const textInverse = Color(0xFFFFFFFF);
 
   // 브랜드
-  static const brandPrimary = Color(0xFF3F7665); // 메인 컬러 · 칠판 그린
+  static const brandPrimary = Color(0xFF60AB94); // 메인 컬러 · Figma `color/brand/primary`(사용자 지정, 2026-10-30)
   static const brandAccent = Color(0xFFF3A76F); // 강조 컬러 · 살구 오렌지
   static const brandAccentSoft = Color(0xFFDCEFE8); // 메인 연한 배경 · 민트 크림
 
