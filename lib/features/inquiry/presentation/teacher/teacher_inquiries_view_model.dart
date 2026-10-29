@@ -31,6 +31,12 @@ class TeacherInquiriesState {
   Iterable<TeacherInquirySummary> get unconfirmedUrgent =>
       items.where((i) => i.isUnconfirmedUrgent);
 
+  /// 문의 탭의 한 칸에 보일 문의(specs/004 FR-029). 불러온 페이지 안에서 나눈다(FR-031).
+  List<TeacherInquirySummary> itemsOf(InquiryTab tab) => [
+    for (final i in items)
+      if (i.needsAnswer == (tab == InquiryTab.waiting)) i,
+  ];
+
   TeacherInquiriesState copyWith({
     bool? isLoadingMore,
     String? Function()? loadMoreError,
@@ -126,6 +132,21 @@ class TeacherInquiriesViewModel extends AsyncNotifier<TeacherInquiriesState> {
     }
   }
 }
+
+/// 문의 탭 위 두 칸(Figma `SegmentTabs` 351-1866).
+enum InquiryTab { waiting, answered }
+
+/// 지금 고른 칸. 처음에는 답변 대기(specs/004 FR-028).
+class InquiryTabController extends Notifier<InquiryTab> {
+  @override
+  InquiryTab build() => InquiryTab.waiting;
+
+  void select(InquiryTab tab) => state = tab;
+}
+
+final inquiryTabProvider = NotifierProvider.autoDispose<InquiryTabController, InquiryTab>(
+  InquiryTabController.new,
+);
 
 final teacherInquiriesViewModelProvider =
     AsyncNotifierProvider.autoDispose<

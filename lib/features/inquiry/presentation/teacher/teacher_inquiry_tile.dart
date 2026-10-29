@@ -12,8 +12,11 @@ class TeacherInquiryTile extends StatelessWidget {
 
   final TeacherInquirySummary item;
 
-  /// 긴급은 원문 상세(F3-5), 일반은 정리 상태별 상세(F3-2·F3-3·F3-3a, specs/003 FR-001).
-  static String pathOf(TeacherInquirySummary item) => item.urgent
+  /// 한 번이라도 답변한 문의는 스레드(F4-3, specs/004 FR-014 — 서버 `hasAnswer`로 판단).
+  /// 그 밖에 긴급은 원문 상세(F3-5), 일반은 정리 상태별 상세(F3-2·F3-3·F3-3a, specs/003 FR-001).
+  static String pathOf(TeacherInquirySummary item) => item.hasAnswer
+      ? '/teacher/inquiries/${item.inquiryId}/thread'
+      : item.urgent
       ? '/teacher/inquiries/${item.inquiryId}/urgent'
       : '/teacher/inquiries/${item.inquiryId}/general';
 
@@ -27,32 +30,46 @@ class TeacherInquiryTile extends StatelessWidget {
           vertical: AppSpacing.xs,
         ),
         title: Text(item.title, style: AppTextStyles.subtitle),
-        subtitle: Text(
-          '${item.studentName} · ${formatDateTime(item.submittedAt)} · '
-          '${NoticeText.stage(item.displayStage)}',
-        ),
-        trailing: item.urgent ? const _UrgentBadge() : null,
+        subtitle: Text('${item.studentName} · ${_status(item)}'),
+        trailing: item.urgent
+            ? const _Badge('긴급', background: AppColors.statusUrgent, foreground: AppColors.textInverse)
+            : item.hasNewFollowUp
+            ? const _Badge('재문의', background: AppColors.statusInfoSoft, foreground: AppColors.statusInfo)
+            : null,
         onTap: () => context.push(pathOf(item)),
       ),
     );
   }
+
+  /// 부제 뒷부분(specs/004 FR-030, Figma F3-1·F3-1b). 학부모 정보는 넣지 않는다.
+  static String _status(TeacherInquirySummary item) {
+    final answeredAt = item.lastAnsweredAt;
+    if (item.hasNewFollowUp) {
+      return '재문의 받음 · ${formatDateTime(item.lastFollowUpAt ?? item.submittedAt)}';
+    }
+    if (!item.needsAnswer && answeredAt != null) {
+      return '답변 완료 · ${formatDateTime(answeredAt)} 답변';
+    }
+    return '${formatDateTime(item.submittedAt)} · ${NoticeText.stage(item.displayStage)}';
+  }
 }
 
-class _UrgentBadge extends StatelessWidget {
-  const _UrgentBadge();
+class _Badge extends StatelessWidget {
+  const _Badge(this.text, {required this.background, required this.foreground});
+
+  final String text;
+  final Color background;
+  final Color foreground;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.statusUrgent,
+        color: background,
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
-      child: Text(
-        '긴급',
-        style: AppTextStyles.label.copyWith(color: AppColors.textInverse),
-      ),
+      child: Text(text, style: AppTextStyles.label.copyWith(color: foreground)),
     );
   }
 }

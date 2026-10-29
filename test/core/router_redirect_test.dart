@@ -43,6 +43,9 @@ const _rolePaths = {
     '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/urgent',
     '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/general',
     '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/content',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/answer',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/thread',
+    '/teacher/inquiries/9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a/follow-ups/1f0e9d8c-7b6a-4d3c-8b2a-9d8c7b6a5f4e',
     '/teacher/settings/notifications',
   ],
   Role.superAdmin: [

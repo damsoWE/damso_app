@@ -217,7 +217,9 @@ class TeacherInquirySummary {
     required this.submittedAt,
     required this.hasAnswer,
     required this.lastAnsweredAt,
-  });
+    bool? needsAnswer,
+    this.lastFollowUpAt,
+  }) : needsAnswer = needsAnswer ?? !hasAnswer;
 
   final String inquiryId;
   final String studentId;
@@ -235,6 +237,16 @@ class TeacherInquirySummary {
 
   /// 스레드의 마지막 답변 시각(이전 담임의 답변 포함). 답변이 없으면 null.
   final DateTime? lastAnsweredAt;
+
+  /// "답변 대기" 칸에 둘지(specs/004 FR-029): 답변이 없거나 마지막 답변 뒤 재문의가 있다.
+  /// 서버 목록에 아직 이 값이 없어 실서버는 `!hasAnswer`로 채운다(FR-031).
+  final bool needsAnswer;
+
+  /// 마지막 재문의 시각("재문의 받음" 표시). 서버 목록에 아직 없어 실서버는 null.
+  final DateTime? lastFollowUpAt;
+
+  /// 답변한 뒤 재문의가 와서 다시 답변 대기로 돌아온 문의.
+  bool get hasNewFollowUp => hasAnswer && needsAnswer;
 
   /// 화면에 보일 단계. 답변이 있으면 "답변 완료"(api-v0.7, [ParentInquirySummary.displayStage]와 같음).
   InquiryStage get displayStage => hasAnswer ? InquiryStage.answered : stage;
@@ -266,6 +278,8 @@ class TeacherInquiryDetail {
     required this.summary,
     required this.timeline,
     required this.retryAvailable,
+    this.followUps = const [],
+    this.answers = const [],
   });
 
   final TeacherInquirySummary summary;
@@ -273,6 +287,52 @@ class TeacherInquiryDetail {
 
   /// "원문 확인 필요"이고 교사 재시도(1건당 1회)를 아직 쓰지 않았으면 true.
   final bool retryAvailable;
+
+  /// 이 스레드의 재문의(시간순, specs/004). 본문은 없다.
+  final List<TeacherFollowUp> followUps;
+
+  /// 이 스레드의 답변(시간순, specs/004). 교사 자신이 보낸 것.
+  final List<SentAnswer> answers;
+
+  /// 답변을 한 번 이상 보냈는지(문의 열기가 스레드로 보낼지 정한다, specs/004 research R3).
+  bool get hasAnswers => answers.isNotEmpty;
+}
+
+/// 스레드의 재문의 하나(원본 명세 `TeacherFollowUpView`). 본문은 없고, 정리 결과는
+/// 재문의 자신의 ID로 번역본을 따로 연다(specs/004 research R13).
+class TeacherFollowUp {
+  const TeacherFollowUp({
+    required this.inquiryId,
+    required this.urgent,
+    required this.title,
+    required this.stage,
+    required this.submittedAt,
+  });
+
+  final String inquiryId;
+  final bool urgent;
+  final String title;
+  final InquiryStage stage;
+  final DateTime submittedAt;
+}
+
+/// 스레드의 답변 하나(원본 명세 `AnswerView`). 수정·삭제할 수 없다(원칙 III).
+class SentAnswer {
+  const SentAnswer({
+    required this.answerId,
+    required this.content,
+    required this.reviewed,
+    required this.sentAt,
+  });
+
+  final String answerId;
+
+  /// 교사 자신이 쓴 본문. 일반 Text 로만 그리고 로그에 남기지 않는다(원칙 VI).
+  final String content;
+
+  /// 전송 전에 점검을 요청했는지일 뿐, "안전 확인됨"이 아니다(specs/004 FR-014).
+  final bool reviewed;
+  final DateTime sentAt;
 }
 
 /// 정서강도 3단계(specs/003 data-model). 모르는 값은 null 로 버린다(research R8).

@@ -91,16 +91,20 @@ Figma 프로토타입 탭에서 아래 흐름을 골라 재생하면 화면 이�
 | [F4-2f](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5493) | 점검 실패 · 작성 내용 보존 | 다시 점검 → F4-2b · 직접 확인 후 전송 → F4-2g |
 | [F4-2g](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5505) | 답변 전송 중 (로딩) | 완료 시 → F4-3 (실패면 F4-2h) |
 | [F4-2h](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5520) | 전송 실패 · 다시 보내기 | 다시 보내기 → F4-2g · 답변 수정 → F4-2d |
-| [F4-3](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5533) | 답변 전송 완료 · 스레드 | 답변 완료로 닫기 → F4-3a · 문의 목록으로 → F3-1 |
-| [F4-3a](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1800) | 답변 완료로 닫음 | 문의 목록으로 → F3-1 |
+| [F4-3](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=315-1789) | 답변 전송 완료 · 스레드 | 최초 문의 카드 원문 보기 → F3-6 · 문의 목록으로 → F3-1 |
+| [F4-3 · 재문의](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=315-1822) | 재문의가 있는 스레드 | 재문의 카드 → F4-3b · 문의 목록으로 → F3-1 |
+| [F4-3b](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=323-1843) | 재문의 상세 (F3-2 배치, "… - 재문의") | 원문 보기 → F3-6 (재문의) · 답변 작성 → F4-2a (전송 뒤 스레드로) |
+| [F3-6 · 재문의](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=323-1863) | 재문의 원문 열람 | 문의 상세로 → F4-3b · 답변 작성 → F4-2a |
+| F4-3a | 답변 완료로 닫음 — **쓰지 않음** (spec 004 FR-017, Figma에서 삭제). 앱에는 닫기 기능이 없다 | — |
 
 ### 04 · 교사 — 문의 확인·연결 관리 ([섹션](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5564))
 
 | ID | 화면 | 주요 이동 |
 |---|---|---|
-| [F3-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5567) | 교사 홈 | 긴급 카드 → F3-5 · 문의 카드 → F3-2 / F3-3 · 문의 목록 보기 → F3-1 · 🔔 → F3-11 |
+| [F3-4](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5567) | 교사 홈 | 긴급 카드 → F3-5 · 문의 카드 → F3-2 / F3-3 (답변한 문의 → F4-3) · 문의 목록 보기 → F3-1 · 🔔 → F3-11 |
 | [F3-11](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=225-1833) | 알림 목록 (교사) | 알림 → F3-5 / F3-2 |
-| [F3-1](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5587) | 문의 목록 · 회신 우선도 | 긴급 → F3-5 · 일반 → F3-2 · 원문 확인 필요 → F3-3 |
+| [F3-1](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5587) | 문의 목록 · 답변 대기 | [답변 대기 \| 답변 완료] 전환 → F3-1b · 긴급 → F3-5 · 일반 → F3-2 · 원문 확인 필요 → F3-3 |
+| [F3-1b](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=352-1856) | 문의 목록 · 답변 완료 (답변이 1건 이상 있는 문의, 재문의가 와도 여기 남음 — spec 004 FR-031) | 답변한 문의 → F4-3 · 답변 대기 → F3-1 |
 | [F3-5](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=224-1245) | 긴급 문의 상세 (원문 그대로) | 답변 작성 → F4-2a |
 | [F3-2](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5607) | 문의 상세 (정리본) | 원문 보기 → F3-6 · 답변 작성 → F4-2a |
 | [F3-3](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=216-5627) | 원문 확인 필요 (정리 실패) | 원문 보기 → F3-6 · 다시 정리하기(1회) → F3-3a · 답변 작성 → F4-2a |
@@ -148,11 +152,12 @@ Figma 프로토타입 탭에서 아래 흐름을 골라 재생하면 화면 이�
 | 긴급 표시 | F2-3 · F2-3b · F2-3c · F2-3d (학부모) · F3-5 (교사) |
 | 원문 확인 필요 | F3-3 → 다시 정리하기 1회 → F3-3a |
 | 실패 후 재시도 | F4-2f 점검 실패 · F4-2h 전송 실패 |
-| 종료된 문의 | F4-1b (학부모) · F4-3a (교사) |
+| 종료된 문의 | F4-1b (학부모) · 교사 F4-3a는 쓰지 않음 (spec 004 FR-017) |
 | 1회만 보이는 값 | ADM-3 · ADM-3t 초대코드 발행 완료 |
 
 ## 아직 정해지지 않은 것
 
 - C-7 약관·C-8 회원 탈퇴 문구는 임시 문안이다. 탈퇴 시 계정 정보 처리는 백엔드 `docs/features.md` F1 미정 항목.
-- 교사가 대화를 닫는 행동의 이름("답변 완료")과 답변을 보낸 상태의 태그("답변 완료")가 겹친다. 닫은 상태 태그는 임시로 "종료".
+- ~~교사가 대화를 닫는 행동의 이름("답변 완료")과 답변을 보낸 상태의 태그("답변 완료")가 겹친다.~~ → 해결: 앱에 닫기 기능을 두지 않는다(spec 004 FR-017). "답변 완료"는 답변을 보냈다는 표시로만 쓴다.
+- 답변한 문의에 재문의가 오면 답변 대기로 돌려보내는 동작은 서버 목록에 재문의 시각이 생긴 뒤 켠다(백엔드 damsoWE/damso_server#28, spec 004 FR-031).
 - 로그인 응답에 역할 필드를 별도로 넣을지는 백엔드 F1 plan에서 정한다.

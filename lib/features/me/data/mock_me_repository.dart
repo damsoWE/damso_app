@@ -21,6 +21,7 @@ class MockMeRepository implements MeRepository {
     'refresh': ('정학부모', 'refresh@damso.test', Role.parent),
     'teacher': ('이담임', 'teacher@damso.test', Role.teacher),
     'noclass': ('한교사', 'noclass@damso.test', Role.teacher),
+    'refresh-teacher': ('정담임', 'refresh-teacher@damso.test', Role.teacher),
     'admin': ('학교 관리자', 'admin@damso.test', Role.superAdmin),
     'signup-parent': ('가입한 학부모', 'signup@damso.test', Role.parent),
     'signup-teacher': ('가입한 교사', 'signup@damso.test', Role.teacher),

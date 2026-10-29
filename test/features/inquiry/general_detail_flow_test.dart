@@ -45,12 +45,12 @@ void main() {
       .firstWhere((t) => t.$1 == title && t.$2.startsWith(student))
       .$2;
 
-  /// 학부모 정보·답변 작성·준비 중이 화면에 없다(FR-019·023, SC-006·008).
+  /// 학부모 정보·준비 중이 화면에 없다(FR-019, SC-006·008). "답변 작성" 버튼은
+  /// F4(specs/004 FR-002)가 F3-2·F3-3·F3-6 하단에 더했으므로 여기서는 검사하지 않는다.
   void expectClean(WidgetTester tester) {
     final texts = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? '');
     expect(texts.where((t) => t.contains('@')), isEmpty);
     expect(texts.where((t) => t.contains('학부모')), isEmpty);
-    expect(find.text('답변 작성'), findsNothing);
     expect(find.text('정리된 내용과 원문 보기는 준비 중입니다.'), findsNothing); // F2 자리 문구
   }
 

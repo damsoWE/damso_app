@@ -154,6 +154,9 @@ void main() {
     expect(page.items.single.refinementStatus, RefinementStatus.pending);
     expect(page.items.single.hasAnswer, isFalse);
     expect(page.items.single.lastAnsweredAt, isNull);
+    // 답변 대기 여부는 서버 목록에 아직 없어 hasAnswer 로만 정한다(specs/004 FR-031).
+    expect(page.items.single.needsAnswer, isTrue);
+    expect(page.items.single.lastFollowUpAt, isNull);
     expect(page.hasMore, isTrue);
   });
 
@@ -352,5 +355,69 @@ void main() {
         );
       });
     }
+  });
+  group('F4 상세 (specs/004)', () {
+    Map<String, dynamic> detailBody({Object? followUps, Object? answers, String fuStage = 'REFINING'}) => {
+      'inquiryId': _id,
+      'studentId': _student,
+      'studentName': '김하나',
+      'urgent': false,
+      'title': '친구 관계 관련 문의',
+      'stage': 'TEACHER_CONFIRMED',
+      'refinementStatus': 'REFINED',
+      'retryAvailable': false,
+      'threatFlagged': true,
+      'submittedAt': '2026-10-27T09:00:00Z',
+      'timeline': [
+        {'stage': 'RECEIVED', 'occurredAt': '2026-10-27T09:00:00Z'},
+      ],
+      'followUps': followUps ?? [
+        {
+          'inquiryId': 'f0000000-0000-4000-8000-000000000001',
+          'urgent': false,
+          'title': '중간 안내 요청',
+          'stage': fuStage,
+          'threatFlagged': false,
+          'submittedAt': '2026-10-28T09:10:00Z',
+        },
+      ],
+      'answers': answers ?? [
+        {
+          'answerId': 'e0000000-0000-4000-8000-000000000001',
+          'content': '확인 후 안내드리겠습니다.',
+          'reviewed': true,
+          'sentAt': '2026-10-27T14:05:00Z',
+        },
+      ],
+    };
+
+    test('재문의·답변을 시간순 그대로 해석한다(threatFlagged 는 무시)', () async {
+      adapter.respond = (_) => _json(200, detailBody());
+      final d = await TeacherInquiryRepositoryImpl(dio).detail(_id);
+
+      expect(d.followUps.single.inquiryId, 'f0000000-0000-4000-8000-000000000001');
+      expect(d.followUps.single.stage, InquiryStage.refined);
+      expect(d.followUps.single.submittedAt, DateTime.parse('2026-10-28T09:10:00Z'));
+      expect(d.answers.single.content, '확인 후 안내드리겠습니다.');
+      expect(d.answers.single.reviewed, isTrue);
+      expect(d.hasAnswers, isTrue);
+    });
+
+    test('빈 목록이면 빈 목록', () async {
+      adapter.respond = (_) => _json(200, detailBody(followUps: [], answers: []));
+      final d = await TeacherInquiryRepositoryImpl(dio).detail(_id);
+      expect(d.followUps, isEmpty);
+      expect(d.hasAnswers, isFalse);
+    });
+
+    test('재문의 단계가 모르는 값이면 일반 안내(AppException)', () async {
+      adapter.respond = (_) => _json(200, detailBody(fuStage: 'UNKNOWN'));
+      await expectLater(
+        TeacherInquiryRepositoryImpl(dio).detail(_id),
+        throwsA(
+          isA<AppException>().having((e) => e.message, 'message', AppException.fallbackMessage),
+        ),
+      );
+    });
   });
 }
