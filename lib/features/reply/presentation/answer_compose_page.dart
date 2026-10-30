@@ -181,6 +181,10 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
             _ReadOnlyText(s.text),
             const SizedBox(height: AppSpacing.md),
             const SystemNotice(AnswerText.noSuggestion, icon: Icons.check_circle_outline),
+            if (!review.contextUsed) ...[
+              const SizedBox(height: AppSpacing.ms),
+              const _Hint(AnswerText.contextNotUsed),
+            ],
           ]
         : [
             _Badge(
@@ -205,6 +209,10 @@ class _AnswerComposePageState extends ConsumerState<AnswerComposePage> {
             ],
             const SizedBox(height: AppSpacing.md),
             _Hint(applied.isEmpty ? AnswerText.resultHint : AnswerText.appliedHint),
+            if (!review.contextUsed) ...[
+              const SizedBox(height: AppSpacing.ms),
+              const _Hint(AnswerText.contextNotUsed),
+            ],
           ],
     ReviewFailed() => [
       const _Label(AnswerText.writtenLabel),
