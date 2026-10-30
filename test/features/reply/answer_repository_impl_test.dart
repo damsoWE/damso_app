@@ -53,6 +53,7 @@ void main() {
   test('점검: /answer-reviews 에 content 를 보내고 제안을 해석한다', () async {
     adapter.respond = (_) => _json(200, {
       'available': true,
+      'contextUsed': true,
       'highlights': [
         {'excerpt': '문장 하나', 'reason': '이유 하나', 'suggestion': '제안 하나'},
         {'excerpt': '문장 둘', 'reason': '이유 둘', 'suggestion': '제안 둘'},
@@ -65,15 +66,17 @@ void main() {
     expect(req.path, '/api/v1/teacher/inquiries/$_id/answer-reviews');
     expect(req.data, {'content': '본문'});
     expect(r.available, isTrue);
+    expect(r.contextUsed, isTrue);
     expect(r.highlights.map((h) => h.excerpt), ['문장 하나', '문장 둘']);
     expect(r.highlights.first.reason, '이유 하나');
     expect(r.highlights.first.suggestion, '제안 하나');
   });
 
   test('점검 불가는 오류가 아니라 available=false', () async {
-    adapter.respond = (_) => _json(200, {'available': false, 'highlights': []});
+    adapter.respond = (_) => _json(200, {'available': false, 'contextUsed': false, 'highlights': []});
     final r = await repo.review(_id, '본문');
     expect(r.available, isFalse);
+    expect(r.contextUsed, isFalse);
     expect(r.highlights, isEmpty);
   });
 

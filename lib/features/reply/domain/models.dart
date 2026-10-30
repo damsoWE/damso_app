@@ -23,9 +23,17 @@ class Highlight {
 
 /// 점검 결과(원본 명세 `AnswerReviewResult`). [available] 이 false 면 [highlights] 는 무시한다.
 class AnswerReview {
-  const AnswerReview({required this.available, required this.highlights});
+  const AnswerReview({
+    required this.available,
+    required this.contextUsed,
+    required this.highlights,
+  });
 
   final bool available;
+
+  /// 문의 정리 결과를 맥락으로 넣어 점검했는지(api-v0.12). false 면 답변 문장만 점검했고
+  /// 근거 누락은 판단하지 않았다(긴급 문의·정리 실패). [available] 이 false 면 항상 false.
+  final bool contextUsed;
   final List<Highlight> highlights;
 }
 

@@ -465,6 +465,13 @@ void main() {
       expect(none.highlights, isEmpty);
     });
 
+    test('점검 맥락: 정리된 문의면 contextUsed, 긴급·점검 실패면 아니다(api-v0.12)', () {
+      const urgent = 'a1000000-0000-4000-8000-000000000001';
+      expect(store.reviewAnswerForTeacher(fresh, '확인하겠습니다.').contextUsed, isTrue);
+      expect(store.reviewAnswerForTeacher(urgent, '확인하겠습니다.').contextUsed, isFalse);
+      expect(store.reviewAnswerForTeacher(fresh, '점검실패 데모').contextUsed, isFalse);
+    });
+
     test('본문에 "전송실패"면 연결 오류, 답변은 늘지 않는다', () {
       expect(
         () => store.sendAnswerForTeacher(

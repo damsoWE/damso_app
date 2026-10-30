@@ -286,14 +286,28 @@ class MockInquiryStore {
 
   /// 답변 점검(원본 명세 requestAnswerReview, specs/004 research R11). 본문 단어로 결과를 고른다:
   /// `점검실패` → 점검 불가, `큰 문제는 아니` → Figma F4-2c 의 제안 2개, 그 밖 → 제안 없음.
-  ({bool available, List<({String excerpt, String reason, String suggestion})> highlights})
+  /// 맥락은 가장 최근 재문의(없으면 루트)의 정리 결과다. 없으면(긴급·정리 실패) contextUsed=false(api-v0.12).
+  ({
+    bool available,
+    bool contextUsed,
+    List<({String excerpt, String reason, String suggestion})> highlights,
+  })
   reviewAnswerForTeacher(String inquiryId, String content) {
-    _find(inquiryId, _inTeacherClass);
+    final i = _find(inquiryId, _inTeacherClass);
     _checkAnswerContent(content);
-    if (content.contains('점검실패')) return (available: false, highlights: const []);
-    if (!content.contains('큰 문제는 아니')) return (available: true, highlights: const []);
+    if (content.contains('점검실패')) {
+      return (available: false, contextUsed: false, highlights: const []);
+    }
+    final latest = i.followUps.isEmpty ? null : i.followUps.last;
+    final contextUsed = latest != null
+        ? latest.refinement != null
+        : i.refinementStatus == RefinementStatus.refined && i.refinement != null;
+    if (!content.contains('큰 문제는 아니')) {
+      return (available: true, contextUsed: contextUsed, highlights: const []);
+    }
     return (
       available: true,
+      contextUsed: contextUsed,
       highlights: const [
         (
           excerpt: '어제 일은 확인해 보니 큰 문제는 아니었습니다.',
