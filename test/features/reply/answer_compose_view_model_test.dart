@@ -23,6 +23,7 @@ const _figmaText = '어제 일은 확인해 보니 큰 문제는 아니었습니
 
 const _twoSuggestions = AnswerReview(
   available: true,
+  contextUsed: true,
   highlights: [
     Highlight(
       excerpt: '어제 일은 확인해 보니 큰 문제는 아니었습니다.',
@@ -524,13 +525,13 @@ void main() {
       repo.reviewResult = () => gate.future;
       final again = vm().review();
       expect(s().step, isA<Reviewing>());
-      gate.complete(const AnswerReview(available: true, highlights: []));
+      gate.complete(const AnswerReview(available: true, contextUsed: true, highlights: []));
       await again;
       expect(repo.reviews, hasLength(2));
     });
 
     test('제안 0개 → Reviewed(빈 제안) = 제안 없음', () async {
-      repo.reviewResult = () => const AnswerReview(available: true, highlights: []);
+      repo.reviewResult = () => const AnswerReview(available: true, contextUsed: true, highlights: []);
       vm().updateText('확인하겠습니다.');
       await vm().review();
       expect((s().step as Reviewed).review.highlights, isEmpty);
@@ -544,6 +545,7 @@ void main() {
     test('available false 면 제안이 와도 ReviewFailed, 본문 그대로', () async {
       repo.reviewResult = () => AnswerReview(
         available: false,
+        contextUsed: false,
         highlights: _twoSuggestions.highlights,
       );
       vm().updateText(_figmaText);
@@ -584,7 +586,7 @@ void main() {
       repo.reviewResult = () {
         if (first) {
           first = false;
-          return const AnswerReview(available: false, highlights: []);
+          return const AnswerReview(available: false, contextUsed: false, highlights: []);
         }
         return gate.future;
       };
@@ -592,7 +594,7 @@ void main() {
       await vm().review();
       final again = vm().review();
       expect(s().step, isA<Reviewing>());
-      gate.complete(const AnswerReview(available: false, highlights: []));
+      gate.complete(const AnswerReview(available: false, contextUsed: false, highlights: []));
       await again;
       expect(s().step, isA<ReviewFailed>());
 

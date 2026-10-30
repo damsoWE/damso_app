@@ -4,7 +4,7 @@ import '../../../core/error/app_exception.dart';
 import '../domain/answer_repository.dart';
 import '../domain/models.dart';
 
-/// 실서버 구현. 경로는 앱 사본 api-v0.6(specs/004 contracts/api-usage.md), 전송 본문은 api-v0.11.
+/// 실서버 구현. 경로는 앱 사본 api-v0.6(specs/004 contracts/api-usage.md), 전송 본문은 api-v0.11, 점검 응답은 api-v0.12.
 class AnswerRepositoryImpl implements AnswerRepository {
   AnswerRepositoryImpl(this._dio);
 
@@ -20,6 +20,7 @@ class AnswerRepositoryImpl implements AnswerRepository {
       final j = res.data!;
       return AnswerReview(
         available: j['available'] as bool,
+        contextUsed: j['contextUsed'] as bool,
         highlights: [
           for (final h in (j['highlights'] as List).cast<Map<String, dynamic>>())
             Highlight(

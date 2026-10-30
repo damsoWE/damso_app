@@ -36,6 +36,7 @@ class MockAnswerRepository implements AnswerRepository {
     final r = _store.reviewAnswerForTeacher(inquiryId, content);
     return AnswerReview(
       available: r.available,
+      contextUsed: r.contextUsed,
       highlights: [
         for (final h in r.highlights)
           Highlight(excerpt: h.excerpt, reason: h.reason, suggestion: h.suggestion),

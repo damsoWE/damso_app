@@ -33,6 +33,10 @@ abstract final class AnswerText {
   static const noSuggestionBadge = '점검 완료';
   static const noSuggestion = '추가로 제안할 내용이 없어요. 보내기 전에 한 번 더 확인해 주세요.';
 
+  /// contextUsed=false(api-v0.12). 정리된 문의가 없어 답변 문장만 점검했다.
+  static const contextNotUsed =
+      '정리된 문의 내용이 없어 답변 문장만 점검했어요. 요청사항에 빠진 내용이 없는지 직접 확인해 주세요.';
+
   static String suggestionCount(int n) => '확인할 제안 $n개';
   static String appliedCount(int n) => '제안 $n개 적용함';
 
